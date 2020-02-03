@@ -16,7 +16,7 @@ class Logger():
         metric.reset_states()
 
 
-class Model(tf.keras.Model):
+class NeuralNetwork(tf.keras.Model):
     def __init__(self, n_inputs, layer_sizes, n_outputs):
         super().__init__()
 
@@ -36,13 +36,17 @@ class Model(tf.keras.Model):
 
 
 class Trainer:
-    def __init__(self, attacker_model, defender_model, \
+    def __init__(self, world_model, robustness_computer, \
+                attacker_nn, defender_nn, \
                 attacker_loss_fn, defender_loss_fn, \
                 attacker_optimizer, defender_optimizer, \
                 working_dir, logging=False):
 
-        self.attacker = attacker_model
-        self.defender = defender_model
+        self.model = world_model
+        self.quantitative_semantic = quantitative_semantic
+
+        self.attacker = attacker_nn
+        self.defender = defender_nn
         self.attacker_loss_fn = attacker_loss_fn
         self.defender_loss_fn = defender_loss_fn
         self.attacker_optimizer = attacker_optimizer
@@ -117,8 +121,8 @@ TARGET = 10
 
 #tf.autograph.set_verbosity(1)
 
-attacker = Model(2, [4], 1)
-defender = Model(2, [4], 1)
+attacker = NeuralNetwork(2, [4], 1)
+defender = NeuralNetwork(2, [4], 1)
 optimizer = tf.keras.optimizers.Adam(1e-4)
 loss = tf.keras.losses.MeanSquaredError()
 
