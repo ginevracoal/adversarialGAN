@@ -1,4 +1,5 @@
 import template
+import convlogic
 import numpy as np
 
 class Car:
@@ -87,6 +88,10 @@ class Model:
         self.environment.set_agent(self.agent)
 
         self._time = 0
+        self.traces = {
+            'time': [0],
+            'dist': [self.agent.distance],
+        }
         self._records = []
 
     def save(self):
@@ -119,10 +124,24 @@ class Model:
 
         # status of the system, env and agent params should be recorded
         self._time += dt
+        self.traces['time'].append(self._time)
+        self.traces['time'].append(self.agent.distance)
+
         status = (self._time, self.environment.l_position, \
                 self.agent.position, self.agent.distance)
         self._records.append(status)
 
     def get_records(self):
         return np.array(self._records).T
+
+
+class RobustnessComputer:
+    def __init__(self, formula):
+        self.qs = convlogic.QuantitativeSemantic(formula)
+
+    def compute(self, model, start_index=0):
+        t = np.array(model.traces['time'][start_index:])
+        d = np.array(model.traces['dist'][start_index:])
+
+        return self.qs.check(t, dist=d)
         
