@@ -22,51 +22,58 @@ class Environment(template.Environment):
         self._leader_car = Car()
         self._max_acceleration = 10
 
-        self.l_position = self._leader_car.position
-        self.l_velocity = self._leader_car.velocity
-        
-        self.l_pedal = None
+    @property
+    def l_position(self):
+        return self._leader_car.position
 
-    def reset(self, initial_parameters=None):
-        if not initial_parameters:
-            self.update([0], 0)
-        else:
-            pos, vel = initial_parameters
-            self.l_position = pos
-            self.l_velocity = vel
+    @l_position.setter
+    def l_position(self, value):
+        self._leader_car.position = value
+
+    @property
+    def l_velocity(self):
+        return self._leader_car.velocity
+
+    @l_velocity.setter
+    def l_velocity(self, value):
+        self._leader_car.velocity = value
 
     def update(self, parameters, dt):
         # the environment updates according to the parameters
-        self.l_pedal = parameters[0]
-        self._leader_car.update(self.l_pedal * self._max_acceleration, dt)
-        self.l_position = self._leader_car.position
+        pedal = parameters[0]
+        self._leader_car.update(pedal * self._max_acceleration, dt)
+
 
 class Agent(template.Agent):
     def __init__(self):
         self._car = Car()
         self._max_acceleration = 10
 
-        self.position = self._car.position
-        self.velocity = self._car.velocity
-        self.distance = None
-        
-        self.pedal = None
+    @property
+    def position(self):
+        return self._car.position
 
-    def reset(self, initial_parameters=None):
-        if not initial_parameters:
-            self.update([0], 0)
-        else:
-            pos, vel = initial_parameters
-            self.l_position = pos
-            self.l_velocity = vel
+    @position.setter
+    def position(self, value):
+        self._car.position = value
+
+    @property
+    def velocity(self):
+        return self._car.velocity
+
+    @velocity.setter
+    def velocity(self, value):
+        self._car.velocity = value
+
+    @property
+    def distance(self):
+        return self._environment.l_position - self._car.position
 
     def update(self, parameters, dt):
         # the action take place and updates the variables
-        self.pedal = parameters[0]
-        self._car.update(self.pedal * self._max_acceleration, dt)
-        self.position = self._car.position
-        
-        self.distance = self._environment.l_position - self.position
+        pedal = parameters[0]
+        self._car.update(pedal * self._max_acceleration, dt)
+
 
 class Model:
     
@@ -78,9 +85,6 @@ class Model:
 
         self.agent.set_environment(self.environment)
         self.environment.set_agent(self.agent)
-
-        self.agent.reset()
-        self.environment.reset()
 
         self._time = 0
         self._records = []
