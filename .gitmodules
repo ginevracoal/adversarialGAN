@@ -1,0 +1,3 @@
+[submodule "src/convlogic"]
+	path = src/convlogic
+	url = https://github.com/ffranchina/convlogic.git
