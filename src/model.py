@@ -125,7 +125,7 @@ class Model:
         # status of the system, env and agent params should be recorded
         self._time += dt
         self.traces['time'].append(self._time)
-        self.traces['time'].append(self.agent.distance)
+        self.traces['dist'].append(self.agent.distance)
 
         status = (self._time, self.environment.l_position, \
                 self.agent.position, self.agent.distance)
