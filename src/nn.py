@@ -52,10 +52,10 @@ class Trainer:
         self.attacker_optimizer = attacker_optimizer
         self.defender_optimizer = defender_optimizer
 
-        self.checkpoint_path = os.path.join(working_dir, 'ckpt')
-        self.checkpoint = tf.train.Checkpoint(attacker=attacker, defender=defender, \
-                                            attacker_optimizer=attacker_optimizer, \
-                                            defender_optimizer=defender_optimizer)
+        #self.checkpoint_path = os.path.join(working_dir, 'ckpt')
+        #self.checkpoint = tf.train.Checkpoint(attacker=attacker, defender=defender, \
+        #                                    attacker_optimizer=attacker_optimizer, \
+        #                                    defender_optimizer=defender_optimizer)
 
         self.logger = Logger(working_dir) if logging else None
         
@@ -147,8 +147,8 @@ class Trainer:
         for i in epochs:
             self.train(n_episodes, n_steps, simulation_horizon, dt)
             
-            if (i + 1) % 10:
-                self.checkpoint.save(file_prefix=self.checkpoint_path)
+            #if (i + 1) % 10:
+            #    self.checkpoint.save(file_prefix=self.checkpoint_path)
             
             if self.logger:
                 pass #log rho
