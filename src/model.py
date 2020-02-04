@@ -1,5 +1,6 @@
 import template
 import convlogic
+import json
 import numpy as np
 
 class Car:
@@ -103,6 +104,9 @@ class Model:
             'environment': {key: getattr(self.environment, key)
                 for key, prop in vars(self.environment.__class__).items()
                 if isinstance(prop, property) and prop.fset != None},
+
+            'traces': json.dumps(self.traces),
+            'time': self._time
         }
 
     def restore(self, config):
@@ -111,6 +115,10 @@ class Model:
 
         _ = [setattr(self.environment, key, value)
             for key, value in config['environment'].items()]
+
+        self.traces = json.loads(config['traces'])
+
+        self._time = config['time']
 
 
     def step(self, env_input, agent_input, dt):
