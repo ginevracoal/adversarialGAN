@@ -10,7 +10,7 @@ def test_constant_zero_dist():
     # 10 steps, both accelerate constantly of 1
     commands = np.ones((10, 2))
 
-    for ag, env in commands:
+    for env, ag in commands:
         m.step([ag], [env], 0.1)
 
     dist = m.traces['dist']
@@ -24,12 +24,12 @@ def test_save_restore_config():
     # 10 steps, both accelerate constantly of 1
     commands = np.ones((10, 2))
 
-    for ag, env in commands:
+    for env, ag in commands:
         m.step([ag], [env], 0.1)
 
     c = m.save()
 
-    for ag, env in commands:
+    for env, ag in commands:
         m.step([ag], [env], 0.1)
 
     new_c = m.save()
