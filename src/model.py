@@ -40,6 +40,9 @@ class Environment(template.Environment):
     def l_velocity(self, value):
         self._leader_car.velocity = value
 
+    def get_status(self):
+        return np.array([self.l_velocity, self._agent.distance])
+
     def update(self, parameters, dt):
         # the environment updates according to the parameters
         pedal = parameters[0]
@@ -70,6 +73,9 @@ class Agent(template.Agent):
     @property
     def distance(self):
         return self._environment.l_position - self._car.position
+
+    def get_status(self):
+        return np.array([self.velocity, self.distance])
 
     def update(self, parameters, dt):
         # the action take place and updates the variables
