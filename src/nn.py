@@ -43,7 +43,7 @@ class Trainer:
                 working_dir, logging=False):
 
         self.model = world_model
-        self.quantitative_semantic = quantitative_semantic
+        self.robustness_computer = robustness_computer
 
         self.attacker = attacker_nn
         self.defender = defender_nn
@@ -64,6 +64,7 @@ class Trainer:
             self.metric_rho = tf.keras.metrics.Mean()
 
     def train_step(self): #TODO
+        return
         with tf.GradientTape() as tape:
             # Get current predictions of network
             y_pred = self.model(np.array([[0,0]]), training=True)
@@ -80,18 +81,56 @@ class Trainer:
         
         #self.train_loss(loss)
 
-    def train(self, n_steps, n_episodes, simulation_horizon): #TODO
+    def simulate(self, atk_output, def_output, start_from, simulation_horizon, dt):
+        # project into the future (consider derivative in future)
+        atk_constant = np.ones((simulation_horizon, len(atk_output)))
+        atk_commands = atk_output * atk_constant
+        def_constant = np.ones((simulation_horizon, len(def_output)))
+        def_commands = def_output * def_constant
+
+        _ = [self.model.step(atk_move, def_move, dt)
+            for atk_move, def_move in zip(atk_commands, def_commands)]
+
+        return self.robustness_computer.compute(self.model, start_from)
+
+    def train(self, n_steps, n_episodes, simulation_horizon, dt):
         # generazione ambiente iniziale
         for i in range(n_steps):
-            # for episode
-                # selezione selta attaccante
-                # update modello (?)
-                # selezione scelta difensore
-                # simulazione h passi
-                
-            # training sul dataset
-            # scelta azione concreta
-            self.train_step(simulation_horizon)
+            base_config = self.model.save()
+
+            dataset = []
+
+            for _ in range(n_episodes):
+                # Tries to generate possible future moves
+                atk_input = self.model.environment.get_status()
+                def_input = self.model.agent.get_status()
+                # adding noise to the input?
+                # TODO
+                # generating output from scratch?
+                atk_output = self.attacker(atk_input)
+                def_output = self.defender(def_input)
+
+                # Evaluate the robustness of each choice
+                rho = self.simulate(atk_output, def_output, i, \
+                                    simulation_horizon, dt)
+
+                dataset.append((atk_input, def_input, rho))
+
+                self.model.restore(base_config)
+
+            # Training on the dataset just built on episodes
+            for atk_output, def_output, rho in dataset:
+                self.train_step(atk_output, def_output, rho, i, \
+                                simulation_horizon, dt)
+
+            atk_input = self.model.environment.get_status()
+            def_input = self.model.agent.get_status()
+
+            atk_output = self.attacker(atk_input)
+            def_output = self.defender(def_input)
+
+            # Applies the choice on the physical model
+            self.model.step(atk_output, def_output, dt)
 
     def test_step(self): #TODO
         self.test_loss(self.loss_function(y, self.model(x)))
@@ -100,11 +139,13 @@ class Trainer:
         for _ in range(n_steps):
             self.test_step()
 
-    def run(self, n_epochs, n_steps, n_episodes, simulation_horizon=100):
+    def run(self, n_epochs, n_steps, n_episodes, simulation_horizon=100, dt=0.05):
         epochs = tqdm(range(n_epochs)) if self.logger else range(n_epochs)
-        
+
+        initial_config = self.model.save()
+
         for i in epochs:
-            self.train(n_episodes, n_steps, simulation_horizon)
+            self.train(n_episodes, n_steps, simulation_horizon, dt)
             
             if (i + 1) % 10:
                 self.checkpoint.save(file_prefix=self.checkpoint_path)
@@ -112,26 +153,4 @@ class Trainer:
             if self.logger:
                 pass #log rho
 
-            
-
-EPISODES = 500
-EPOCHS = 1000
-
-TARGET = 10
-
-#tf.autograph.set_verbosity(1)
-
-attacker = NeuralNetwork(2, [4], 1)
-defender = NeuralNetwork(2, [4], 1)
-optimizer = tf.keras.optimizers.Adam(1e-4)
-loss = tf.keras.losses.MeanSquaredError()
-
-trainer = Trainer(attacker, defender, loss, loss, optimizer, optimizer, '/tmp/test_tf')
-
-#for i in tqdm(range(EPOCHS)):
-#    trainer.train()
-    #trainer.test(dataset)
-#    if i % 10 == 0:
-#        logger.write('loss', trainer.metric_loss, step=i)
-#        logger.write('acc', trainer.metric_acc, step=i)
-
+            self.model.restore(initial_config)
