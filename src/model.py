@@ -45,7 +45,7 @@ class Environment(template.Environment):
 
     def update(self, parameters, dt):
         # the environment updates according to the parameters
-        pedal = parameters[0]
+        pedal = float(parameters[0])
         self._leader_car.update(pedal * self._max_acceleration, dt)
 
 
@@ -79,7 +79,7 @@ class Agent(template.Agent):
 
     def update(self, parameters, dt):
         # the action take place and updates the variables
-        pedal = parameters[0]
+        pedal = float(parameters[0])
         self._car.update(pedal * self._max_acceleration, dt)
 
 
