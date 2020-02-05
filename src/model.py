@@ -5,10 +5,10 @@ import numpy as np
 
 class Car:
     def __init__(self):
-        self.mass = 1
-        self.position = 0
-        self.velocity = 0
-        self.acceleration = 0
+        self.mass = 1.0
+        self.position = 0.0
+        self.velocity = 0.0
+        self.acceleration = 0.0
         self.friction_coefficient = 0.1
 
     def update(self, in_acceleration, dt):
@@ -22,7 +22,7 @@ class Car:
 class Environment(template.Environment):
     def __init__(self):
         self._leader_car = Car()
-        self._max_acceleration = 10
+        self._max_acceleration = 10.0
 
     @property
     def l_position(self):
@@ -52,7 +52,7 @@ class Environment(template.Environment):
 class Agent(template.Agent):
     def __init__(self):
         self._car = Car()
-        self._max_acceleration = 10
+        self._max_acceleration = 10.0
 
     @property
     def position(self):
@@ -94,9 +94,9 @@ class Model:
         self.agent.set_environment(self.environment)
         self.environment.set_agent(self.agent)
 
-        self._time = 0
+        self._time = 0.0
         self.traces = {
-            'time': [0],
+            'time': [self._time],
             'dist': [self.agent.distance],
         }
         self._records = []
