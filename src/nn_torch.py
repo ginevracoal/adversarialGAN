@@ -116,12 +116,19 @@ class Trainer:
                 # Applies the choice on the physical model
                 self.model.step(atk_output, def_output, dt)
 
-    def test_step(self): #TODO
-        self.test_loss(self.loss_function(y, self.model(x)))
+    def test_step(self, dt):
+        with torch.no_grad():
+            atk_input = torch.rand(self.attacker.input_size)
+            def_input = torch.from_numpy(self.model.agent.get_status())
 
-    def test(self, n_steps): #TODO
+            atk_output = self.attacker(atk_input)
+            def_output = self.defender(def_input)
+
+            self.model.step(atk_output, def_output, dt)
+
+    def test(self, n_steps, dt):
         for _ in range(n_steps):
-            self.test_step()
+            self.test_step(dt)
 
     def run(self, n_epochs, n_steps, n_episodes, p_best, simulation_horizon=100, dt=0.05):
         initial_config = self.model.save()
@@ -130,3 +137,7 @@ class Trainer:
             self.train(n_steps, n_episodes, p_best, simulation_horizon, dt)
 
             self.model.restore(initial_config)
+
+        self.test(n_steps, dt)
+        test_rho = self.robustness_computer.compute(self.model)
+        print('Robustness during test:', test_rho)
