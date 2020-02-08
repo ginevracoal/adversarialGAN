@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 
@@ -25,7 +26,8 @@ class Trainer:
     def __init__(self, world_model, robustness_computer, \
                 attacker_nn, defender_nn, \
                 attacker_loss_fn, defender_loss_fn, \
-                attacker_optimizer, defender_optimizer):
+                attacker_optimizer, defender_optimizer, \
+                logging_dir=None):
 
         self.model = world_model
         self.robustness_computer = robustness_computer
@@ -36,6 +38,11 @@ class Trainer:
         self.defender_loss_fn = defender_loss_fn
         self.attacker_optimizer = attacker_optimizer
         self.defender_optimizer = defender_optimizer
+
+        self.logging = True if logging_dir else False
+
+        if self.logging:
+            self.log = SummaryWriter(logging_dir)
 
     def train_step(self, dataset, simulation_horizon, dt):
         atk_y, def_x, def_y = dataset
@@ -135,9 +142,19 @@ class Trainer:
 
         for i in tqdm(range(n_epochs)):
             self.train(n_steps, n_episodes, p_best, simulation_horizon, dt)
+            self.model.restore(initial_config)
+
+            self.test(n_steps, dt)
+            test_rho = self.robustness_computer.compute(self.model)
+
+            if self.logging:
+                self.log.add_scalar('robustness ρ', test_rho, i)
+                for key, series in self.model.traces.items():
+                    label = key + '_epoch_' + str(i)
+                    _ = [self.log.add_scalar(label, x, j)
+                        for j, x in enumerate(series)]
 
             self.model.restore(initial_config)
 
-        self.test(n_steps, dt)
-        test_rho = self.robustness_computer.compute(self.model)
-        print('Robustness during test:', test_rho)
+        if self.logging:
+            self.log.close()
