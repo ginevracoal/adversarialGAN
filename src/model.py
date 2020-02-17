@@ -1,7 +1,8 @@
-import convlogic
 import json
 import torch
 import numpy as np
+
+from diffquantitative import DiffQuantitativeSemantic
 
 class Car:
     def __init__(self):
@@ -137,11 +138,11 @@ class Model:
 
 class RobustnessComputer:
     def __init__(self, formula):
-        self.qs = convlogic.QuantitativeSemantic(formula)
+        self.dqs = DiffQuantitativeSemantic(formula)
 
-    def compute(self, model, start_index=0):
-        t = np.array(model.traces['time'][start_index:])
-        d = np.array(model.traces['dist'][start_index:])
+    def compute(self, model):
+        t = np.array(model.traces['time'])
+        d = np.array(model.traces['dist'])
 
-        return self.qs.check(t, dist=d)
+        return self.dqs.compute(t, dist=torch.cat(d))
         

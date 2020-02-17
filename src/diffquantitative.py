@@ -103,9 +103,5 @@ class DiffQuantitativeSemantic:
 
         return eval(self._code, environment)
 
-    def check(self, *args, **kwargs):
-        signal = self.compute(*args, **kwargs)
-        return signal[0]
-
     def __str__(self):
         return self._code
