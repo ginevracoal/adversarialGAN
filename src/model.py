@@ -1,4 +1,3 @@
-import template
 import convlogic
 import json
 import numpy as np
@@ -19,10 +18,13 @@ class Car:
         self.position += self.velocity * dt
 
 
-class Environment(template.Environment):
+class Environment:
     def __init__(self):
         self._leader_car = Car()
         self._max_acceleration = 10.0
+
+    def set_agent(self, agent):
+        self._agent = agent
 
     @property
     def l_position(self):
@@ -49,10 +51,13 @@ class Environment(template.Environment):
         self._leader_car.update(pedal * self._max_acceleration, dt)
 
 
-class Agent(template.Agent):
+class Agent:
     def __init__(self):
         self._car = Car()
         self._max_acceleration = 10.0
+
+    def set_environment(self, environment):
+        self._environment = environment
 
     @property
     def position(self):
