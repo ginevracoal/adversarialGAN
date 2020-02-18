@@ -6,8 +6,11 @@ import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
+torch.set_default_tensor_type(torch.DoubleTensor)
+
 def policy(coeff):
     return lambda x: coeff.dot(torch.tensor([1.0, x, x*x]))
+
 
 class NeuralNetwork(nn.Module):
     def __init__(self, layers):
@@ -17,7 +20,6 @@ class NeuralNetwork(nn.Module):
         self.output_size = layers[-1].out_features
         
         self.nn = nn.Sequential(*layers)
-        self.nn.double()
 
     def forward(self, x):
         return self.nn(x)

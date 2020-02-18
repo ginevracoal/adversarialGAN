@@ -3,9 +3,6 @@ import nn_torch
 
 import torch
 import torch.nn as nn
-import numpy as np
-
-torch.set_default_tensor_type(torch.DoubleTensor)
 
 physical_model = model.Model()
 
