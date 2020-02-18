@@ -121,24 +121,10 @@ class Trainer:
 
         return (atk_loss, def_loss)
 
-    def test_step(self, dt):
-        with torch.no_grad():
-            atk_input = torch.rand(self.attacker.input_size)
-            def_input = torch.from_numpy(self.model.agent.get_status())
-
-            atk_output = self.attacker(atk_input)
-            def_output = self.defender(def_input)
-
-            self.model.step(atk_output, def_output, dt)
-
-    def test(self, n_steps, dt):
-        for _ in range(n_steps):
-            self.test_step(dt)
-
     def run(self, n_steps, time_horizon=100, dt=0.05):
 
         if self.logging:
-            hist_every = int(n_steps / 3)
+            hist_every = int(n_steps / 10)
             hist_counter = 0
 
             atk_loss_vals = np.zeros(n_steps)
@@ -161,8 +147,6 @@ class Trainer:
 
                     self.log.add_histogram('attacker loss hist', atk_loss_vals[a:b], i)
                     self.log.add_histogram('defender loss hist', def_loss_vals[a:b], i)
-            #self.test(n_steps, dt)
-            #test_rho = self.robustness_computer.compute(self.model)
 
         if self.logging:
             self.log.close()
