@@ -115,17 +115,17 @@ class Model:
         self._records.append(status)
 
     def initialize_random(self):
+        self.agent.position = torch.rand(1) * 25
+        self.agent.velocity = torch.rand(1) * 20
+        self.environment.l_position = 28 + torch.rand(1) * 20
+        self.environment.l_velocity = torch.rand(1) * 20
+
         self._time = 0.0
         self.traces = {
             'time': [self._time],
             'dist': [self.agent.distance],
         }
         self._records = []
-
-        self.agent.position = torch.rand(1) * 25
-        self.agent.velocity = torch.rand(1) * 20
-        self.environment.l_position = 28 + torch.rand(1) * 20
-        self.environment.l_velocity = torch.rand(1) * 20
 
     def get_status(self):
         return (self.environment.l_velocity,
@@ -141,8 +141,8 @@ class RobustnessComputer:
         self.dqs = DiffQuantitativeSemantic(formula)
 
     def compute(self, model):
-        t = np.array(model.traces['time'])
-        d = np.array(model.traces['dist'])
+        t = model.traces['time']
+        d = model.traces['dist']
 
         return self.dqs.compute(t, dist=torch.cat(d))
         
