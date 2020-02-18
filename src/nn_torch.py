@@ -1,11 +1,14 @@
 import os
 import torch
 import torch.nn as nn
+import torch.optim as optim
 import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
+def policy(coeff):
+    return lambda x: coeff.dot(torch.tensor([1.0, x, x*x]))
 
 class NeuralNetwork(nn.Module):
     def __init__(self, layers):
@@ -24,104 +27,102 @@ class NeuralNetwork(nn.Module):
 
 class Trainer:
     def __init__(self, world_model, robustness_computer, \
-                attacker_nn, defender_nn, \
-                attacker_loss_fn, defender_loss_fn, \
-                attacker_optimizer, defender_optimizer, \
-                logging_dir=None):
+                attacker_nn, defender_nn, logging_dir=None):
 
         self.model = world_model
         self.robustness_computer = robustness_computer
 
         self.attacker = attacker_nn
         self.defender = defender_nn
-        self.attacker_loss_fn = attacker_loss_fn
-        self.defender_loss_fn = defender_loss_fn
-        self.attacker_optimizer = attacker_optimizer
-        self.defender_optimizer = defender_optimizer
+
+        self.attacker_loss_fn = lambda x: x
+        self.defender_loss_fn = lambda x: -x
+
+        atk_optimizer = optim.SGD(attacker_nn.parameters(), lr=0.01, momentum=0.9)
+        def_optimizer = optim.SGD(defender_nn.parameters(), lr=0.01, momentum=0.9)
+        self.attacker_optimizer = atk_optimizer
+        self.defender_optimizer = def_optimizer
 
         self.logging = True if logging_dir else False
 
         if self.logging:
             self.log = SummaryWriter(logging_dir)
 
-    def train_step(self, dataset, simulation_horizon, dt):
-        atk_y, def_x, def_y = dataset
+    def train_attacker_step(self, time_horizon, dt):
+        self.model.initialize_random()
 
-        atk_x = torch.rand(self.attacker.input_size)
-        atk_y = torch.from_numpy(atk_y)
-        def_x = torch.from_numpy(def_x)
-        def_y = torch.from_numpy(def_y)
+        z = torch.rand(5)
+        o = torch.tensor(self.model.get_status())
 
-        self.attacker_optimizer.zero_grad()
+        atk_coeff = self.attacker(torch.cat((z, o)))
+
+        with torch.no_grad():
+            def_coeff = self.defender(o)
+
+        atk_p = policy(atk_coeff)
+        def_p = policy(def_coeff)
+
+        t = 0
+        for i in range(time_horizon):
+            atk_input = atk_p(t)
+            def_input = def_p(t)
+
+            self.model.step([atk_input], [def_input], dt)
+
+            t += dt
+
+        rho = self.robustness_computer.compute(self.model)
+
         self.defender_optimizer.zero_grad()
 
-        atk_output = self.attacker(atk_x)
-        def_output = self.defender(def_x)
+        loss = self.attacker_loss_fn(rho)
+        loss.backward()
 
-        self.attacker_loss_fn(atk_output, atk_y)
-        self.defender_loss_fn(def_output, def_y)
-
-        self.attacker_optimizer.step()
         self.defender_optimizer.step()
 
-    def simulate(self, atk_output, def_output, simulation_horizon, dt):
-        # project into the future (consider derivative in future)
-        atk_constant = np.ones((simulation_horizon, len(atk_output)))
-        atk_commands = atk_output * atk_constant
-        def_constant = np.ones((simulation_horizon, len(def_output)))
-        def_commands = def_output * def_constant
+        return rho
 
-        _ = [self.model.step(atk_move, def_move, dt)
-            for atk_move, def_move in zip(atk_commands, def_commands)]
+    def train_defender_step(self, time_horizon, dt):
+        self.model.initialize_random()
 
-        return self.robustness_computer.compute(self.model, -simulation_horizon)
+        z = torch.rand(5)
+        o = torch.tensor(self.model.get_status())
 
-    def generate_dataset(self, n_episodes, p_best, simulation_horizon, dt):
-        atk_y = np.zeros((n_episodes, self.attacker.output_size))
-        def_x = np.zeros((n_episodes, self.defender.input_size))
-        def_y = np.zeros((n_episodes, self.defender.output_size))
-        rho = np.zeros(n_episodes)
+        with torch.no_grad():
+            atk_coeff = self.attacker(torch.cat((z, o)))
 
-        base_config = self.model.save()
+        def_coeff = self.defender(o)
 
-        for i in range(n_episodes):
-            with torch.no_grad():
-                atk_input = torch.rand(self.attacker.input_size)
-                def_input = torch.from_numpy(self.model.agent.get_status())
+        atk_p = policy(atk_coeff)
+        def_p = policy(def_coeff)
 
-                atk_output = self.attacker(atk_input)
-                def_output = self.defender(def_input)
+        t = 0
+        for i in range(time_horizon):
+            atk_input = atk_p(t)
+            def_input = def_p(t)
 
-                atk_y[i] = atk_output
-                def_x[i] = def_input
-                def_y[i] = def_output
-                rho[i] = self.simulate(atk_output, def_output, simulation_horizon, dt)
+            self.model.step([atk_input], [def_input], dt)
 
-            self.model.restore(base_config)
+            t += dt
 
-        worst_idx = np.argsort(rho)[:p_best]
-        best_idx = np.argsort(rho)[-p_best:]
-        return (atk_y[worst_idx], def_x[best_idx], def_y[best_idx])
+        rho = self.robustness_computer.compute(self.model)
 
-    def train(self, n_steps, n_episodes, p_best, simulation_horizon, dt):
-        # generazione ambiente iniziale
-        for i in range(n_steps):
+        self.defender_optimizer.zero_grad()
 
-            dataset = self.generate_dataset(n_episodes, p_best, simulation_horizon, dt)
+        loss = self.defender_loss_fn(rho)
+        loss.backward()
 
-            # Train for possible futures
-            for d in zip(*dataset):
-                self.train_step(d, simulation_horizon, dt)
+        self.defender_optimizer.step()
 
-            atk_input = self.model.environment.get_status()
-            def_input = self.model.agent.get_status()
+        return rho
 
-            with torch.no_grad():
-                atk_output = self.attacker(torch.from_numpy(atk_input))
-                def_output = self.defender(torch.from_numpy(def_input))
+    def train(self, iteration, time_horizon, dt):
+        atk_rho = self.train_attacker_step(time_horizon, dt)
+        def_rho = self.train_defender_step(time_horizon, dt)
 
-                # Applies the choice on the physical model
-                self.model.step(atk_output, def_output, dt)
+        if self.logging and (iteration % 2) == 0:
+            self.log.add_scalar('attacker ρ', atk_rho, iteration)
+            self.log.add_scalar('defender ρ', def_rho, iteration)
 
     def test_step(self, dt):
         with torch.no_grad():
@@ -137,24 +138,13 @@ class Trainer:
         for _ in range(n_steps):
             self.test_step(dt)
 
-    def run(self, n_epochs, n_steps, n_episodes, p_best, simulation_horizon=100, dt=0.05):
-        initial_config = self.model.save()
+    def run(self, n_steps, time_horizon=100, dt=0.05):
 
-        for i in tqdm(range(n_epochs)):
-            self.train(n_steps, n_episodes, p_best, simulation_horizon, dt)
-            self.model.restore(initial_config)
+        for i in tqdm(range(n_steps)):
+            self.train(i, time_horizon, dt)
 
-            self.test(n_steps, dt)
-            test_rho = self.robustness_computer.compute(self.model)
-
-            if self.logging:
-                self.log.add_scalar('robustness ρ', test_rho, i)
-                for key, series in self.model.traces.items():
-                    label = key + '_epoch_' + str(i)
-                    _ = [self.log.add_scalar(label, x, j)
-                        for j, x in enumerate(series)]
-
-            self.model.restore(initial_config)
+            #self.test(n_steps, dt)
+            #test_rho = self.robustness_computer.compute(self.model)
 
         if self.logging:
             self.log.close()
