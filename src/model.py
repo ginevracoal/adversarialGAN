@@ -115,10 +115,18 @@ class Model:
         self._records.append(status)
 
     def initialize_random(self):
-        self.agent.position = torch.rand(1) * 25
-        self.agent.velocity = torch.rand(1) * 20
-        self.environment.l_position = 28 + torch.rand(1) * 20
-        self.environment.l_velocity = torch.rand(1) * 20
+        agent_position = np.random.rand(1) * 25
+        agent_velocity = np.random.rand(1) * 20
+        leader_position = 28 + np.random.rand(1) * 20
+        leader_velocity = np.random.rand(1) * 20
+
+        self.initialize(agent_position, agent_velocity, leader_position, leader_velocity)
+
+    def reinitialize(self, agent_position, agent_velocity, leader_position, leader_velocity):
+        self.agent.position = torch.tensor(agent_position).reshape(1)
+        self.agent.velocity = torch.tensor(agent_velocity).reshape(1)
+        self.environment.l_position = torch.tensor(leader_position).reshape(1)
+        self.environment.l_velocity = torch.tensor(leader_velocity).reshape(1)
 
         self._time = 0.0
         self.traces = {
