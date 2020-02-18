@@ -2,7 +2,6 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import numpy as np
 
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
@@ -21,7 +20,6 @@ class NeuralNetwork(nn.Module):
         self.nn.double()
 
     def forward(self, x):
-        x = torch.from_numpy(x) if isinstance(x, np.ndarray) else x
         return self.nn(x)
 
 
@@ -127,8 +125,8 @@ class Trainer:
             hist_every = int(n_steps / 10)
             hist_counter = 0
 
-            atk_loss_vals = np.zeros(n_steps)
-            def_loss_vals = np.zeros(n_steps)
+            atk_loss_vals = torch.zeros(n_steps)
+            def_loss_vals = torch.zeros(n_steps)
 
         for i in tqdm(range(n_steps)):
             atk_loss, def_loss = self.train(i, time_horizon, dt)
