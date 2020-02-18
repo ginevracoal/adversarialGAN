@@ -127,7 +127,7 @@ class Model:
         leader_position = 28 + np.random.rand(1) * 20
         leader_velocity = np.random.rand(1) * 20
 
-        self.initialize(agent_position, agent_velocity, leader_position, leader_velocity)
+        self.reinitialize(agent_position, agent_velocity, leader_position, leader_velocity)
 
     def reinitialize(self, agent_position, agent_velocity, leader_position, leader_velocity):
         self.agent.position = torch.tensor(agent_position).reshape(1)
