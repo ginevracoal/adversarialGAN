@@ -35,6 +35,11 @@ class Environment:
 
     def set_agent(self, agent):
         self._agent = agent
+        self.initialized()
+
+    def initialized(self):
+        self.actuators = 1
+        self.sensors = len(self.status)
 
     @property
     def l_position(self):
@@ -52,8 +57,11 @@ class Environment:
     def l_velocity(self, value):
         self._leader_car.velocity = value
 
-    def get_status(self):
-        return np.array([self.l_velocity, self._agent.distance])
+    @property
+    def status(self):
+        return (self.l_velocity,
+                self._agent.velocity,
+                self._agent.distance)
 
     def update(self, parameters, dt):
         # the environment updates according to the parameters
@@ -67,6 +75,11 @@ class Agent:
 
     def set_environment(self, environment):
         self._environment = environment
+        self.initialized()
+
+    def initialized(self):
+        self.actuators = 1
+        self.sensors = len(self.status)
 
     @property
     def position(self):
@@ -88,8 +101,11 @@ class Agent:
     def distance(self):
         return self._environment.l_position - self._car.position
 
-    def get_status(self):
-        return np.array([self.velocity, self.distance])
+    @property
+    def status(self):
+        return (self._environment.l_velocity,
+                self.velocity,
+                self.distance)
 
     def update(self, parameters, dt):
         # the action take place and updates the variables

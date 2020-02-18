@@ -12,13 +12,50 @@ def policy(coeff):
     return lambda x: coeff.dot(torch.tensor([1.0, x, x*x]))
 
 
-class NeuralNetwork(nn.Module):
-    def __init__(self, layers):
+class Attacker(nn.Module):
+    def __init__(self, model, n_hidden_layers, layer_size, noise_size, n_coeff=3):
         super().__init__()
-        
-        self.input_size = layers[0].in_features
-        self.output_size = layers[-1].out_features
-        
+
+        assert n_hidden_layers > 0
+
+        input_layer_size = model.environment.sensors + noise_size
+        output_layer_size = model.environment.actuators * n_coeff
+
+        layers = []
+        layers.append(nn.Linear(input_layer_size, layer_size))
+        layers.append(nn.LeakyReLU())
+
+        for i in range(n_hidden_layers - 1):
+            layers.append(nn.Linear(layer_size, layer_size))
+            layers.append(nn.LeakyReLU())
+
+        layers.append(nn.Linear(layer_size, output_layer_size))
+
+        self.nn = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.nn(x)
+
+
+class Defender(nn.Module):
+    def __init__(self, model, n_hidden_layers, layer_size, n_coeff=3):
+        super().__init__()
+
+        assert n_hidden_layers > 0
+
+        input_layer_size = model.agent.sensors
+        output_layer_size = model.agent.actuators * n_coeff
+
+        layers = []
+        layers.append(nn.Linear(input_layer_size, layer_size))
+        layers.append(nn.LeakyReLU())
+
+        for i in range(n_hidden_layers - 1):
+            layers.append(nn.Linear(layer_size, layer_size))
+            layers.append(nn.LeakyReLU())
+
+        layers.append(nn.Linear(layer_size, output_layer_size))
+
         self.nn = nn.Sequential(*layers)
 
     def forward(self, x):
@@ -50,7 +87,7 @@ class Trainer:
 
     def train_attacker_step(self, time_horizon, dt):
         z = torch.rand(5)
-        o = torch.tensor(self.model.get_status())
+        o = torch.tensor(self.model.environment.status)
 
         atk_coeff = self.attacker(torch.cat((z, o)))
 
@@ -82,7 +119,7 @@ class Trainer:
 
     def train_defender_step(self, time_horizon, dt):
         z = torch.rand(5)
-        o = torch.tensor(self.model.get_status())
+        o = torch.tensor(self.model.agent.status)
 
         with torch.no_grad():
             atk_coeff = self.attacker(torch.cat((z, o)))
