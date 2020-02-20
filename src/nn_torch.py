@@ -116,12 +116,12 @@ class Trainer:
 
         rho = self.robustness_computer.compute(self.model)
 
-        self.defender_optimizer.zero_grad()
+        self.attacker_optimizer.zero_grad()
 
         loss = self.attacker_loss_fn(rho)
         loss.backward()
 
-        self.defender_optimizer.step()
+        self.attacker_optimizer.step()
 
         return float(loss.detach())
 
