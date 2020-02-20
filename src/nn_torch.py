@@ -154,16 +154,18 @@ class Trainer:
 
         return float(loss.detach())
 
-    def train(self, iteration, time_horizon, dt):
-        self.model.initialize_random()
-        atk_loss = self.train_attacker_step(time_horizon, dt)
+    def train(self, atk_steps, def_steps, time_horizon, dt):
+        for i in range(atk_steps):
+            self.model.initialize_random()
+            atk_loss = self.train_attacker_step(time_horizon, dt)
 
-        self.model.initialize_random()
-        def_loss = self.train_defender_step(time_horizon, dt)
+        for i in range(def_steps):
+            self.model.initialize_random()
+            def_loss = self.train_defender_step(time_horizon, dt)
 
         return (atk_loss, def_loss)
 
-    def run(self, n_steps, time_horizon=100, dt=0.05):
+    def run(self, n_steps, time_horizon=100, dt=0.05, *, atk_steps=1, def_steps=1):
 
         if self.logging:
             hist_every = int(n_steps / 10)
@@ -173,7 +175,7 @@ class Trainer:
             def_loss_vals = torch.zeros(n_steps)
 
         for i in tqdm(range(n_steps)):
-            atk_loss, def_loss = self.train(i, time_horizon, dt)
+            atk_loss, def_loss = self.train(atk_steps, def_steps, time_horizon, dt)
 
             if self.logging:
                 atk_loss_vals[i] = atk_loss
