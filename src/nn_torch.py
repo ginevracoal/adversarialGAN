@@ -8,9 +8,6 @@ from tqdm import tqdm
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
-def policy(coeff):
-    return lambda x: coeff.dot(torch.tensor([1.0, x, x*x]))
-
 
 class Attacker(nn.Module):
     def __init__(self, model, n_hidden_layers, layer_size, noise_size, n_coeff=3):
@@ -34,7 +31,14 @@ class Attacker(nn.Module):
         self.nn = nn.Sequential(*layers)
 
     def forward(self, x):
-        return self.nn(x)
+        coefficients = self.nn(x)
+
+        def policy_generator(t):
+            basis = [t**i for i in range(len(coefficients))]
+            basis = torch.tensor(basis, dtype=torch.get_default_dtype())
+            return coefficients.dot(basis)
+
+        return policy_generator
 
 
 class Defender(nn.Module):
@@ -59,7 +63,14 @@ class Defender(nn.Module):
         self.nn = nn.Sequential(*layers)
 
     def forward(self, x):
-        return self.nn(x)
+        coefficients = self.nn(x)
+
+        def policy_generator(t):
+            basis = [t**i for i in range(len(coefficients))]
+            basis = torch.tensor(basis, dtype=torch.get_default_dtype())
+            return coefficients.dot(basis)
+
+        return policy_generator
 
 
 class Trainer:
@@ -89,18 +100,15 @@ class Trainer:
         z = torch.rand(5)
         o = torch.tensor(self.model.environment.status)
 
-        atk_coeff = self.attacker(torch.cat((z, o)))
+        atk_policy = self.attacker(torch.cat((z, o)))
 
         with torch.no_grad():
-            def_coeff = self.defender(o)
-
-        atk_p = policy(atk_coeff)
-        def_p = policy(def_coeff)
+            def_policy = self.defender(o)
 
         t = 0
         for i in range(time_horizon):
-            atk_input = atk_p(t)
-            def_input = def_p(t)
+            atk_input = atk_policy(t)
+            def_input = def_policy(t)
 
             self.model.step([atk_input], [def_input], dt)
 
@@ -122,17 +130,14 @@ class Trainer:
         o = torch.tensor(self.model.agent.status)
 
         with torch.no_grad():
-            atk_coeff = self.attacker(torch.cat((z, o)))
+            atk_policy = self.attacker(torch.cat((z, o)))
 
-        def_coeff = self.defender(o)
-
-        atk_p = policy(atk_coeff)
-        def_p = policy(def_coeff)
+        def_policy = self.defender(o)
 
         t = 0
         for i in range(time_horizon):
-            atk_input = atk_p(t)
-            def_input = def_p(t)
+            atk_input = atk_policy(t)
+            def_input = def_policy(t)
 
             self.model.step([atk_input], [def_input], dt)
 
