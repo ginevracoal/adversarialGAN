@@ -16,9 +16,9 @@ class Car:
         self._min_acceleration = -self._max_acceleration
         self._max_velocity = 150.0
         self.mass = 1.0
-        self.position = 0.0
-        self.velocity = 0.0
-        self.acceleration = 0.0
+        self.position = torch.tensor(0.0)
+        self.velocity = torch.tensor(0.0)
+        self.acceleration = torch.tensor(0.0)
         self.friction_coefficient = 0.1
 
     def update(self, in_acceleration, dt):
@@ -43,7 +43,7 @@ class Environment:
 
     @property
     def l_position(self):
-        return self._leader_car.position
+        return self._leader_car.position.clone()
 
     @l_position.setter
     def l_position(self, value):
@@ -51,7 +51,7 @@ class Environment:
 
     @property
     def l_velocity(self):
-        return self._leader_car.velocity
+        return self._leader_car.velocity.clone()
 
     @l_velocity.setter
     def l_velocity(self, value):
@@ -83,7 +83,7 @@ class Agent:
 
     @property
     def position(self):
-        return self._car.position
+        return self._car.position.clone()
 
     @position.setter
     def position(self, value):
@@ -91,7 +91,7 @@ class Agent:
 
     @property
     def velocity(self):
-        return self._car.velocity
+        return self._car.velocity.clone()
 
     @velocity.setter
     def velocity(self, value):
