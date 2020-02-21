@@ -157,13 +157,17 @@ class Trainer:
         return float(loss.detach())
 
     def train(self, atk_steps, def_steps, time_horizon, dt):
-        for i in range(atk_steps):
-            self.model.initialize_random()
-            atk_loss = self.train_attacker_step(time_horizon, dt)
+        atk_loss, def_loss = 0, 0
 
+        self.model.initialize_random()
+        for i in range(atk_steps):
+            atk_loss = self.train_attacker_step(time_horizon, dt)
+            self.model.initialize_rewind()
+
+        self.model.initialize_random()
         for i in range(def_steps):
-            self.model.initialize_random()
             def_loss = self.train_defender_step(time_horizon, dt)
+            self.model.initialize_rewind()
 
         return (atk_loss, def_loss)
 

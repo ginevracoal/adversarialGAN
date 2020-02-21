@@ -132,12 +132,17 @@ class Model:
         self.traces['dist'].append(self.agent.distance)
 
     def initialize_random(self):
-        agent_position = np.random.rand(1) * 25
-        agent_velocity = np.random.rand(1) * 20
-        leader_position = 28 + np.random.rand(1) * 20
-        leader_velocity = np.random.rand(1) * 20
+        agent_position = 1 + np.random.rand(1) * 10
+        agent_velocity = np.random.rand(1) * 5
+        leader_position = agent_position + np.random.rand(1) * 5
+        leader_velocity = np.random.rand(1) * 5
+
+        self._last_init = (agent_position, agent_velocity, leader_position, leader_velocity)
 
         self.reinitialize(agent_position, agent_velocity, leader_position, leader_velocity)
+
+    def initialize_rewind(self):
+        self.reinitialize(*self._last_init)
 
     def reinitialize(self, agent_position, agent_velocity, leader_position, leader_velocity):
         self.agent.position = torch.tensor(agent_position).reshape(1)
