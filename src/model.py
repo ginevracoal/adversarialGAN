@@ -5,7 +5,7 @@ import numpy as np
 from diffquantitative import DiffQuantitativeSemantic
 
 def ranged(x, max_x, min_x=None):
-    if min_x:
+    if min_x is not None:
         return torch.min(torch.max(x, torch.tensor(min_x)), torch.tensor(max_x))
     else:
         return torch.min(x, torch.tensor(max_x))
@@ -15,6 +15,7 @@ class Car:
         self._max_acceleration = 10.0
         self._min_acceleration = -self._max_acceleration
         self._max_velocity = 150.0
+        self._min_velocity = 0.0
         self.mass = 1.0
         self.position = torch.tensor(0.0)
         self.velocity = torch.tensor(0.0)
@@ -25,7 +26,7 @@ class Car:
         self.acceleration = ranged(in_acceleration, self._max_acceleration, self._min_acceleration)
         if self.velocity > 0:
             self.acceleration -= self.friction_coefficient * self.mass
-        self.velocity += ranged(self.acceleration * dt, self._max_velocity)
+        self.velocity += ranged(self.acceleration * dt, self._max_velocity, self._min_velocity)
         self.position += self.velocity * dt
 
 
