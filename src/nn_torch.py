@@ -194,3 +194,55 @@ class Trainer:
 
         if self.logging:
             self.log.close()
+
+
+class Tester:
+    def __init__(self, world_model, robustness_computer, \
+                attacker_nn, defender_nn, logging_dir=None):
+
+        self.model = world_model
+        self.robustness_computer = robustness_computer
+
+        self.attacker = attacker_nn
+        self.defender = defender_nn
+
+        self.logging = True if logging_dir else False
+
+        if self.logging:
+            self.log = SummaryWriter(logging_dir)
+
+    def test(self, time_horizon, dt):
+        self.model.initialize_random()
+
+        for t in range(time_horizon):
+            oa = torch.tensor(self.model.agent.status)
+            oe = torch.tensor(self.model.environment.status)
+            z = torch.rand(5)
+
+            with torch.no_grad():
+                atk_policy = self.attacker(torch.cat((z, oe)))
+                def_policy = self.defender(oa)
+
+            atk_input = atk_policy(dt)
+            def_input = def_policy(dt)
+
+            self.model.step([atk_input], [def_input], dt)
+
+        rho = self.robustness_computer.compute(self.model)
+
+        return rho
+
+    def run(self, times, time_horizon=1000, dt=0.05):
+
+        if self.logging:
+            def_rho_vals = torch.zeros(times)
+
+        for i in tqdm(range(times)):
+            def_rho = self.test(time_horizon, dt)
+
+            if self.logging:
+                def_rho_vals[i] = def_rho
+
+        if self.logging:
+            self.log.add_histogram('defender robustness', def_rho_vals, i)
+            self.log.close()
