@@ -137,11 +137,6 @@ class Model:
         leader_position = 28 + np.random.rand(1) * 20
         leader_velocity = np.random.rand(1) * 20
 
-        agent_position = np.array((1.))
-        agent_velocity = np.array((5.))
-        leader_position = np.array((10.))
-        leader_velocity = np.array((5.))
-
         self.reinitialize(agent_position, agent_velocity, leader_position, leader_velocity)
 
     def reinitialize(self, agent_position, agent_velocity, leader_position, leader_velocity):
