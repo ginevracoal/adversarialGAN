@@ -15,6 +15,8 @@ class Attacker(nn.Module):
 
         assert n_hidden_layers > 0
 
+        self.noise_size = noise_size
+
         input_layer_size = model.environment.sensors + noise_size
         output_layer_size = model.environment.actuators * n_coeff
 
@@ -97,7 +99,7 @@ class Trainer:
             self.log = SummaryWriter(logging_dir)
 
     def train_attacker_step(self, time_horizon, dt):
-        z = torch.rand(5)
+        z = torch.rand(self.attacker.noise_size)
         o = torch.tensor(self.model.environment.status)
 
         atk_policy = self.attacker(torch.cat((z, o)))
@@ -126,7 +128,7 @@ class Trainer:
         return float(loss.detach())
 
     def train_defender_step(self, time_horizon, dt):
-        z = torch.rand(5)
+        z = torch.rand(self.attacker.noise_size)
         o = torch.tensor(self.model.agent.status)
 
         with torch.no_grad():
@@ -217,7 +219,7 @@ class Tester:
         for t in range(time_horizon):
             oa = torch.tensor(self.model.agent.status)
             oe = torch.tensor(self.model.environment.status)
-            z = torch.rand(5)
+            z = torch.rand(self.attacker.noise_size)
 
             with torch.no_grad():
                 atk_policy = self.attacker(torch.cat((z, oe)))
