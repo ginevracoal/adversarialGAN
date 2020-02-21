@@ -94,10 +94,9 @@ class DiffQuantitativeSemantic:
         code = _CodeBuilder().transform(tree)
         return code
 
-    def compute(self, t, **signals):
+    def compute(self, **signals):
         environment = {
             'fn': Functions,
-            't_': t,
         }
         environment.update(signals)
 

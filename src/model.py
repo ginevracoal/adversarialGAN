@@ -128,20 +128,18 @@ class Model:
         self.environment.update(env_input, dt)
         self.agent.update(agent_input, dt)
 
-        # status of the system, env and agent params should be recorded
-        self._time += dt
-        self.traces['time'].append(self._time)
         self.traces['dist'].append(self.agent.distance)
-
-        status = (self._time, self.environment.l_position, \
-                self.agent.position, self.agent.distance)
-        self._records.append(status)
 
     def initialize_random(self):
         agent_position = np.random.rand(1) * 25
         agent_velocity = np.random.rand(1) * 20
         leader_position = 28 + np.random.rand(1) * 20
         leader_velocity = np.random.rand(1) * 20
+
+        agent_position = np.array((1.))
+        agent_velocity = np.array((5.))
+        leader_position = np.array((10.))
+        leader_velocity = np.array((5.))
 
         self.reinitialize(agent_position, agent_velocity, leader_position, leader_velocity)
 
@@ -151,29 +149,16 @@ class Model:
         self.environment.l_position = torch.tensor(leader_position).reshape(1)
         self.environment.l_velocity = torch.tensor(leader_velocity).reshape(1)
 
-        self._time = 0.0
         self.traces = {
-            'time': [self._time],
-            'dist': [self.agent.distance],
+            'dist': []
         }
-        self._records = []
-
-    def get_status(self):
-        return (self.environment.l_velocity,
-                self.agent.velocity,
-                self.agent.distance)
-
-    def get_records(self):
-        return np.array(self._records).T
-
 
 class RobustnessComputer:
     def __init__(self, formula):
         self.dqs = DiffQuantitativeSemantic(formula)
 
     def compute(self, model):
-        t = model.traces['time']
         d = model.traces['dist']
 
-        return self.dqs.compute(t, dist=torch.cat(d))
+        return self.dqs.compute(dist=torch.cat(d))
         
