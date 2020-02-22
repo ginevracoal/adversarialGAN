@@ -14,7 +14,7 @@ class Car:
     def __init__(self):
         self._max_acceleration = 10.0
         self._min_acceleration = -self._max_acceleration
-        self._max_velocity = 150.0
+        self._max_velocity = 10.0
         self._min_velocity = 0.0
         self.mass = 1.0
         self.position = torch.tensor(0.0)
@@ -116,7 +116,7 @@ class Agent:
 
 class Model:
     
-    def __init__(self):
+    def __init__(self, param_generator):
         # setting of the initial conditions
 
         self.agent = Agent()
@@ -125,6 +125,8 @@ class Model:
         self.agent.set_environment(self.environment)
         self.environment.set_agent(self.agent)
 
+        self._param_generator = param_generator
+
     def step(self, env_input, agent_input, dt):
         self.environment.update(env_input, dt)
         self.agent.update(agent_input, dt)
@@ -132,10 +134,7 @@ class Model:
         self.traces['dist'].append(self.agent.distance)
 
     def initialize_random(self):
-        agent_position = 1 + np.random.rand(1) * 10
-        agent_velocity = np.random.rand(1) * 5
-        leader_position = agent_position + np.random.rand(1) * 5
-        leader_velocity = np.random.rand(1) * 5
+        agent_position, agent_velocity, leader_position, leader_velocity = next(self._param_generator)
 
         self._last_init = (agent_position, agent_velocity, leader_position, leader_velocity)
 
