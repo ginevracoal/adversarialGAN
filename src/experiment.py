@@ -1,6 +1,7 @@
 import os
 
 import model
+import utils
 import nn_torch
 
 import torch
@@ -31,9 +32,4 @@ test_steps = 10
 simulation_horizon = int(60 / dt) # 60 seconds
 tester.run(test_steps, simulation_horizon, dt)
 
-
-if not os.path.isdir(os.path.join(working_dir, 'models')):
-    os.mkdir(os.path.join(working_dir, 'models'))
-
-torch.save(attacker.state_dict(), os.path.join(working_dir, 'models', 'attacker.pt'))
-torch.save(defender.state_dict(), os.path.join(working_dir, 'models', 'defender.pt'))
+utils.save_models(attacker, defender, working_dir)
