@@ -88,8 +88,8 @@ class Trainer:
         self.attacker_loss_fn = lambda x: x
         self.defender_loss_fn = lambda x: -x
 
-        atk_optimizer = optim.SGD(attacker_nn.parameters(), lr=0.01, momentum=0.9)
-        def_optimizer = optim.SGD(defender_nn.parameters(), lr=0.01, momentum=0.9)
+        atk_optimizer = optim.Adam(attacker_nn.parameters())
+        def_optimizer = optim.Adam(defender_nn.parameters())
         self.attacker_optimizer = atk_optimizer
         self.defender_optimizer = def_optimizer
 
