@@ -26,7 +26,7 @@ class Car:
         self.acceleration = ranged(in_acceleration, self._max_acceleration, self._min_acceleration)
         if self.velocity > 0:
             self.acceleration -= self.friction_coefficient * self.mass
-        self.velocity += ranged(self.acceleration * dt, self._max_velocity, self._min_velocity)
+        self.velocity = ranged(self.velocity + self.acceleration * dt, self._max_velocity, self._min_velocity)
         self.position += self.velocity * dt
 
 
