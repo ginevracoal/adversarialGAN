@@ -12,15 +12,15 @@ def ranged(x, max_x, min_x=None):
 
 class Car:
     def __init__(self):
-        self._max_acceleration = 10.0
+        self._max_acceleration = 3.0
         self._min_acceleration = -self._max_acceleration
-        self._max_velocity = 10.0
+        self._max_velocity = 5.0
         self._min_velocity = 0.0
         self.mass = 1.0
         self.position = torch.tensor(0.0)
         self.velocity = torch.tensor(0.0)
         self.acceleration = torch.tensor(0.0)
-        self.friction_coefficient = 0.1
+        self.friction_coefficient = 0.01
 
     def update(self, in_acceleration, dt):
         self.acceleration = ranged(in_acceleration, self._max_acceleration, self._min_acceleration)
