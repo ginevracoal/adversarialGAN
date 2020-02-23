@@ -30,4 +30,5 @@ class ParametersHyperparallelepiped:
 
     def sample(self, mu=0, sigma=1):
         while True:
-            yield [np.random.choice(r) + np.random.normal(mu, sigma) for r in self._ranges]
+            yield [np.random.choice(r) + np.random.normal(mu, sigma)
+                    if isinstance(r, np.ndarray) else float(r) for r in self._ranges]

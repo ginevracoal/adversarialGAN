@@ -8,15 +8,15 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-agent_position = np.linspace(0, 10, 10)
-agent_velocity = np.linspace(0, 10, 10)
-leader_position = np.linspace(0, 10, 10)
-leader_velocity = np.linspace(0, 10, 10)
+agent_position = 0
+agent_velocity = np.linspace(0, 5, 10)
+leader_position = np.linspace(1, 12, 15)
+leader_velocity = np.linspace(0, 5, 10)
 pg = utils.ParametersHyperparallelepiped(agent_position, agent_velocity, leader_position, leader_velocity)
 
-physical_model = model.Model(pg.sample(sigma=0.5))
+physical_model = model.Model(pg.sample(sigma=0.05))
 
-robustness_formula = 'G(dist <= 100 & dist >= 3)'
+robustness_formula = 'G(dist <= 10 & dist >= 2)'
 robustness_computer = model.RobustnessComputer(robustness_formula)
 
 attacker = nn_torch.Attacker(physical_model, 2, 10, 5)
@@ -30,7 +30,7 @@ tester = nn_torch.Tester(physical_model, robustness_computer, \
                             attacker, defender, working_dir)
 
 dt = 0.05
-training_steps = 100
+training_steps = 2000
 simulation_horizon = int(5 / dt) # 5 seconds
 
 trainer.run(training_steps, simulation_horizon, dt, atk_steps=0, def_steps=10)
