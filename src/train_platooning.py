@@ -1,8 +1,8 @@
 import os
 
-import model
-import utils
-import nn_torch
+import misc
+import architecture
+import model_platooning
 
 import torch
 import torch.nn as nn
@@ -12,21 +12,21 @@ agent_position = 0
 agent_velocity = np.linspace(0, 5, 10)
 leader_position = np.linspace(1, 12, 15)
 leader_velocity = np.linspace(0, 5, 10)
-pg = utils.ParametersHyperparallelepiped(agent_position, agent_velocity, leader_position, leader_velocity)
+pg = misc.ParametersHyperparallelepiped(agent_position, agent_velocity, leader_position, leader_velocity)
 
-physical_model = model.Model(pg.sample(sigma=0.05))
+physical_model = model_platooning.Model(pg.sample(sigma=0.05))
 
 robustness_formula = 'G(dist <= 10 & dist >= 2)'
-robustness_computer = model.RobustnessComputer(robustness_formula)
+robustness_computer = model_platooning.RobustnessComputer(robustness_formula)
 
-attacker = nn_torch.Attacker(physical_model, 2, 10, 5)
-defender = nn_torch.Defender(physical_model, 2, 10)
+attacker = architecture.Attacker(physical_model, 2, 10, 5)
+defender = architecture.Defender(physical_model, 2, 10)
 
 working_dir = '/tmp/experiment'
 
-trainer = nn_torch.Trainer(physical_model, robustness_computer, \
+trainer = architecture.Trainer(physical_model, robustness_computer, \
                             attacker, defender, working_dir)
-tester = nn_torch.Tester(physical_model, robustness_computer, \
+tester = architecture.Tester(physical_model, robustness_computer, \
                             attacker, defender, working_dir)
 
 dt = 0.05
@@ -39,4 +39,4 @@ test_steps = 10
 simulation_horizon = int(60 / dt) # 60 seconds
 tester.run(test_steps, simulation_horizon, dt)
 
-utils.save_models(attacker, defender, working_dir)
+misc.save_models(attacker, defender, working_dir)
