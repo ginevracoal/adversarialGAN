@@ -16,7 +16,7 @@ class Car:
         self._min_acceleration = -self._max_acceleration
         self._max_velocity = 5.0
         self._min_velocity = 0.0
-        self.mass = 1.0
+        self.gravity = 9.81
         self.position = torch.tensor(0.0)
         self.velocity = torch.tensor(0.0)
         self.acceleration = torch.tensor(0.0)
@@ -25,7 +25,7 @@ class Car:
     def update(self, in_acceleration, dt):
         self.acceleration = ranged(in_acceleration, self._max_acceleration, self._min_acceleration)
         if self.velocity > 0:
-            self.acceleration -= self.friction_coefficient * self.mass
+            self.acceleration -= self.friction_coefficient * self.gravity
         self.velocity = ranged(self.velocity + self.acceleration * dt, self._max_velocity, self._min_velocity)
         self.position += self.velocity * dt
 
