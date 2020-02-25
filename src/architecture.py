@@ -100,12 +100,13 @@ class Trainer:
 
     def train_attacker_step(self, time_horizon, dt):
         z = torch.rand(self.attacker.noise_size)
-        o = torch.tensor(self.model.environment.status)
+        oa = torch.tensor(self.model.agent.status)
+        oe = torch.tensor(self.model.environment.status)
 
-        atk_policy = self.attacker(torch.cat((z, o)))
+        atk_policy = self.attacker(torch.cat((z, oe)))
 
         with torch.no_grad():
-            def_policy = self.defender(o)
+            def_policy = self.defender(oa)
 
         t = 0
         for i in range(time_horizon):
@@ -129,12 +130,13 @@ class Trainer:
 
     def train_defender_step(self, time_horizon, dt):
         z = torch.rand(self.attacker.noise_size)
-        o = torch.tensor(self.model.agent.status)
+        oa = torch.tensor(self.model.agent.status)
+        oe = torch.tensor(self.model.environment.status)
 
         with torch.no_grad():
-            atk_policy = self.attacker(torch.cat((z, o)))
+            atk_policy = self.attacker(torch.cat((z, oe)))
 
-        def_policy = self.defender(o)
+        def_policy = self.defender(oa)
 
         t = 0
         for i in range(time_horizon):
@@ -221,9 +223,9 @@ class Tester:
         self.model.initialize_random()
 
         for t in range(time_horizon):
+            z = torch.rand(self.attacker.noise_size)
             oa = torch.tensor(self.model.agent.status)
             oe = torch.tensor(self.model.environment.status)
-            z = torch.rand(self.attacker.noise_size)
 
             with torch.no_grad():
                 atk_policy = self.attacker(torch.cat((z, oe)))
