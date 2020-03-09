@@ -8,7 +8,7 @@ class Car:
     def __init__(self):
         self._max_acceleration = 3.0
         self._min_acceleration = -self._max_acceleration
-        self._max_velocity = 5.0
+        self._max_velocity = 20.0
         self._min_velocity = 0.0
         self.gravity = 9.81
         self.position = torch.tensor(0.0)
