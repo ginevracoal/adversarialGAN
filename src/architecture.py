@@ -16,6 +16,7 @@ class Attacker(nn.Module):
         assert n_hidden_layers > 0
 
         self.noise_size = noise_size
+        self.n_coeff = n_coeff
 
         input_layer_size = model.environment.sensors + noise_size
         output_layer_size = model.environment.actuators * n_coeff
@@ -34,11 +35,13 @@ class Attacker(nn.Module):
 
     def forward(self, x):
         coefficients = self.nn(x)
+        coefficients = torch.reshape(coefficients, (-1, self.n_coeff))
 
         def policy_generator(t):
-            basis = [t**i for i in range(len(coefficients))]
+            basis = [t**i for i in range(self.n_coeff)]
             basis = torch.tensor(basis, dtype=torch.get_default_dtype())
-            return coefficients.dot(basis)
+            basis = torch.reshape(basis, (self.n_coeff, -1))
+            return coefficients.mm(basis).squeeze()
 
         return policy_generator
 
@@ -48,6 +51,8 @@ class Defender(nn.Module):
         super().__init__()
 
         assert n_hidden_layers > 0
+
+        self.n_coeff = n_coeff
 
         input_layer_size = model.agent.sensors
         output_layer_size = model.agent.actuators * n_coeff
@@ -66,13 +71,16 @@ class Defender(nn.Module):
 
     def forward(self, x):
         coefficients = self.nn(x)
+        coefficients = torch.reshape(coefficients, (-1, self.n_coeff))
 
         def policy_generator(t):
-            basis = [t**i for i in range(len(coefficients))]
+            basis = [t**i for i in range(self.n_coeff)]
             basis = torch.tensor(basis, dtype=torch.get_default_dtype())
-            return coefficients.dot(basis)
+            basis = torch.reshape(basis, (self.n_coeff, -1))
+            return coefficients.mm(basis).squeeze()
 
         return policy_generator
+
 
 
 class Trainer:
@@ -113,7 +121,7 @@ class Trainer:
             atk_input = atk_policy(0 if atk_static else t)
             def_input = def_policy(t)
 
-            self.model.step([atk_input], [def_input], dt)
+            self.model.step(atk_input, def_input, dt)
 
             t += dt
 
@@ -143,7 +151,7 @@ class Trainer:
             atk_input = atk_policy(0 if atk_static else t)
             def_input = def_policy(t)
 
-            self.model.step([atk_input], [def_input], dt)
+            self.model.step(atk_input, def_input, dt)
 
             t += dt
 
@@ -234,7 +242,7 @@ class Tester:
             atk_input = atk_policy(dt)
             def_input = def_policy(dt)
 
-            self.model.step([atk_input], [def_input], dt)
+            self.model.step(atk_input, def_input, dt)
 
         rho = self.robustness_computer.compute(self.model)
 

@@ -60,7 +60,7 @@ class Environment:
 
     def update(self, parameters, dt):
         # the environment updates according to the parameters
-        acceleration = parameters[0]
+        acceleration = parameters
         self._leader_car.update(acceleration, dt)
 
 
@@ -104,7 +104,7 @@ class Agent:
 
     def update(self, parameters, dt):
         # the action take place and updates the variables
-        acceleration = parameters[0]
+        acceleration = parameters
         self._car.update(acceleration, dt)
 
 
