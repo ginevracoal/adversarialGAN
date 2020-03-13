@@ -98,7 +98,7 @@ class Trainer:
         if self.logging:
             self.log = SummaryWriter(logging_dir)
 
-    def train_attacker_step(self, time_horizon, dt):
+    def train_attacker_step(self, time_horizon, dt, atk_static):
         z = torch.rand(self.attacker.noise_size)
         oa = torch.tensor(self.model.agent.status)
         oe = torch.tensor(self.model.environment.status)
@@ -110,7 +110,7 @@ class Trainer:
 
         t = 0
         for i in range(time_horizon):
-            atk_input = atk_policy(t)
+            atk_input = atk_policy(0 if atk_static else t)
             def_input = def_policy(t)
 
             self.model.step([atk_input], [def_input], dt)
@@ -128,7 +128,7 @@ class Trainer:
 
         return float(loss.detach())
 
-    def train_defender_step(self, time_horizon, dt):
+    def train_defender_step(self, time_horizon, dt, atk_static):
         z = torch.rand(self.attacker.noise_size)
         oa = torch.tensor(self.model.agent.status)
         oe = torch.tensor(self.model.environment.status)
@@ -140,7 +140,7 @@ class Trainer:
 
         t = 0
         for i in range(time_horizon):
-            atk_input = atk_policy(t)
+            atk_input = atk_policy(0 if atk_static else t)
             def_input = def_policy(t)
 
             self.model.step([atk_input], [def_input], dt)
@@ -158,22 +158,22 @@ class Trainer:
 
         return float(loss.detach())
 
-    def train(self, atk_steps, def_steps, time_horizon, dt):
+    def train(self, atk_steps, def_steps, time_horizon, dt, atk_static):
         atk_loss, def_loss = 0, 0
 
         self.model.initialize_random()
         for i in range(atk_steps):
-            atk_loss = self.train_attacker_step(time_horizon, dt)
+            atk_loss = self.train_attacker_step(time_horizon, dt, atk_static)
             self.model.initialize_rewind()
 
         self.model.initialize_random()
         for i in range(def_steps):
-            def_loss = self.train_defender_step(time_horizon, dt)
+            def_loss = self.train_defender_step(time_horizon, dt, atk_static)
             self.model.initialize_rewind()
 
         return (atk_loss, def_loss)
 
-    def run(self, n_steps, time_horizon=100, dt=0.05, *, atk_steps=1, def_steps=1):
+    def run(self, n_steps, time_horizon=100, dt=0.05, *, atk_steps=1, def_steps=1, atk_static=False):
 
         if self.logging:
             hist_every = int(n_steps / 10)
@@ -183,7 +183,7 @@ class Trainer:
             def_loss_vals = torch.zeros(n_steps)
 
         for i in tqdm(range(n_steps)):
-            atk_loss, def_loss = self.train(atk_steps, def_steps, time_horizon, dt)
+            atk_loss, def_loss = self.train(atk_steps, def_steps, time_horizon, dt, atk_static)
 
             if self.logging:
                 atk_loss_vals[i] = atk_loss
