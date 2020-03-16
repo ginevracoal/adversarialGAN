@@ -72,7 +72,7 @@ def run(mode=None):
         atk_input = atk_policy(dt)
         def_input = def_policy(dt)
 
-        physical_model.step([atk_input], [def_input], dt)
+        physical_model.step(atk_input, def_input, dt)
 
         sim_ag_acc.append(def_input)
         sim_env_acc.append(atk_input)
