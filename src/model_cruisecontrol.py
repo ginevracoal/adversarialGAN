@@ -41,7 +41,7 @@ class Environment:
         return ()
 
     def get_steepness(self, x):
-        return torch.clamp(self._fn(x), -0.3, 0.3)
+        return torch.clamp(self._fn(x), -0.4, 0.4)
 
     def update(self, parameters, dt):
         def linear_combination(x):

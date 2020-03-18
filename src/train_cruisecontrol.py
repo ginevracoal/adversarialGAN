@@ -14,7 +14,7 @@ pg = misc.ParametersHyperparallelepiped(agent_position, agent_velocity)
 
 physical_model = model_cruisecontrol.Model(pg.sample(sigma=0.05))
 
-robustness_formula = 'G(v <= 4.75 & v >= 5.25)'
+robustness_formula = 'G(v <= 4.90 & v >= 5.10)'
 robustness_computer = model_cruisecontrol.RobustnessComputer(robustness_formula)
 
 attacker = architecture.Attacker(physical_model, 1, 10, 5)
