@@ -23,15 +23,15 @@ def hist(pulse, step_up, step_down, atk, filename):
 
     config = {
         'norm_hist': True,
-        #'bins': range(0, 100, 5),
+        'bins': range(0, 100, 20),
         'color': 'b',
         'kde': False,
         'axlabel': '% of $dist$ in limits',
     }
-    sns.distplot(step_up * 100, **config, ax=ax[0]).set_title('Sudden acceleration')
-    sns.distplot(step_down * 100, **config, ax=ax[1]).set_title('Sudden brake')
-    sns.distplot(pulse * 100, **config, ax=ax[2]).set_title('Acceleration pulse')
-    sns.distplot(atk * 100, **config, ax=ax[3]).set_title('Against attacker')
+    sns.distplot(step_up, **config, ax=ax[0]).set_title('Sudden acceleration')
+    sns.distplot(step_down, **config, ax=ax[1]).set_title('Sudden brake')
+    sns.distplot(pulse, **config, ax=ax[2]).set_title('Acceleration pulse')
+    sns.distplot(atk, **config, ax=ax[3]).set_title('Against attacker')
 
     fig.tight_layout()
     fig.savefig(os.path.join(args.dirname, filename), dpi=150)
@@ -73,19 +73,19 @@ if args.triplots:
 
 if args.hist:
     size = len(records)
-    pulse_pct = np.zeros(size)
-    step_up_pct = np.zeros(size)
-    step_down_pct = np.zeros(size)
-    atk_pct = np.zeros(size)
+    pulse_pct = np.zeros_like(records[0]['pulse']['sim_ag_dist'])
+    step_up_pct = np.zeros_like(records[0]['step_up']['sim_ag_dist'])
+    step_down_pct = np.zeros_like(records[0]['step_down']['sim_ag_dist'])
+    atk_pct = np.zeros_like(records[0]['atk']['sim_ag_dist'])
 
     for i in range(size):
         t = records[i]['pulse']['sim_ag_dist']
-        pulse_pct[i] = np.sum(np.logical_and(t > 2, t < 10)) / len(t)
+        pulse_pct = pulse_pct + np.logical_and(t > 2, t < 10)
         t = records[i]['step_up']['sim_ag_dist']
-        step_up_pct[i] = np.sum(np.logical_and(t > 2, t < 10)) / len(t)
+        step_up_pct = step_up_pct + np.logical_and(t > 2, t < 10)
         t = records[i]['step_down']['sim_ag_dist']
-        step_down_pct[i] = np.sum(np.logical_and(t > 2, t < 10)) / len(t)
+        step_down_pct = step_down_pct + np.logical_and(t > 2, t < 10)
         t = records[i]['atk']['sim_ag_dist']
-        atk_pct[i] = np.sum(np.logical_and(t > 2, t < 10)) / len(t)
+        atk_pct = atk_pct + np.logical_and(t > 2, t < 10)
 
     hist(pulse_pct, step_up_pct, step_down_pct, atk_pct, 'pct_histogram.png')
