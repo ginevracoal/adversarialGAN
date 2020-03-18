@@ -1,4 +1,5 @@
 import os
+import random
 import pickle
 
 import seaborn as sns
@@ -57,17 +58,18 @@ def plot(sim_time, sim_agent_pos, sim_agent_dist, sim_agent_acc, sim_env_pos, si
     fig.savefig(os.path.join(args.dirname, filename), dpi=150)
 
 if args.triplots:
-    print('pulse:', records[0]['pulse']['init'])
-    plot(records[0]['pulse']['sim_t'], records[0]['pulse']['sim_ag_pos'], records[0]['pulse']['sim_ag_dist'], records[0]['pulse']['sim_ag_acc'], records[0]['pulse']['sim_env_pos'], records[0]['pulse']['sim_env_acc'], 'triplot_pulse.png')
+    n = random.randrange(len(records))
+    print('pulse:', records[n]['pulse']['init'])
+    plot(records[n]['pulse']['sim_t'], records[n]['pulse']['sim_ag_pos'], records[n]['pulse']['sim_ag_dist'], records[n]['pulse']['sim_ag_acc'], records[n]['pulse']['sim_env_pos'], records[n]['pulse']['sim_env_acc'], 'triplot_pulse.png')
 
-    print('step_up:', records[0]['step_up']['init'])
-    plot(records[0]['step_up']['sim_t'], records[0]['step_up']['sim_ag_pos'], records[0]['step_up']['sim_ag_dist'], records[0]['step_up']['sim_ag_acc'], records[0]['step_up']['sim_env_pos'], records[0]['step_up']['sim_env_acc'], 'triplot_step_up.png')
+    print('step_up:', records[n]['step_up']['init'])
+    plot(records[n]['step_up']['sim_t'], records[n]['step_up']['sim_ag_pos'], records[n]['step_up']['sim_ag_dist'], records[n]['step_up']['sim_ag_acc'], records[n]['step_up']['sim_env_pos'], records[n]['step_up']['sim_env_acc'], 'triplot_step_up.png')
 
-    print('step_down:', records[0]['step_down']['init'])
-    plot(records[0]['step_down']['sim_t'], records[0]['step_down']['sim_ag_pos'], records[0]['step_down']['sim_ag_dist'], records[0]['step_down']['sim_ag_acc'], records[0]['step_down']['sim_env_pos'], records[0]['step_down']['sim_env_acc'], 'triplot_step_down.png')
+    print('step_down:', records[n]['step_down']['init'])
+    plot(records[n]['step_down']['sim_t'], records[n]['step_down']['sim_ag_pos'], records[n]['step_down']['sim_ag_dist'], records[n]['step_down']['sim_ag_acc'], records[n]['step_down']['sim_env_pos'], records[n]['step_down']['sim_env_acc'], 'triplot_step_down.png')
 
-    print('attacker:', records[0]['atk']['init'])
-    plot(records[0]['atk']['sim_t'], records[0]['atk']['sim_ag_pos'], records[0]['atk']['sim_ag_dist'], records[0]['atk']['sim_ag_acc'], records[0]['atk']['sim_env_pos'], records[0]['atk']['sim_env_acc'], 'triplot_attacker.png')
+    print('attacker:', records[n]['atk']['init'])
+    plot(records[n]['atk']['sim_t'], records[n]['atk']['sim_ag_pos'], records[n]['atk']['sim_ag_dist'], records[n]['atk']['sim_ag_acc'], records[n]['atk']['sim_env_pos'], records[n]['atk']['sim_env_acc'], 'triplot_attacker.png')
 
 if args.hist:
     size = len(records)
