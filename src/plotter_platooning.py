@@ -2,7 +2,6 @@ import os
 import random
 import pickle
 
-import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -18,20 +17,28 @@ args = parser.parse_args()
 with open(os.path.join(args.dirname, 'sims.pkl'), 'rb') as f:
     records = pickle.load(f)
 
-def hist(pulse, step_up, step_down, atk, filename):
+def hist(time, pulse, step_up, step_down, atk, filename):
     fig, ax = plt.subplots(1, 4, figsize=(12, 3), sharex=True)
 
-    config = {
-        'norm_hist': True,
-        'bins': range(0, 100, 20),
-        'color': 'b',
-        'kde': False,
-        'axlabel': '% of $dist$ in limits',
-    }
-    sns.distplot(step_up, **config, ax=ax[0]).set_title('Sudden acceleration')
-    sns.distplot(step_down, **config, ax=ax[1]).set_title('Sudden brake')
-    sns.distplot(pulse, **config, ax=ax[2]).set_title('Acceleration pulse')
-    sns.distplot(atk, **config, ax=ax[3]).set_title('Against attacker')
+    ax[0].plot(time, step_up *100)
+    ax[0].fill_between(time, step_up *100, alpha=0.5)
+    ax[0].set(xlabel='time (s)', ylabel='% correct')
+    ax[0].title.set_text('Sudden acceleration')
+
+    ax[1].plot(time, step_down *100)
+    ax[1].fill_between(time, step_down *100, alpha=0.5)
+    ax[1].set(xlabel='time (s)', ylabel='% correct')
+    ax[1].title.set_text('Sudden brake')
+
+    ax[2].plot(time, pulse *100)
+    ax[2].fill_between(time, pulse *100, alpha=0.5)
+    ax[2].set(xlabel='time (s)', ylabel='% correct')
+    ax[2].title.set_text('Acceleration pulse')
+
+    ax[3].plot(time, atk *100)
+    ax[3].fill_between(time, atk *100, alpha=0.5)
+    ax[3].set(xlabel='time (s)', ylabel='% correct')
+    ax[3].title.set_text('Against attacker')
 
     fig.tight_layout()
     fig.savefig(os.path.join(args.dirname, filename), dpi=150)
@@ -88,4 +95,10 @@ if args.hist:
         t = records[i]['atk']['sim_ag_dist']
         atk_pct = atk_pct + np.logical_and(t > 2, t < 10)
 
-    hist(pulse_pct, step_up_pct, step_down_pct, atk_pct, 'pct_histogram.png')
+    time = records[0]['pulse']['sim_t']
+    pulse_pct = pulse_pct / size
+    step_up_pct = step_up_pct / size
+    step_down_pct = step_down_pct / size
+    atk_pct = atk_pct / size
+
+    hist(time, pulse_pct, step_up_pct, step_down_pct, atk_pct, 'pct_histogram.png')
