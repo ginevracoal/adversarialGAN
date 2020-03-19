@@ -54,7 +54,7 @@ def run(mode=None):
     road_end = road_length + road_padding
     n_points = 10
     px = np.linspace(0, road_end, n_points)
-    py = -np.abs((px - road_length/2)*.35)
+    py = -np.abs((px - road_length/2)*.3)
     if mode is not None:
         py = -py
     py = py - min(py)
