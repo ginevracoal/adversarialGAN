@@ -1,5 +1,6 @@
 import json
 import torch
+import numpy as np
 
 from diffquantitative import DiffQuantitativeSemantic
 
@@ -27,6 +28,9 @@ class Car:
 class Environment:
     def __init__(self):
         self._fn = lambda x: torch.tensor(0.)
+        self._max_angle = 25 #deg
+        self._max_angular_coeff = np.tan(np.deg2rad(self._max_angle))
+        self._dx = 0.1
 
     def set_agent(self, agent):
         self._agent = agent
@@ -41,7 +45,13 @@ class Environment:
         return ()
 
     def get_steepness(self, x):
-        return torch.clamp(self._fn(x), -0.35, 0.35)
+        dy = self._fn(x + self._dx) - self._fn(x)
+        deriv = dy / torch.tensor(self._dx)
+        return torch.clamp(deriv, -self._max_angular_coeff, self._max_angular_coeff)
+
+    def get_fn(self, x):
+        derivative = np.array([float(self.get_steepness(i)) for i in x])
+        return np.cumsum(derivative) * self._dx
 
     def update(self, parameters, dt):
         def linear_combination(x):
@@ -49,7 +59,8 @@ class Environment:
             basis = torch.tensor(basis, dtype=torch.get_default_dtype())
             return parameters.dot(basis)
 
-        self._fn = linear_combination
+        if parameters is not None:
+            self._fn = linear_combination
 
 
 class Agent:
