@@ -26,9 +26,6 @@ pg = misc.ParametersHyperparallelepiped(agent_position, agent_velocity, leader_p
 
 physical_model = model_platooning.Model(pg.sample(sigma=0.05))
 
-robustness_formula = 'G(dist <= 10 & dist >= 2)'
-robustness_computer = model_platooning.RobustnessComputer(robustness_formula)
-
 attacker = architecture.Attacker(physical_model, 2, 10, 2)
 defender = architecture.Defender(physical_model, 2, 10)
 
