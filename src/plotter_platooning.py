@@ -2,7 +2,11 @@ import os
 import random
 import pickle
 
+import model_platooning
+import torch
+
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import numpy as np
 
 from argparse import ArgumentParser
@@ -11,6 +15,7 @@ parser = ArgumentParser()
 parser.add_argument("-d", "--dir", dest="dirname",
                     help="model's directory")
 parser.add_argument("--triplots", default=False, action="store_true" , help="Generate triplots")
+parser.add_argument("--scatter", default=False, action="store_true" , help="Generate scatterplot")
 parser.add_argument("--hist", default=False, action="store_true" , help="Generate histograms")
 args = parser.parse_args()
     
@@ -43,6 +48,19 @@ def hist(time, pulse, step_up, step_down, atk, filename):
     fig.tight_layout()
     fig.savefig(os.path.join(args.dirname, filename), dpi=150)
 
+def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    customnorm = mcolors.TwoSlopeNorm(0)
+    sp = ax.scatter(delta_vel_array, delta_pos_array, c=robustness_array, cmap='RdYlGn', norm=customnorm)
+    ax.set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
+
+    cb = fig.colorbar(sp)
+    cb.ax.set_xlabel('$\\rho$')
+
+    fig.suptitle('Initial conditions vs robustness $\\rho$')
+    fig.savefig(os.path.join(args.dirname, filename), dpi=150)
+
 def plot(sim_time, sim_agent_pos, sim_agent_dist, sim_agent_acc, sim_env_pos, sim_env_acc, filename):
     fig, ax = plt.subplots(1, 3, figsize=(12, 3))
 
@@ -63,6 +81,28 @@ def plot(sim_time, sim_agent_pos, sim_agent_dist, sim_agent_acc, sim_env_pos, si
 
     fig.tight_layout()
     fig.savefig(os.path.join(args.dirname, filename), dpi=150)
+
+if args.scatter:
+    size = len(records)
+
+    robustness_formula = 'G(dist <= 10 & dist >= 2)'
+    robustness_computer = model_platooning.RobustnessComputer(robustness_formula)
+
+    robustness_array = np.zeros(size)
+    delta_pos_array = np.zeros(size)
+    delta_vel_array = np.zeros(size)
+
+    for i in range(size):
+        sample_trace = torch.tensor(records[i]['atk']['sim_ag_dist'][-150:])
+        robustness = float(robustness_computer.dqs.compute(dist=sample_trace))
+        delta_pos = records[i]['atk']['init']['env_pos'] - records[i]['atk']['init']['ag_pos']
+        delta_vel = records[i]['atk']['init']['env_vel'] - records[i]['atk']['init']['ag_vel']
+
+        robustness_array[i] = robustness
+        delta_pos_array[i] = delta_pos
+        delta_vel_array[i] = delta_vel
+
+    scatter(robustness_array, delta_pos_array, delta_vel_array, 'atk_scatterplot.png')
 
 if args.triplots:
     n = random.randrange(len(records))
