@@ -17,7 +17,7 @@ class Car:
         self.friction_coefficient = 0.01
 
     def update(self, in_acceleration, angle, dt):
-        self.acceleration = torch.clamp(in_acceleration, self._min_acceleration, self._max_acceleration)
+        self.acceleration = torch.clamp(in_acceleration.reshape(1), self._min_acceleration, self._max_acceleration)
         self.acceleration -= self.gravity * torch.sin(angle)
         if self.velocity != 0:
             self.acceleration -= self.friction_coefficient * self.gravity * torch.cos(angle)
@@ -37,7 +37,7 @@ class Environment:
         self.initialized()
 
     def initialized(self):
-        self.actuators = 5
+        self.actuators = 2
         self.sensors = 0
 
     @property
@@ -50,17 +50,22 @@ class Environment:
         return torch.clamp(deriv, -self._max_angular_coeff, self._max_angular_coeff)
 
     def get_fn(self, x):
-        derivative = np.array([float(self.get_steepness(i)) for i in x])
+        derivative = np.array([self.get_steepness(i) for i in x])
         return np.cumsum(derivative) * self._dx
 
     def update(self, parameters, dt):
-        def linear_combination(x):
-            basis = [x**i for i in range(len(parameters))]
-            basis = torch.tensor(basis, dtype=torch.get_default_dtype())
-            return parameters.dot(basis)
+        def gaussian_rbf(x):
+            w = parameters[0].reshape(1)
+            sigma = parameters[1]
+            mu = 25
+
+            phi = lambda x: torch.exp(-(x * sigma)**2)
+            r = torch.abs(x - mu)
+
+            return w.matmul(phi(r).unsqueeze(0))
 
         if parameters is not None:
-            self._fn = linear_combination
+            self._fn = gaussian_rbf
 
 
 class Agent:
@@ -93,7 +98,7 @@ class Agent:
 
     @property
     def angle(self):
-        return self._environment.get_steepness(float(self.position))
+        return self._environment.get_steepness(self.position)
 
     @property
     def status(self):
