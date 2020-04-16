@@ -2,6 +2,9 @@ import json
 import torch
 import numpy as np
 
+ROAD_LENGTH = 50
+BUMPS = 3
+
 from diffquantitative import DiffQuantitativeSemantic
 
 class Car:
@@ -37,7 +40,7 @@ class Environment:
         self.initialized()
 
     def initialized(self):
-        self.actuators = 2
+        self.actuators = 2 * BUMPS
         self.sensors = 0
 
     @property
@@ -45,6 +48,7 @@ class Environment:
         return ()
 
     def get_steepness(self, x):
+        x = torch.tensor(x) if not isinstance(x, torch.Tensor) else x
         dy = self._fn(x + self._dx) - self._fn(x)
         deriv = dy / torch.tensor(self._dx)
         return torch.clamp(deriv, -self._max_angular_coeff, self._max_angular_coeff)
@@ -54,17 +58,21 @@ class Environment:
         return np.cumsum(derivative) * self._dx
 
     def update(self, parameters, dt):
-        def gaussian_rbf(x):
-            w = parameters[0].reshape(1)
-            sigma = parameters[1]
-            mu = 25
-
-            phi = lambda x: torch.exp(-(x * sigma)**2)
-            r = torch.abs(x - mu)
-
-            return w.matmul(phi(r).unsqueeze(0))
-
         if parameters is not None:
+            parameters = parameters.reshape(2, BUMPS)
+
+            def gaussian_rbf(x):
+                x = x.reshape(1) if x.dim() == 0 else x
+                w = parameters[0]
+                sigma = parameters[1]
+                #mu = torch.rand(BUMPS) * ROAD_LENGTH
+                mu = torch.tensor([20, 30, 40])
+
+                phi = lambda x: torch.exp(-(x * sigma)**2)
+                r = torch.abs(x[:, np.newaxis] - mu)
+
+                return w.matmul(phi(r).t())
+
             self._fn = gaussian_rbf
 
 

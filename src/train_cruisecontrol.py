@@ -8,13 +8,13 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-agent_position = np.arange(50)
+agent_position = np.arange(model_cruisecontrol.ROAD_LENGTH)
 agent_velocity = np.linspace(-12, 12, 25)
 pg = misc.ParametersHyperparallelepiped(agent_position, agent_velocity)
 
 physical_model = model_cruisecontrol.Model(pg.sample(sigma=0.05))
 
-robustness_formula = 'G(v <= 4.90 & v >= 5.10)'
+robustness_formula = 'G(v >= 4.75 & v <= 5.25)'
 robustness_computer = model_cruisecontrol.RobustnessComputer(robustness_formula)
 
 attacker = architecture.Attacker(physical_model, 1, 10, 5, n_coeff=1)
@@ -26,9 +26,9 @@ trainer = architecture.Trainer(physical_model, robustness_computer, \
                             attacker, defender, working_dir)
 
 dt = 0.05
-training_steps = 10000
-simulation_horizon = int(5 / dt) # 5 second
+training_steps = 30000
+simulation_horizon = int(0.5 / dt) # 0.5 second
 
-trainer.run(training_steps, simulation_horizon, dt, atk_steps=1, def_steps=5, atk_static=True)
+trainer.run(training_steps, simulation_horizon, dt, atk_steps=1, def_steps=10, atk_static=True)
 
 misc.save_models(attacker, defender, working_dir)
