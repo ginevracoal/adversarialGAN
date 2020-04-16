@@ -19,15 +19,12 @@ parser.add_argument("-r", "--repetitions", dest="repetitions", type=int, default
 args = parser.parse_args()
 
 agent_position = 0
-agent_velocity = np.linspace(0, 12, 10)
+agent_velocity = np.linspace(-12, 12, 25)
 pg = misc.ParametersHyperparallelepiped(agent_position, agent_velocity)
 
 physical_model = model_cruisecontrol.Model(pg.sample(sigma=0.05))
 
-robustness_formula = 'G(v <= 4.90 & v >= 5.10)'
-robustness_computer = model_cruisecontrol.RobustnessComputer(robustness_formula)
-
-attacker = architecture.Attacker(physical_model, 1, 10, 5)
+attacker = architecture.Attacker(physical_model, 1, 10, 5, n_coeff=1)
 defender = architecture.Defender(physical_model, 2, 10)
 
 misc.load_models(attacker, defender, args.dirname)
@@ -47,29 +44,29 @@ def run(mode=None):
     sim_ag_vel = []
     sim_ag_acc = []
 
-
-    road_padding = 5
-    road_length = 80
-    road_init = -road_padding
-    road_end = road_length + road_padding
-    n_points = 10
-    px = np.linspace(0, road_end, n_points)
-    py = -np.abs((px - road_length/2)*.3)
-    if mode is not None:
-        py = -py
-    py = py - min(py)
-    py = np.random.normal(py, 1)
-    coeff = np.polyfit(px, py, 5)
-    p = np.poly1d(coeff)
+    def rbf(x):
+        x = x.reshape(1) if x.dim() == 0 else x
+        w = np.array([5]) if mode == 0 else np.array([-5])
+        phi = lambda x: np.exp(-(x * 0.2)**2)
+        d = np.arange(len(w)) +25
+        r = np.abs(x[:, np.newaxis] - d)
+        return w.dot(phi(r).T)
 
     t = 0
+    with torch.no_grad():
+        z = torch.rand(attacker.noise_size)
+        atk_policy = attacker(z)
+        
+    if mode is not None:
+        physical_model.environment._fn = rbf
+    
     for i in range(steps):
         oa = torch.tensor(physical_model.agent.status)
         
         with torch.no_grad():
             def_policy = defender(oa)
 
-        atk_input = torch.tensor(p.deriv().c)
+        atk_input = atk_policy(0) if mode is None else None
         def_input = def_policy(dt)
 
         physical_model.step(atk_input, def_input, dt)
@@ -81,10 +78,11 @@ def run(mode=None):
 
         t += dt
         
-    x = np.linspace(0, road_length, 100)
+    x = np.arange(0, 100, physical_model.environment._dx)
+    y = physical_model.environment.get_fn(torch.tensor(x))
 
     return {'init': conf_init,
-            'space': {'x': x, 'y': p(x), 'pos': p(sim_ag_pos)},
+            'space': {'x': x, 'y': y},
             'sim_t': np.array(sim_t),
             'sim_ag_pos': np.array(sim_ag_pos),
             'sim_ag_vel': np.array(sim_ag_vel),
@@ -94,8 +92,9 @@ def run(mode=None):
 records = []
 for i in range(args.repetitions):
     sim = {}
-    sim['up'] = run()
-    sim['down'] = run('ciao')
+    sim['up'] = run(0)
+    sim['down'] = run(1)
+    sim['atk'] = run()
     
     records.append(sim)
     
