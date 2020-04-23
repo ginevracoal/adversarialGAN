@@ -53,8 +53,11 @@ class Follower:
 parser = ArgumentParser()
 parser.add_argument("-d", "--dir", dest="dirname", help="model's directory")
 parser.add_argument("-n", "--nfollowers", dest="nfollowers", type=int, default=1, help="number of followers")
+parser.add_argument("--dark", default=False, action="store_true" , help="Use dark theme")
 args = parser.parse_args()
 
+if args.dark:
+    plt.style.use('./qb-common_dark.mplstyle')
 
 physical_model = model_platooning.Model(None)
 attacker = architecture.Attacker(physical_model, 2, 10, 2)
