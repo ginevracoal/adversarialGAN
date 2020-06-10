@@ -1,7 +1,48 @@
 import lark
+import copy
 import torch
 
-from convlogic.parser import LogicParser
+class LogicParser:
+
+    _grammar = """
+    start: prop
+
+    prop: VAR CMP (CONST | VAR) -> atom
+        | _NOT "(" prop ")"     -> op_not
+        | (prop _OR)+ prop      -> op_or
+        | (prop _AND)+ prop     -> op_and
+        | ltl_op "(" prop ")"   -> operator
+
+    ltl_op: letter
+    letter: LTL_OPERATOR
+
+    _NOT: "!"
+    _AND: "&"
+    _OR: "|"
+    LTL_OPERATOR : ("F" | "G")
+    CMP: ("<=" | "<" | ">=" | ">" | "!=" | "==")
+
+    VAR: /[a-z_]+/
+    CONST: SIGNED_NUMBER
+
+    %import common.INT
+    %import common.DECIMAL
+    %import common.SIGNED_NUMBER
+    %import common.WORD
+    %import common.WS
+    %ignore WS
+    """
+
+    def __init__(self, formula):
+        parser = lark.Lark(self._grammar)
+        self._tree = parser.parse(formula)
+
+    @property
+    def parse_tree(self):
+        return copy.deepcopy(self._tree)
+
+    def __str__(self):
+        return self._tree.pretty()
 
 class Functions:
 
