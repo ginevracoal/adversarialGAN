@@ -1,0 +1,47 @@
+\chapter{Introduction}
+
+This work is highly interdisciplinary and aims at using advanced frameworks like Generative Adversarial Networks and formal methods for model verification to propose a new approach on how to learn safe and robust controllers for Cyber-Physical Systems.
+
+The challenges for creating truly autonomous and safe system are currently being actively investigated and we believe that our method could give some concrete contribution to the already flourishing literature on this topic.
+
+
+\section{Context}
+Every day we unconsciously use of an increasing number of automatic systems that have not been programmed explicitly.
+They have been virtually trained on human examples in order to learn the proper behaviour in the most common scenarios.
+The massive usage of Deep Neural Networks to solve many of today's challenges \cite{Dargan_Kumar_Ayyagari_Kumar_2019} is a striking example of how effective this approach can be.
+The adoption of such technologies is growing in both industrial and consumer sectors and we are increasingly relying on data-driven models that work very well but that, due to their complexity, we fail to understand in their whole \cite{Carvalho_Pereira_Cardoso_2019}.
+
+This practice brought numerous advantages like speed and precision in the most common cases but, once we test the models in some unusual environment or with some weird configurations, they can fail miserably.
+While in some field of application this can be quantified as an economic loss, in others the situation is much more delicate, especially in those where human health is involved.
+
+Due to such practical reasons, the development of advanced models is confined to controlled environments and, usually, it is not a viable option in those that would benefit from automation, like the big complex artificial systems on which we daily rely on: transportation, power grid, production and so on.
+
+The biggest challenge for the deployment of autonomous systems that can have a larger impact in everyday life, is posed by the complexity of the exploration of \textbf{open worlds} like ours.
+\textit{Open worlds}, in fact, are difficult to model and control due to the significant amount of stochastic variables that are needed in their modelling and the variety of unpredictable scenarios that they present.
+Therefore, while trying to ensure safety and robustness, we need to be cautious about not trading them with the models' effectiveness.
+
+
+\section{Problem statement}
+When it comes to the control of Cyber-Physical Systems, the industry tends to rely on well-established and well-understood techniques, belonging to classic Control Theory \cite{pidrulez}.
+These algorithms allow a high degree of predictability along with good robustness in presence of noise.
+
+Nevertheless, research is trying to fill the gap with Deep Learning \cite{deepqlearning} that, on one hand, guarantees more flexibility and resilience but on the other sacrifices the full comprehension of the whole model.
+The big problem posed by a partial comprehension of the model is the impossibility of checking the behaviour of the controller in the case of unpredictable scenarios that could lead to unintended or harmful behaviours.
+
+Finding an efficient, safe and comprehensible solution is still an open challenge that offers a large space for improvements and fertile ground for new ideas.
+
+\section{Contributions}
+Most of the research that combines the usage of Deep Learning for robust control is done in the field of Reinforcement Learning \cite{brief_rl}.
+It offers different approaches, but the most promising trend involves learning from an \textit{expert} how to face the most common scenarios \cite{inverserl}.
+This approach performs reasonably well but presents some limits in case of unexpected situations.
+
+What we are going to investigate is the possibility of autonomously learning a safe and robust controller in a \textit{open world scenario}.
+The proposed approach consists in the training of two Neural Networks and is inspired by Generative Adversarial Networks \cite{gan_2014}. The two networks have opposite roles: while the \textit{attacker} tries to generate troubling scenarios for the controller, the \textit{defender} learns how to face them without violating some safety constraints.
+
+The outcome of such training procedure is twofold: on one side we get a robust controller, on the other we get a generator of adverse tests.
+
+
+\section{Structure}
+After covering the background knowledge required to understand the whole architecture, we will show the proposed solution.
+Later, we will show the case studies on which we tested our model and the respective results.
+Finally, we will draw some conclusions about this work and its possible future development.
