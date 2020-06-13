@@ -3,6 +3,9 @@ import copy
 import torch
 
 class LogicParser:
+    """ This class defines the grammar of the STL according to
+        the EBNF syntax and builds the AST accordingly.
+    """
 
     _grammar = """
     start: prop
@@ -45,6 +48,9 @@ class LogicParser:
         return self._tree.pretty()
 
 class Functions:
+    """ Encapsulate the set of functions allowed to be called
+        from the formula built starting from the AST
+    """
 
     @staticmethod
     def not_(x):
@@ -69,6 +75,11 @@ class Functions:
 
 @lark.v_args(inline=True)
 class _CodeBuilder(lark.Transformer):
+    """ Set of rules to traverse the AST and build a customized formula.
+        Basically it rewrites a formula starting from the AST to have
+        fine control on the operations that will be carried out the the
+        specific semantic.
+    """
 
     def atom(self, *args):
         operand_a, operator, operand_b = args
@@ -119,6 +130,9 @@ class _CodeBuilder(lark.Transformer):
 
 
 class DiffQuantitativeSemantic:
+    """ This class is used as API to build an STL formula and apply
+        it to arbitrary signals according to the quantitative semantics.
+    """
 
     def __init__(self, logic_formula):
         """Get the parse-tree and call the method _build on it"""

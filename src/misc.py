@@ -22,6 +22,10 @@ def load_models(attacker_model, defender_model, path):
 
 
 class ParametersHyperparallelepiped:
+    """ Class used to sample from the hyper-grid of parameters.
+        It also adds some gaussian noise to the sampled point in
+        order to encourage the exploration of the space.
+    """
 
     def __init__(self, *ranges):
         self._ranges = ranges
