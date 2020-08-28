@@ -4,8 +4,9 @@ import itertools
 import numpy as np
 
 def save_models(attacker_model, defender_model, path):
-    if not os.path.isdir(path):
-        os.mkdir(path)
+    # if not os.path.isdir(path):
+    #     os.mkdir(path)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
 
     atk_path = os.path.join(path, 'attacker.pt')
     def_path = os.path.join(path, 'defender.pt')

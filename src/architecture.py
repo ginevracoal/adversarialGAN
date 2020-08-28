@@ -105,8 +105,10 @@ class Trainer:
         self.attacker = attacker_nn
         self.defender = defender_nn
 
-        self.attacker_loss_fn = lambda x: x
-        self.defender_loss_fn = lambda x: -x
+        # self.attacker_loss_fn = lambda x: x
+        # self.defender_loss_fn = lambda x: -x
+        self.attacker_loss_fn = lambda x: x.clone().detach().requires_grad_(True)
+        self.defender_loss_fn = lambda x: -x.clone().detach().requires_grad_(True)
 
         atk_optimizer = optim.Adam(attacker_nn.parameters())
         def_optimizer = optim.Adam(defender_nn.parameters())
@@ -122,8 +124,8 @@ class Trainer:
     def train_attacker_step(self, time_horizon, dt, atk_static):
         """ Training step for the attacker. The defender's passive. """
         z = torch.rand(self.attacker.noise_size)
-        oa = torch.tensor(self.model.agent.status)
         oe = torch.tensor(self.model.environment.status)
+        oa = torch.tensor(self.model.agent.status)
 
         atk_policy = self.attacker(torch.cat((z, oe)))
 
@@ -146,7 +148,7 @@ class Trainer:
 
         self.attacker_optimizer.zero_grad()
 
-        loss = self.attacker_loss_fn(rho)
+        loss = self.attacker_loss_fn(rho) 
         loss.backward()
 
         self.attacker_optimizer.step()
@@ -274,7 +276,8 @@ class Tester:
             self.model.step(atk_input, def_input, dt)
 
         rho = self.robustness_computer.compute(self.model)
-
+        print("\nRobustness = ", rho.item())
+        
         return rho
 
 
@@ -283,7 +286,8 @@ class Tester:
         if self.logging:
             def_rho_vals = torch.zeros(times)
 
-        for i in tqdm(range(times)):
+        # for i in tqdm(range(times)):
+        for i in range(times):
             def_rho = self.test(time_horizon, dt)
 
             if self.logging:
