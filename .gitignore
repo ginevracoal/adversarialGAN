@@ -4,3 +4,4 @@ __pycache__
 models_*
 venv
 **/*.pyc
+experiments/
