@@ -37,7 +37,7 @@ class Attacker(nn.Module):
 
     def forward(self, x):
         """ Uses the NN's output to compute the coefficients of the policy function """
-        coefficients = self.nn(x)
+        coefficients = self.nn(x).float()
         coefficients = torch.reshape(coefficients, (-1, self.n_coeff))
 
         def policy_generator(t):
@@ -79,13 +79,15 @@ class Defender(nn.Module):
 
     def forward(self, x):
         """ Uses the NN's output to compute the coefficients of the policy function """
+        # self.to("cuda")
+        x = x.clone().detach().float()
         coefficients = self.nn(x)
         coefficients = torch.reshape(coefficients, (-1, self.n_coeff))
 
         def policy_generator(t):
             """ The policy function is defined as polynomial """
             basis = [t**i for i in range(self.n_coeff)]
-            basis = torch.tensor(basis, dtype=torch.get_default_dtype())
+            basis = torch.tensor(basis, dtype=torch.get_default_dtype()).float()
             basis = torch.reshape(basis, (self.n_coeff, -1))
             return coefficients.mm(basis).squeeze()
 
@@ -123,9 +125,9 @@ class Trainer:
 
     def train_attacker_step(self, time_horizon, dt, atk_static):
         """ Training step for the attacker. The defender's passive. """
-        z = torch.rand(self.attacker.noise_size)
-        oe = torch.tensor(self.model.environment.status)
-        oa = torch.tensor(self.model.agent.status)
+        z = torch.rand(self.attacker.noise_size).float()
+        oe = torch.tensor(self.model.environment.status).float()
+        oa = torch.tensor(self.model.agent.status).float()
 
         atk_policy = self.attacker(torch.cat((z, oe)))
 
@@ -153,14 +155,14 @@ class Trainer:
 
         self.attacker_optimizer.step()
 
-        return float(loss.detach())
+        return loss.detach().float()
 
 
     def train_defender_step(self, time_horizon, dt, atk_static):
         """ Training step for the defender. The attacker's passive. """
-        z = torch.rand(self.attacker.noise_size)
-        oa = torch.tensor(self.model.agent.status)
-        oe = torch.tensor(self.model.environment.status)
+        z = torch.rand(self.attacker.noise_size).float()
+        oa = torch.tensor(self.model.agent.status).float()
+        oe = torch.tensor(self.model.environment.status).float()
 
         with torch.no_grad():
             atk_policy = self.attacker(torch.cat((z, oe)))
@@ -186,7 +188,7 @@ class Trainer:
 
         self.defender_optimizer.step()
 
-        return float(loss.detach())
+        return loss.detach().float()
 
 
     def train(self, atk_steps, def_steps, time_horizon, dt, atk_static):
@@ -210,12 +212,13 @@ class Trainer:
 
     def run(self, n_steps, time_horizon=100, dt=0.05, *, atk_steps=1, def_steps=1, atk_static=False):
         """ Trains the architecture and provides logging and visual feedback """
+
         if self.logging:
             hist_every = int(n_steps / 10)
             hist_counter = 0
 
-            atk_loss_vals = torch.zeros(n_steps)
-            def_loss_vals = torch.zeros(n_steps)
+            atk_loss_vals = torch.zeros(n_steps).float()
+            def_loss_vals = torch.zeros(n_steps).float()
 
         for i in tqdm(range(n_steps)):
             atk_loss, def_loss = self.train(atk_steps, def_steps, time_horizon, dt, atk_static)
@@ -262,9 +265,9 @@ class Tester:
         self.model.initialize_random()
 
         for t in range(time_horizon):
-            z = torch.rand(self.attacker.noise_size)
-            oa = torch.tensor(self.model.agent.status)
-            oe = torch.tensor(self.model.environment.status)
+            z = torch.rand(self.attacker.noise_size).float()
+            oa = torch.tensor(self.model.agent.status).float()
+            oe = torch.tensor(self.model.environment.status).float()
 
             with torch.no_grad():
                 atk_policy = self.attacker(torch.cat((z, oe)))

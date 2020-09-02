@@ -14,7 +14,7 @@ from argparse import ArgumentParser
 parser = ArgumentParser()
 parser.add_argument("-d", "--dir", default="../experiments/cartpole", dest="dirname",
                     help="model's directory")
-parser.add_argument("--triplots", default=False, action="store_true" , help="Generate triplots")
+parser.add_argument("--triplots", default=True, action="store_true" , help="Generate triplots")
 parser.add_argument("--scatter", default=False, action="store_true" , help="Generate scatterplot")
 parser.add_argument("--hist", default=False, action="store_true" , help="Generate histograms")
 parser.add_argument("--dark", default=False, action="store_true" , help="Use dark theme")
@@ -65,19 +65,19 @@ def hist(time, pulse, step_up, step_down, atk, filename):
 #     fig.suptitle('Initial conditions vs robustness $\\rho$')
 #     fig.savefig(os.path.join(args.dirname, filename), dpi=150)
 
-def plot(sim_time, sim_c_pos, sim_p_ang, sim_c_acc, sim_p_acc, filename):
+def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_p_acc, filename):
     fig, ax = plt.subplots(1, 3, figsize=(12, 3))
 
-    ax[0].plot(sim_time, sim_c_pos, label='cart')
+    ax[0].plot(sim_time, sim_x, label='cart')
     ax[0].set(xlabel='time (s)', ylabel='position')
     ax[0].legend()
 
     ax[1].axhline(-0.785, ls='--', color='r')
     ax[1].axhline(0.785, ls='--', color='r')
-    ax[1].plot(sim_time, sim_p_ang, label='pole')
+    ax[1].plot(sim_time, sim_theta, label='pole')
     ax[1].set(xlabel='time (s)', ylabel='angle')
 
-    ax[2].plot(sim_time, sim_c_acc, label='cart')
+    ax[2].plot(sim_time, sim_dot_x, label='cart')
     ax[2].plot(sim_time, sim_p_acc, label='pole')
     ax[2].set(xlabel='time (s)', ylabel='acceleration')
     ax[2].legend()
@@ -112,16 +112,16 @@ if args.scatter:
 if args.triplots:
     n = random.randrange(len(records))
     print('pulse:', records[n]['pulse']['init'])
-    plot(records[n]['pulse']['sim_t'], records[n]['pulse']['sim_c_pos'], records[n]['pulse']['sim_p_ang'], records[n]['pulse']['sim_c_acc'], records[n]['pulse']['sim_p_acc'], 'triplot_pulse.png')
+    plot(records[n]['pulse']['sim_t'], records[n]['pulse']['sim_x'], records[n]['pulse']['sim_theta'], records[n]['pulse']['sim_dot_x'], records[n]['pulse']['sim_dot_theta'], 'triplot_pulse.png')
 
     print('step_up:', records[n]['step_up']['init'])
-    plot(records[n]['step_up']['sim_t'], records[n]['step_up']['sim_c_pos'], records[n]['step_up']['sim_p_ang'], records[n]['step_up']['sim_c_acc'], records[n]['step_up']['sim_c_acc'], 'triplot_step_up.png')
+    plot(records[n]['step_up']['sim_t'], records[n]['step_up']['sim_x'], records[n]['step_up']['sim_theta'], records[n]['step_up']['sim_dot_x'], records[n]['step_up']['sim_dot_theta'], 'triplot_step_up.png')
 
     print('step_down:', records[n]['step_down']['init'])
-    plot(records[n]['step_down']['sim_t'], records[n]['step_down']['sim_c_pos'], records[n]['step_down']['sim_p_ang'], records[n]['step_down']['sim_c_acc'], records[n]['step_down']['sim_c_acc'], 'triplot_step_down.png')
+    plot(records[n]['step_down']['sim_t'], records[n]['step_down']['sim_x'], records[n]['step_down']['sim_theta'], records[n]['step_down']['sim_dot_x'], records[n]['step_down']['sim_dot_theta'], 'triplot_step_down.png')
 
     print('attacker:', records[n]['atk']['init'])
-    plot(records[n]['atk']['sim_t'], records[n]['atk']['sim_c_pos'],records[n]['step_down']['sim_p_ang'], records[n]['step_down']['sim_c_acc'], records[n]['step_down']['sim_c_acc'], 'triplot_attacker.png')
+    plot(records[n]['atk']['sim_t'], records[n]['atk']['sim_x'],records[n]['step_down']['sim_theta'], records[n]['step_down']['sim_dot_x'], records[n]['step_down']['sim_dot_theta'], 'triplot_attacker.png')
 
 if args.hist:
     size = len(records)
