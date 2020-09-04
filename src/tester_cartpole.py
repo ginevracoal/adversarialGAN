@@ -16,20 +16,23 @@ parser.add_argument("-d", "--dir", default="../experiments/cartpole", dest="dirn
                     help="model's directory")
 parser.add_argument("-r", "--repetitions", dest="repetitions", type=int, default=1,
                     help="simulation repetions")
+parser.add_argument("--ode_idx", type=int, default=0)
+parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
-cart_position = np.linspace(0., 10., 40)
-cart_velocity = np.linspace(0., 0.5, 40)
+cart_position = np.linspace(0., 5., 40)
+cart_velocity = np.linspace(0., 1., 40)
 pole_angle = np.linspace(-3.1415/4, 3.1415/4, 15)
-pole_ang_velocity = np.linspace(0., 0.5, 40)
+pole_ang_velocity = np.linspace(0., 1., 40)
+
 pg = misc.ParametersHyperparallelepiped(cart_position, cart_velocity, pole_angle, pole_ang_velocity)
 
-physical_model = model_cartpole.Model(pg.sample(sigma=0.05))
+physical_model = model_cartpole.Model(pg.sample(sigma=0.05), device=args.device, ode_idx=args.ode_idx)
 
 attacker = architecture.Attacker(physical_model, 2, 10, 2)
 defender = architecture.Defender(physical_model, 2, 10)
 
-misc.load_models(attacker, defender, args.dirname)
+misc.load_models(attacker, defender, args.dirname+str(args.ode_idx))
 
 dt = 0.05 # timestep
 steps = 300
@@ -46,8 +49,8 @@ def run(mode=None):
     sim_t = []
     sim_x = []
     sim_theta = []
-    sim_dot_x = []
-    sim_dot_theta = []
+    sim_ddot_x = []
+    sim_attack = []
 
     t = 0
     for i in range(steps):
@@ -76,8 +79,8 @@ def run(mode=None):
         sim_t.append(t)
         sim_x.append(physical_model.agent.x)
         sim_theta.append(physical_model.agent.theta)
-        sim_dot_x.append(def_input)
-        sim_dot_theta.append(atk_input)
+        sim_ddot_x.append(def_input)
+        sim_attack.append(atk_input)
 
         t += dt
         
@@ -85,19 +88,19 @@ def run(mode=None):
             'sim_t': np.array(sim_t),
             'sim_x': np.array(sim_x),
             'sim_theta': np.array(sim_theta),
-            'sim_dot_x': np.array(sim_dot_x),
-            'sim_dot_theta': np.array(sim_dot_theta),
+            'sim_ddot_x': np.array(sim_ddot_x),
+            'sim_attack': np.array(sim_attack),
     }
 
 records = []
 for i in range(args.repetitions):
     sim = {}
     sim['pulse'] = run(0)
-    sim['step_up'] = run(1)
-    sim['step_down'] = run(2)
-    # sim['atk'] = run()
+    sim['push'] = run(1)
+    sim['pull'] = run(2)
+    sim['atk'] = run()
     
     records.append(sim)
     
-with open(os.path.join(args.dirname, 'sims.pkl'), 'wb') as f:
+with open(os.path.join(args.dirname+str(args.ode_idx), 'sims.pkl'), 'wb') as f:
     pickle.dump(records, f)

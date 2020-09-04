@@ -8,29 +8,50 @@ from torchdiffeq import odeint
 
 class CartPole():
 
-    def __init__(self):
+    def __init__(self, device, ode_idx):
+
+        self.ode_idx=ode_idx
+
+        if device == "cuda":
+            torch.set_default_tensor_type('torch.cuda.FloatTensor')
+        self.device = device
 
         self.gravity = 9.8 # acceleration due to gravity, positive is downward, m/sec^2
         self.mcart = 1.0 # cart mass in kg
         self.mpole = 0.1 # pole mass in kg
-        self.lpole = 0.5 # pole length in meters
+        self.lpole = 1.0 # pole length in meters
 
-        self._max_x = 40
+        self._max_x = 100
         self._min_x = -self._max_x
         self._max_theta = 3.1415/2
         self._min_theta = -self._max_theta
 
         self.x, self.theta = (torch.tensor(0.0).float(), torch.tensor(0.0).float())
         self.dot_theta, self.dot_x = (torch.tensor(0.0).float(), torch.tensor(0.0).float())
-        # self.ddot_theta, self.ddot_x = (torch.tensor(0.0), torch.tensor(0.0))
+        self.ddot_x, self.ddot_theta = (torch.tensor(0.0).float(), torch.tensor(0.0).float())
+        self.mu = torch.tensor(0.0).float()
 
-    def update(self, ddot_x, dt):
+
+    def update(self, dt, ddot_x=None, mu=None):
         """
         Update the system state.
         """        
 
+        if ddot_x is None:
+            ddot_x = self.ddot_x
+
+        if mu is None:
+            mu = self.mu
+
         # Control cart
-        f = (self.mcart + self.mpole) * ddot_x
+        if self.ode_idx==0:
+            f = (self.mcart+self.mpole) * (ddot_x + mu) 
+
+        elif self.ode_idx==1:
+            f = (self.mcart+self.mpole) * ddot_x
+
+        else:
+            raise NotImplementedError()
 
         def ode_func(dt, q):
             # Locals for readability.
@@ -42,27 +63,50 @@ class CartPole():
             
             x, theta, dot_x, dot_theta = q[0], q[1], q[2], q[3]
     
-            # ODE equations        
-            delta = 1/(mp*torch.sin(theta)**2 + mc)
-            ddot_x = delta * (f + mp * torch.sin(theta) * (L * dot_theta**2 
-                                                     + g * torch.cos(theta) ))
-            ddot_theta  = delta/L * (- f * torch.cos(theta) 
-                                     - mp * L * dot_theta**2 * torch.cos(theta) * torch.sin(theta)
-                                     - M * g * torch.sin(theta))
+            # ODE equations   
+
+            if self.ode_idx==0:
+
+                delta = 1/(mp*torch.sin(theta)**2 + mc)
+                ddot_x = delta * (f + mp * torch.sin(theta) * (L * dot_theta**2 
+                                                         + g * torch.cos(theta) ))
+                ddot_theta  = delta/L * (- f * torch.cos(theta) 
+                                         - mp * L * dot_theta**2 * torch.cos(theta) * torch.sin(theta)
+                                         - M * g * torch.sin(theta))
+            elif self.ode_idx==1:
+
+                l = L/2
+                Nc = M * g - mp * l * (self.ddot_theta*torch.sin(theta) + dot_theta**2 * torch.cos(theta))
+                Nc = torch.clamp(Nc, 1000).to("cuda")
+
+                numer = -f/M - mp * l * dot_theta**2 * (torch.sin(theta)+mu*torch.sign(Nc*dot_x)*torch.cos(theta))/M + mu * g * torch.sign(Nc * dot_x)
+                denom = 4/3 - mp * torch.cos(theta) * (torch.cos(theta)- mu * torch.sign(Nc * dot_x)) / M 
+                ddot_theta = g*torch.sin(theta)/(l*denom) + torch.cos(theta)*numer/(l*denom) - mu*dot_theta/(mp * l**2 * denom)
+
+                ddot_x = f/M + mp*l*(dot_theta**2 * torch.sin(theta)-ddot_theta * torch.cos(theta))/M - mu * Nc * torch.sign(Nc * dot_x)/M
+
+            else:
+                raise NotImplementedError()
 
             dqdt = torch.FloatTensor([dot_x, dot_theta, ddot_x, ddot_theta])
+
+            self.ddot_x = ddot_x.reshape(1)
+            self.ddot_theta = ddot_theta.reshape(1)
+
             return dqdt
-        
+    
         # Solve the ODE
         q0 = torch.FloatTensor([self.x, self.theta, self.dot_x, self.dot_theta])
         t = torch.FloatTensor(np.linspace(0, dt, 2))
-        q = odeint(func=ode_func, y0=q0, t=t)
+        q = odeint(func=ode_func, y0=q0, t=t).to("cuda")
+        # print(q[1])
 
         x, theta, dot_x, dot_theta = q[1]
         self.x = torch.clamp(x, self._min_x, self._max_x).reshape(1)
         self.theta = torch.clamp(theta, self._min_theta, self._max_theta).reshape(1)
         self.dot_x = dot_x.reshape(1)
         self.dot_theta = dot_theta.reshape(1)
+        self.mu = mu.reshape(1)
 
 
 class Environment:
@@ -86,8 +130,8 @@ class Environment:
 
     def update(self, parameters, dt):
         # the environment updates according to the parameters
-        cart_acceleration = parameters
-        self._cartpole.update(dt=dt, ddot_x=cart_acceleration)
+        mu = parameters
+        self._cartpole.update(mu=mu, dt=dt)
 
 
 class Agent:
@@ -149,10 +193,10 @@ class Agent:
 
 class Model:
     
-    def __init__(self, param_generator):
+    def __init__(self, param_generator, device="cuda", ode_idx=0):
         # setting of the initial conditions
 
-        cartpole = CartPole()
+        cartpole = CartPole(device=device, ode_idx=ode_idx)
 
         self.agent = Agent(cartpole)
         self.environment = Environment(cartpole)
@@ -196,7 +240,6 @@ class RobustnessComputer:
         self.dqs = DiffQuantitativeSemantic(formula)
 
     def compute(self, model):
-        x = model.traces['x']
         theta = model.traces['theta']
-        return self.dqs.compute(x=torch.cat(x), theta=torch.cat(theta))
+        return self.dqs.compute(theta=torch.cat(theta))
         
