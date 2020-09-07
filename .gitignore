@@ -5,3 +5,4 @@ models_*
 venv
 **/*.pyc
 experiments/
+src/screenlog.0
