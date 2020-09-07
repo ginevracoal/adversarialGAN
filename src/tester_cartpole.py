@@ -21,7 +21,7 @@ parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
 cart_position = np.linspace(0., 5., 40)
-cart_velocity = np.linspace(0., 1., 40)
+cart_velocity = np.linspace(-2., 2., 40)
 pole_angle = np.linspace(-3.1415/4, 3.1415/4, 15)
 pole_ang_velocity = np.linspace(0., 1., 40)
 
@@ -61,11 +61,11 @@ def run(mode=None):
             z = torch.rand(attacker.noise_size).float()
             
             if mode == 0:
-                atk_policy = lambda x: torch.tensor(2.) if i > 100 and i < 200 else torch.tensor(-2.)
+                atk_policy = lambda x: torch.tensor(0.5) if i > 100 and i < 200 else torch.tensor(-0.5)
             elif mode == 1:
-                atk_policy = lambda x: torch.tensor(2.) if i > 100 else torch.tensor(-2.)
+                atk_policy = lambda x: torch.tensor(0.5) if i > 100 else torch.tensor(-0.5)
             elif mode == 2:
-                atk_policy = lambda x: torch.tensor(2.) if i < 100 else torch.tensor(-2.)
+                atk_policy = lambda x: torch.tensor(0.5) if i < 100 else torch.tensor(-0.5)
             else:
                 atk_policy = attacker(torch.cat((z, oe)))
 
@@ -99,6 +99,8 @@ for i in range(args.repetitions):
     sim['push'] = run(1)
     sim['pull'] = run(2)
     sim['atk'] = run()
+
+    # print(sim)
     
     records.append(sim)
     

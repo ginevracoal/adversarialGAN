@@ -14,7 +14,7 @@ from argparse import ArgumentParser
 parser = ArgumentParser()
 parser.add_argument("-d", "--dir", default="../experiments/cartpole", dest="dirname",
                     help="model's directory")
-parser.add_argument("--ode_idx", default=0, action="store_true" , help="Choose ode idx")
+parser.add_argument("--ode_idx", default=0, type=int, help="Choose ode idx")
 parser.add_argument("--fourplots", default=True, action="store_true" , help="Generate four plots")
 parser.add_argument("--scatter", default=False, action="store_true" , help="Generate scatterplot")
 parser.add_argument("--hist", default=False, action="store_true" , help="Generate histograms")
@@ -90,7 +90,7 @@ def plot(sim_time, sim_x, sim_theta, sim_ddot_x, sim_attack, filename):
 
     elif args.ode_idx==1:
         ax[1,1].plot(sim_time, sim_attack, label='')
-        ax[1,1].set(xlabel='time (s)', ylabel='air friction')
+        ax[1,1].set(xlabel='time (s)', ylabel='cart friction')
 
     fig.tight_layout()
     fig.savefig(os.path.join(args.dirname+str(args.ode_idx), filename), dpi=150)

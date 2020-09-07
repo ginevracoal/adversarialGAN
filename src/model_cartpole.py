@@ -21,16 +21,15 @@ class CartPole():
         self.mpole = 0.1 # pole mass in kg
         self.lpole = 1.0 # pole length in meters
 
-        self._max_x = 100
-        self._min_x = -self._max_x
-        self._max_theta = 3.1415/2
-        self._min_theta = -self._max_theta
-
         self.x, self.theta = (torch.tensor(0.0).float(), torch.tensor(0.0).float())
         self.dot_theta, self.dot_x = (torch.tensor(0.0).float(), torch.tensor(0.0).float())
         self.ddot_x, self.ddot_theta = (torch.tensor(0.0).float(), torch.tensor(0.0).float())
-        self.mu = torch.tensor(0.0).float()
+        self.mu = torch.tensor(0.005).float()
 
+        # self._max_x = 100.
+        self._max_theta = 3.1415/2 #0.418
+        self._max_dot_x = 100.
+        self._max_dot_theta = 100.
 
     def update(self, dt, ddot_x=None, mu=None):
         """
@@ -75,15 +74,21 @@ class CartPole():
                                          - M * g * torch.sin(theta))
             elif self.ode_idx==1:
 
-                l = L/2
-                Nc = M * g - mp * l * (self.ddot_theta*torch.sin(theta) + dot_theta**2 * torch.cos(theta))
-                Nc = torch.clamp(Nc, 1000).to("cuda")
+                # l = L/2 # half length
+                # Nc = M * g - mp * l * (self.ddot_theta*torch.sin(theta) + dot_theta**2 * torch.cos(theta))
+                # Nc = torch.clamp(Nc, 100).to(self.device)
 
-                numer = -f/M - mp * l * dot_theta**2 * (torch.sin(theta)+mu*torch.sign(Nc*dot_x)*torch.cos(theta))/M + mu * g * torch.sign(Nc * dot_x)
-                denom = 4/3 - mp * torch.cos(theta) * (torch.cos(theta)- mu * torch.sign(Nc * dot_x)) / M 
-                ddot_theta = g*torch.sin(theta)/(l*denom) + torch.cos(theta)*numer/(l*denom) - mu*dot_theta/(mp * l**2 * denom)
+                # numer = -f/M - mp * l * dot_theta**2 * (torch.sin(theta)+mu*torch.sign(Nc*dot_x)*torch.cos(theta))/M + mu * g * torch.sign(Nc * dot_x)
+                # denom = 4/3 - mp * torch.cos(theta) * (torch.cos(theta)- mu * torch.sign(Nc * dot_x)) / M 
+                # ddot_theta = g*torch.sin(theta)/(l*denom) + torch.cos(theta)*numer/(l*denom) - mu*dot_theta/(mp * l**2 * denom)
 
-                ddot_x = f/M + mp*l*(dot_theta**2 * torch.sin(theta)-ddot_theta * torch.cos(theta))/M - mu * Nc * torch.sign(Nc * dot_x)/M
+                # ddot_x = f/M + mp*l*(dot_theta**2 * torch.sin(theta)-ddot_theta * torch.cos(theta))/M - mu * Nc * torch.sign(Nc * dot_x)/M
+
+                l = L/2 # half length
+                numer = (-f - mp * l * dot_theta**2 * torch.sin(theta) + mu * torch.sign(dot_x)) / M
+                denom = 4/3 - (mp * torch.cos(theta)**2) / M
+                ddot_theta = (g * torch.sin(theta) + torch.cos(theta) * numer - (mu * dot_theta)/(mp * l))/(l * denom)
+                ddot_x = (f + mp * l * (dot_theta**2 * torch.sin(theta) - ddot_theta * torch.cos(theta))- mu * torch.sign(dot_x))/M
 
             else:
                 raise NotImplementedError()
@@ -98,15 +103,15 @@ class CartPole():
         # Solve the ODE
         q0 = torch.FloatTensor([self.x, self.theta, self.dot_x, self.dot_theta])
         t = torch.FloatTensor(np.linspace(0, dt, 2))
-        q = odeint(func=ode_func, y0=q0, t=t).to("cuda")
-        # print(q[1])
+        q = odeint(func=ode_func, y0=q0, t=t).to(self.device)
 
         x, theta, dot_x, dot_theta = q[1]
-        self.x = torch.clamp(x, self._min_x, self._max_x).reshape(1)
-        self.theta = torch.clamp(theta, self._min_theta, self._max_theta).reshape(1)
-        self.dot_x = dot_x.reshape(1)
-        self.dot_theta = dot_theta.reshape(1)
-        self.mu = mu.reshape(1)
+        self.x = x.reshape(1) #torch.clamp(x, -self._max_x, self._max_x).reshape(1)
+        self.theta = torch.clamp(theta, -self._max_theta, self._max_theta).reshape(1)
+        self.dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
+        self.dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
+
+        # print(self.x.item(), self.theta.item(), self.dot_x.item(), self.dot_theta.item())
 
 
 class Environment:
