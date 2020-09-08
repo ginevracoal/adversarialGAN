@@ -24,35 +24,27 @@ class CartPole():
         self.x, self.theta = (torch.tensor(0.0).float(), torch.tensor(0.0).float())
         self.dot_theta, self.dot_x = (torch.tensor(0.0).float(), torch.tensor(0.0).float())
         self.ddot_x, self.ddot_theta = (torch.tensor(0.0).float(), torch.tensor(0.0).float())
-        self.mu = torch.tensor(0.005).float()
+        self.mu = torch.tensor(0.005) #.float()
 
-        # self._max_x = 100.
-        self._max_theta = 3.1415/2 #0.418
-        self._max_dot_x = 100.
-        self._max_dot_theta = 100.
+        self._max_x = 5.
+        self._max_theta = 1.57 # 3.1415/2
+        self._max_dot_x = 50.
+        self._max_dot_theta = 50.
+        self._max_f = 2.0
 
     def update(self, dt, ddot_x=None, mu=None):
         """
         Update the system state.
         """        
 
-        if ddot_x is None:
-            ddot_x = self.ddot_x
+        if ddot_x is not None:
+            self.ddot_x = ddot_x
 
-        if mu is None:
-            mu = self.mu
-
-        # Control cart
-        if self.ode_idx==0:
-            f = (self.mcart+self.mpole) * (ddot_x + mu) 
-
-        elif self.ode_idx==1:
-            f = (self.mcart+self.mpole) * ddot_x
-
-        else:
-            raise NotImplementedError()
+        if mu is not None:
+            self.mu = mu
 
         def ode_func(dt, q):
+
             # Locals for readability.
             g = self.gravity
             mp = self.mpole
@@ -61,6 +53,41 @@ class CartPole():
             L = self.lpole
             
             x, theta, dot_x, dot_theta = q[0], q[1], q[2], q[3]
+
+            # Control cart
+            if self.ode_idx==0:
+
+                f = M * (self.ddot_x + self.mu) 
+
+            elif self.ode_idx==1:
+
+                f = M * self.ddot_x
+
+            elif self.ode_idx==2:
+
+                theta_0 = torch.tensor(0.431) #.float()
+                delta = torch.tensor(1.234) #.float()
+                
+                if torch.abs(dot_theta*torch.cos(theta)) >= delta and torch.abs(theta) >= theta_0:
+                    f_hat = self._max_f * torch.sign(dot_theta*torch.cos(theta))
+
+                elif torch.abs(dot_theta*torch.cos(theta)) < delta and torch.abs(theta) >= theta_0:
+                    f_hat = 0.
+
+                elif torch.abs(theta) < theta_0:
+                    f_hat = -(8.268*theta + 2.043*dot_theta - 1.035*x - 2.611*dot_x)
+
+                if torch.abs(x) < self._max_x:
+                    f = max(-self._max_f, min(self._max_f, f_hat))
+
+                elif x < -self._max_x:
+                    f = max(0, min(self._max_f, f_hat))
+
+                else: # x > self._max_x
+                    f = max(-self._max_f, min(self._max_f, f_hat))
+
+            else:
+                raise NotImplementedError()
     
             # ODE equations   
 
@@ -90,6 +117,14 @@ class CartPole():
                 ddot_theta = (g * torch.sin(theta) + torch.cos(theta) * numer - (mu * dot_theta)/(mp * l))/(l * denom)
                 ddot_x = (f + mp * l * (dot_theta**2 * torch.sin(theta) - ddot_theta * torch.cos(theta))- mu * torch.sign(dot_x))/M
 
+            elif self.ode_idx==2:
+
+                a = 2. # 19.72688
+                c1 = 0.1 
+                c2 = self.mu # 0.01545
+                ddot_theta = 3*g/L * torch.sin(theta) + 3*a/L * (f-dot_x) * torch.cos(theta) - c1*dot_theta - c2 * dot_theta**2 * torch.sign(dot_theta)
+                ddot_x = a * (f-dot_x)
+
             else:
                 raise NotImplementedError()
 
@@ -106,12 +141,12 @@ class CartPole():
         q = odeint(func=ode_func, y0=q0, t=t).to(self.device)
 
         x, theta, dot_x, dot_theta = q[1]
-        self.x = x.reshape(1) #torch.clamp(x, -self._max_x, self._max_x).reshape(1)
+        self.x = torch.clamp(x, -self._max_x, self._max_x).reshape(1)
         self.theta = torch.clamp(theta, -self._max_theta, self._max_theta).reshape(1)
         self.dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
         self.dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
 
-        # print(self.x.item(), self.theta.item(), self.dot_x.item(), self.dot_theta.item())
+        print(self.x.item(), self.theta.item(), self.dot_x.item(), self.dot_theta.item())
 
 
 class Environment:

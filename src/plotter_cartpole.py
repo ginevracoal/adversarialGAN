@@ -70,27 +70,31 @@ def plot(sim_time, sim_x, sim_theta, sim_ddot_x, sim_attack, filename):
     fig, ax = plt.subplots(2, 2, figsize=(10, 4))
 
     ax[0,0].plot(sim_time, sim_x, label='')
-    ax[0,0].set(xlabel='time (s)', ylabel='cart position')
+    ax[0,0].set(xlabel='time (s)', ylabel='cart position (m)')
 
     ax[1,0].axhline(-0.785, ls='--', color='r')
     ax[1,0].axhline(0.785, ls='--', color='r')
     ax[1,0].plot(sim_time, sim_theta, label='')
-    ax[1,0].set(xlabel='time (s)', ylabel='pole angle')
+    ax[1,0].set(xlabel='time (s)', ylabel='pole angle (rad)')
 
     if args.ode_idx==0:
         ax[0,1].plot(sim_time, sim_ddot_x, label='')
-        ax[0,1].set(xlabel='time (s)', ylabel='defender acceleration')
-    elif args.ode_idx==1:
+        ax[0,1].set(xlabel='time (s)', ylabel='defender acceleration (m/s^2)')
+    elif args.ode_idx==1 or args.ode_idx==2:
         ax[0,1].plot(sim_time, sim_ddot_x, label='')
-        ax[0,1].set(xlabel='time (s)', ylabel='cart acceleration')
+        ax[0,1].set(xlabel='time (s)', ylabel='cart acceleration (m/s^2)')
 
     if args.ode_idx==0:
         ax[1,1].plot(sim_time, sim_attack, label='')
-        ax[1,1].set(xlabel='time (s)', ylabel='attacker acceleration')
+        ax[1,1].set(xlabel='time (s)', ylabel='attacker acceleration (m/s^2)')
 
     elif args.ode_idx==1:
         ax[1,1].plot(sim_time, sim_attack, label='')
         ax[1,1].set(xlabel='time (s)', ylabel='cart friction')
+
+    elif args.ode_idx==2:
+        ax[1,1].plot(sim_time, sim_attack, label='')
+        ax[1,1].set(xlabel='time (s)', ylabel='air drag')
 
     fig.tight_layout()
     fig.savefig(os.path.join(args.dirname+str(args.ode_idx), filename), dpi=150)
