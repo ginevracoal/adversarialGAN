@@ -12,10 +12,11 @@ import numpy as np
 from argparse import ArgumentParser
 
 parser = ArgumentParser()
-parser.add_argument("-d", "--dir", dest="dirname",
+parser.add_argument("-d", "--dir", dest="dirname", default="../experiments/platooning",
                     help="model's directory")
 parser.add_argument("-r", "--repetitions", dest="repetitions", type=int, default=1,
                     help="simulation repetions")
+parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
 agent_position = 0
@@ -24,7 +25,7 @@ leader_position = np.linspace(1, 12, 15)
 leader_velocity = np.linspace(0, 20, 10)
 pg = misc.ParametersHyperparallelepiped(agent_position, agent_velocity, leader_position, leader_velocity)
 
-physical_model = model_platooning.Model(pg.sample(sigma=0.05))
+physical_model = model_platooning.Model(pg.sample(sigma=0.05), device=args.device)
 
 attacker = architecture.Attacker(physical_model, 2, 10, 2)
 defender = architecture.Defender(physical_model, 2, 10)

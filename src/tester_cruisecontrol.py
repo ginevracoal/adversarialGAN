@@ -8,11 +8,12 @@ import architecture
 import torch
 import torch.nn as nn
 import numpy as np
+from tqdm import tqdm
 
 from argparse import ArgumentParser
 
 parser = ArgumentParser()
-parser.add_argument("-d", "--dir", dest="dirname",
+parser.add_argument("-d", "--dir", dest="dirname", default="../experiments/cruisecontrol",
                     help="model's directory")
 parser.add_argument("-r", "--repetitions", dest="repetitions", type=int, default=1,
                     help="simulation repetions")
@@ -30,7 +31,7 @@ defender = architecture.Defender(physical_model, 2, 10)
 misc.load_models(attacker, defender, args.dirname)
 
 dt = 0.05
-steps = 300
+steps = 30 #0
 
 def run(mode=None):
     physical_model.initialize_random()
@@ -45,7 +46,7 @@ def run(mode=None):
     sim_ag_acc = []
 
     def rbf(x):
-        x = x.reshape(1) if x.dim() == 0 else x
+        x = x.reshape(1).cpu() if x.dim() == 0 else x.cpu()
         w = np.array([5]) if mode == 0 else np.array([-5])
         phi = lambda x: np.exp(-(x * 0.2)**2)
         d = np.arange(len(w)) +25
@@ -54,20 +55,20 @@ def run(mode=None):
 
     t = 0
     with torch.no_grad():
-        z = torch.rand(attacker.noise_size)
+        z = torch.rand(attacker.noise_size).float()
         atk_policy = attacker(z)
         
     if mode is not None:
         physical_model.environment._fn = rbf
     
-    for i in range(steps):
-        oa = torch.tensor(physical_model.agent.status)
+    for i in tqdm(range(steps)):
+        oa = torch.tensor(physical_model.agent.status).float()
         
         with torch.no_grad():
             def_policy = defender(oa)
 
-        atk_input = atk_policy(0) if mode is None else None
-        def_input = def_policy(dt)
+        atk_input = atk_policy(0).float() if mode is None else None
+        def_input = def_policy(dt).float()
 
         physical_model.step(atk_input, def_input, dt)
 

@@ -9,19 +9,18 @@ import torch.nn as nn
 import numpy as np
 from argparse import ArgumentParser
 
-
 # Specifies the initial conditions of the setup
 parser = ArgumentParser()
 parser.add_argument("--dir", default="../experiments/cartpole", help="model's directory")
 parser.add_argument("--training_steps", type=int, default=10)
-parser.add_argument("--ode_idx", type=int, default=0)
+parser.add_argument("--ode_idx", type=int, default=2)
 parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
-cart_position = np.linspace(0., 5., 40)
-cart_velocity = np.linspace(-5., 5., 40)
-pole_angle = np.linspace(-3.1415/4, 3.1415/4, 15)
-pole_ang_velocity = np.linspace(0, 2., 40)
+cart_position = np.linspace(0., 1., 20)
+cart_velocity = np.linspace(-5., 5., 20)
+pole_angle = np.linspace(-0.392, 0.392, 10)
+pole_ang_velocity = np.linspace(-2., 2., 20)
 
 # Sets the device
 if args.device=="cuda":

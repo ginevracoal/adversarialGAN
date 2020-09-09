@@ -289,8 +289,7 @@ class Tester:
         if self.logging:
             def_rho_vals = torch.zeros(times)
 
-        # for i in tqdm(range(times)):
-        for i in range(times):
+        for i in tqdm(range(times)):
             def_rho = self.test(time_horizon, dt)
 
             if self.logging:
