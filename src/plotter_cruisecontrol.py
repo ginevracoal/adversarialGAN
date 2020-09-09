@@ -8,9 +8,9 @@ import numpy as np
 from argparse import ArgumentParser
 
 parser = ArgumentParser()
-parser.add_argument("-d", "--dir", dest="dirname",
+parser.add_argument("-d", "--dir", default="../experiments/cruisecontrol", type=str,
                     help="model's directory")
-parser.add_argument("--triplots", default=False, action="store_true" , help="Generate triplots")
+parser.add_argument("--triplots", default=True, action="store_true" , help="Generate triplots")
 parser.add_argument("--hist", default=False, action="store_true" , help="Generate histograms")
 parser.add_argument("--dark", default=False, action="store_true" , help="Use dark theme")
 args = parser.parse_args()
@@ -18,7 +18,7 @@ args = parser.parse_args()
 if args.dark:
     plt.style.use('./qb-common_dark.mplstyle')
 
-with open(os.path.join(args.dirname, 'sims.pkl'), 'rb') as f:
+with open(os.path.join(args.dir, 'sims.pkl'), 'rb') as f:
     records = pickle.load(f)
 
 def hist(time, up, down, atk, filename):
@@ -40,7 +40,7 @@ def hist(time, up, down, atk, filename):
     ax[2].title.set_text('Attacker (RBF)')
 
     fig.tight_layout()
-    fig.savefig(os.path.join(args.dirname, filename), dpi=150)
+    fig.savefig(os.path.join(args.dir, filename), dpi=150)
 
 def plot(space, sim_time, sim_agent_pos, sim_agent_vel, sim_agent_acc, filename):
     fig, ax = plt.subplots(1, 3, figsize=(12, 3))
@@ -63,7 +63,7 @@ def plot(space, sim_time, sim_agent_pos, sim_agent_vel, sim_agent_acc, filename)
     ax[2].set(xlabel='time (s)', ylabel='acceleration ($m/s^2$)')
 
     fig.tight_layout()
-    fig.savefig(os.path.join(args.dirname, filename), dpi=150)
+    fig.savefig(os.path.join(args.dir, filename), dpi=150)
 
 if args.triplots:
     n = random.randrange(len(records))

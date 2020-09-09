@@ -9,16 +9,21 @@ from diffquantitative import DiffQuantitativeSemantic
 
 class Car:
     """ Describes the physical behaviour of the vehicle """
-    def __init__(self):
+    def __init__(self, device):
+        if device == "cuda":
+            torch.set_default_tensor_type('torch.cuda.FloatTensor')
+        self.device = device
+
         self._max_acceleration = 5.0
         self._min_acceleration = -self._max_acceleration
         self._max_velocity = 10.0
         self._min_velocity = -self._max_velocity
         self.gravity = 9.81
-        self.position = torch.tensor(0.0)
-        self.velocity = torch.tensor(0.0)
-        self.acceleration = torch.tensor(0.0)
+        self.position = torch.tensor(0.0).to(device=self.device, dtype=torch.float32)
+        self.velocity = torch.tensor(0.0).to(device=self.device, dtype=torch.float32)
+        self.acceleration = torch.tensor(0.0).to(device=self.device, dtype=torch.float32)
         self.friction_coefficient = 0.01
+
 
     def update(self, in_acceleration, angle, dt):
         """ Differential equation for updating the state of the car """
@@ -54,7 +59,7 @@ class Environment:
         """ Computes the value of the road's steepness in a given point """
         x = torch.tensor(x) if not isinstance(x, torch.Tensor) else x
         dy = self._fn(x + self._dx) - self._fn(x)
-        deriv = dy / torch.tensor(self._dx)
+        deriv = torch.tensor(dy) / torch.tensor(self._dx)
         return torch.clamp(deriv, -self._max_angular_coeff, self._max_angular_coeff)
 
     def get_fn(self, x):
@@ -65,8 +70,10 @@ class Environment:
     def update(self, parameters, dt):
         """ Generates the altimetric profile of the road
         """
+        # print(parameters)
+
         if parameters is not None:
-            parameters = parameters.reshape(2, BUMPS)
+            parameters = parameters.reshape(2, BUMPS).float()
 
             def gaussian_rbf(x):
                 x = x.reshape(1) if x.dim() == 0 else x
@@ -74,17 +81,16 @@ class Environment:
                 sigma = parameters[1]
                 mu = torch.tensor([20, 30, 40])
 
-                phi = lambda x: torch.exp(-(x * sigma)**2)
-                r = torch.abs(x[:, np.newaxis] - mu)
-
+                phi = lambda x: torch.exp(-(x * sigma)**2).float()
+                r = torch.abs(x[:, np.newaxis] - mu).float()
                 return w.matmul(phi(r).t())
 
             self._fn = gaussian_rbf
 
 
 class Agent:
-    def __init__(self):
-        self._car = Car()
+    def __init__(self, device):
+        self._car = Car(device)
 
     def set_environment(self, environment):
         self._environment = environment
@@ -133,8 +139,8 @@ class Model:
     It includes both the attacker and the defender.
     """
 
-    def __init__(self, param_generator):
-        self.agent = Agent()
+    def __init__(self, param_generator, device="cuda"):
+        self.agent = Agent(device)
         self.environment = Environment()
 
         self.agent.set_environment(self.environment)
@@ -165,8 +171,8 @@ class Model:
 
     def reinitialize(self, agent_position, agent_velocity):
         """ Sets the world's state as specified """
-        self.agent.position = torch.tensor(agent_position).reshape(1)
-        self.agent.velocity = torch.tensor(agent_velocity).reshape(1)
+        self.agent.position = torch.tensor(agent_position).reshape(1).float()
+        self.agent.velocity = torch.tensor(agent_velocity).reshape(1).float()
         
         self.traces = {
             'velo': []
