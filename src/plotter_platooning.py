@@ -12,9 +12,9 @@ import numpy as np
 from argparse import ArgumentParser
 
 parser = ArgumentParser()
-parser.add_argument("-d", "--dir", dest="dirname",
+parser.add_argument("-d", "--dir", default="../experiments/platooning", dest="dir",
                     help="model's directory")
-parser.add_argument("--triplots", default=False, action="store_true" , help="Generate triplots")
+parser.add_argument("--triplots", default=True, action="store_true" , help="Generate triplots")
 parser.add_argument("--scatter", default=False, action="store_true" , help="Generate scatterplot")
 parser.add_argument("--hist", default=False, action="store_true" , help="Generate histograms")
 parser.add_argument("--dark", default=False, action="store_true" , help="Use dark theme")
@@ -23,7 +23,7 @@ args = parser.parse_args()
 if args.dark:
     plt.style.use('./qb-common_dark.mplstyle')
     
-with open(os.path.join(args.dirname, 'sims.pkl'), 'rb') as f:
+with open(os.path.join(args.dir, 'sims.pkl'), 'rb') as f:
     records = pickle.load(f)
 
 def hist(time, pulse, step_up, step_down, atk, filename):
@@ -50,7 +50,7 @@ def hist(time, pulse, step_up, step_down, atk, filename):
     ax[3].title.set_text('Against attacker')
 
     fig.tight_layout()
-    fig.savefig(os.path.join(args.dirname, filename), dpi=150)
+    fig.savefig(os.path.join(args.dir, filename), dpi=150)
 
 def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -63,7 +63,7 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
     cb.ax.set_xlabel('$\\rho$')
 
     fig.suptitle('Initial conditions vs robustness $\\rho$')
-    fig.savefig(os.path.join(args.dirname, filename), dpi=150)
+    fig.savefig(os.path.join(args.dir, filename), dpi=150)
 
 def plot(sim_time, sim_agent_pos, sim_agent_dist, sim_agent_acc, sim_env_pos, sim_env_acc, filename):
     fig, ax = plt.subplots(1, 3, figsize=(12, 3))
@@ -84,7 +84,7 @@ def plot(sim_time, sim_agent_pos, sim_agent_dist, sim_agent_acc, sim_env_pos, si
     ax[2].legend()
 
     fig.tight_layout()
-    fig.savefig(os.path.join(args.dirname, filename), dpi=150)
+    fig.savefig(os.path.join(args.dir, filename), dpi=150)
 
 if args.scatter:
     size = len(records)
