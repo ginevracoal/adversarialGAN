@@ -14,7 +14,7 @@ from argparse import ArgumentParser
 parser = ArgumentParser()
 parser.add_argument("-d", "--dir", default="../experiments/cartpole", dest="dirname",
                     help="model's directory")
-parser.add_argument("--ode_idx", default=0, type=int, help="Choose ode idx")
+parser.add_argument("--ode_idx", default=2, type=int, help="Choose ode idx")
 parser.add_argument("--fourplots", default=True, action="store_true" , help="Generate four plots")
 parser.add_argument("--scatter", default=False, action="store_true" , help="Generate scatterplot")
 parser.add_argument("--hist", default=False, action="store_true" , help="Generate histograms")
@@ -87,11 +87,9 @@ def plot(sim_time, sim_x, sim_theta, sim_ddot_x, sim_attack, filename):
     if args.ode_idx==0:
         ax[1,1].plot(sim_time, sim_attack, label='')
         ax[1,1].set(xlabel='time (s)', ylabel='attacker acceleration (m/s^2)')
-
     elif args.ode_idx==1:
         ax[1,1].plot(sim_time, sim_attack, label='')
         ax[1,1].set(xlabel='time (s)', ylabel='cart friction')
-
     elif args.ode_idx==2:
         ax[1,1].plot(sim_time, sim_attack, label='')
         ax[1,1].set(xlabel='time (s)', ylabel='air drag')
@@ -114,7 +112,7 @@ if args.scatter:
         sample_trace = torch.tensor(records[i]['atk']['sim_theta'][-150:])
         robustness = float(robustness_computer.dqs.compute(theta=sample_trace))
         pole_angle = records[i]['atk']['init']['theta']
-        cart_acc = records[i]['atk']['init']['dot_x'] 
+        cart_acc = records[i]['atk']['init']['ddot_x'] 
 
         robustness_array[i] = robustness
         pole_angle_array[i] = pole_angle
@@ -125,22 +123,22 @@ if args.scatter:
 if args.fourplots:
     n = random.randrange(len(records))
     print('pulse:', records[n]['pulse']['init'])
-    plot(records[n]['pulse']['sim_t'], records[n]['pulse']['sim_x'], 
-         records[n]['pulse']['sim_theta'], records[n]['pulse']['sim_ddot_x'], 
-         records[n]['pulse']['sim_attack'], 'triplot_pulse.png')
+    plot(records[n]['pulse']['sim_t'], 
+         records[n]['pulse']['sim_x'], records[n]['pulse']['sim_theta'], 
+         records[n]['pulse']['sim_ddot_x'], records[n]['pulse']['sim_attack'], 'triplot_pulse.png')
 
-    print('push:', records[n]['push']['init'])
-    plot(records[n]['push']['sim_t'], records[n]['push']['sim_x'], records[n]['push']['sim_theta'], 
-         records[n]['push']['sim_ddot_x'], records[n]['push']['sim_attack'], 'triplot_push.png')
+    # print('push:', records[n]['push']['init'])
+    # plot(records[n]['push']['sim_t'], records[n]['push']['sim_x'], records[n]['push']['sim_theta'], 
+    #      records[n]['push']['sim_ddot_x'], records[n]['push']['sim_attack'], 'triplot_push.png')
 
-    print('pull:', records[n]['pull']['init'])
-    plot(records[n]['pull']['sim_t'], records[n]['pull']['sim_x'], records[n]['pull']['sim_theta'],
-         records[n]['pull']['sim_ddot_x'], records[n]['pull']['sim_attack'], 'triplot_pull.png')
+    # print('pull:', records[n]['pull']['init'])
+    # plot(records[n]['pull']['sim_t'], records[n]['pull']['sim_x'], records[n]['pull']['sim_theta'],
+    #      records[n]['pull']['sim_ddot_x'], records[n]['pull']['sim_attack'], 'triplot_pull.png')
 
     print('attacker:', records[n]['atk']['init'])
-    plot(records[n]['atk']['sim_t'], records[n]['atk']['sim_x'],records[n]['atk']['sim_theta'], 
-         records[n]['atk']['sim_ddot_x'], records[n]['atk']['sim_attack'], 
-         'triplot_attacker.png')
+    plot(records[n]['atk']['sim_t'], 
+         records[n]['atk']['sim_x'], records[n]['atk']['sim_theta'], 
+         records[n]['atk']['sim_ddot_x'], records[n]['atk']['sim_attack'], 'triplot_attacker.png')
 
 if args.hist:
 

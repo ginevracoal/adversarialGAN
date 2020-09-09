@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from argparse import ArgumentParser
+from tqdm import tqdm
 
 torch.set_default_tensor_type('torch.FloatTensor')
 
@@ -16,14 +17,14 @@ parser.add_argument("-d", "--dir", default="../experiments/cartpole", dest="dirn
                     help="model's directory")
 parser.add_argument("-r", "--repetitions", dest="repetitions", type=int, default=1,
                     help="simulation repetions")
-parser.add_argument("--ode_idx", type=int, default=0)
+parser.add_argument("--ode_idx", type=int, default=2)
 parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
-cart_position = np.linspace(0., 5., 40)
-cart_velocity = np.linspace(-2., 2., 40)
-pole_angle = np.linspace(-3.1415/4, 3.1415/4, 15)
-pole_ang_velocity = np.linspace(0., 1., 40)
+cart_position = np.linspace(0., 1., 20)
+cart_velocity = np.linspace(-5., 5., 20)
+pole_angle = np.linspace(-0.392, 0.392, 10)
+pole_ang_velocity = np.linspace(-2., 2., 20)
 
 pg = misc.ParametersHyperparallelepiped(cart_position, cart_velocity, pole_angle, pole_ang_velocity)
 
@@ -53,7 +54,7 @@ def run(mode=None):
     sim_attack = []
 
     t = 0
-    for i in range(steps):
+    for i in tqdm(range(steps)):
         with torch.no_grad():
 
             oa = torch.tensor(physical_model.agent.status).float()
@@ -96,8 +97,8 @@ records = []
 for i in range(args.repetitions):
     sim = {}
     sim['pulse'] = run(0)
-    sim['push'] = run(1)
-    sim['pull'] = run(2)
+    # sim['push'] = run(1)
+    # sim['pull'] = run(2)
     sim['atk'] = run()
 
     # print(sim)
