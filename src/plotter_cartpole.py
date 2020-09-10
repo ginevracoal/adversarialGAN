@@ -150,13 +150,13 @@ if args.hist:
 
     for i in range(size):
         t = records[i]['pulse']['sim_theta']
-        pulse_pct = pulse_pct + np.logical_and(t > 2, t < 10)
+        pulse_pct = pulse_pct + np.logical_and(t > -0.785, t < 0.785)
         t = records[i]['push']['sim_theta']
-        push_pct = push_pct + np.logical_and(t > 2, t < 10)
+        push_pct = push_pct + np.logical_and(t > -0.785, t < 0.785)
         t = records[i]['pull']['sim_theta']
-        pull_pct = pull_pct + np.logical_and(t > 2, t < 10)
+        pull_pct = pull_pct + np.logical_and(t > -0.785, t < 0.785)
         t = records[i]['atk']['sim_theta']
-        atk_pct = atk_pct + np.logical_and(t > 2, t < 10)
+        atk_pct = atk_pct + np.logical_and(t > -0.785, t < 0.785)
 
     time = records[0]['pulse']['sim_t']
     pulse_pct = pulse_pct / size

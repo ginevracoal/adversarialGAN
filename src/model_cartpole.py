@@ -20,17 +20,19 @@ class CartPole():
         self.mcart = 1.0 # cart mass in kg
         self.mpole = 0.1 # pole mass in kg
         self.lpole = 1.0 # pole length in meters
+        self.c1 = 0.001
 
         self.x, self.theta = (torch.tensor(0.0).to(dtype=torch.float32), torch.tensor(0.0).to(dtype=torch.float32))
         self.dot_theta, self.dot_x = (torch.tensor(0.0).to(dtype=torch.float32), torch.tensor(0.0).to(dtype=torch.float32))
-        self.ddot_x, self.ddot_theta = (torch.tensor(0.0).to(dtype=torch.float32), torch.tensor(0.0).to(dtype=torch.float32))
-        self.mu = torch.tensor(0.005).to(dtype=torch.float32) 
+        self.ddot_x, self.ddot_theta = (torch.tensor(0.).to(dtype=torch.float32), torch.tensor(0.).to(dtype=torch.float32))
+        self.mu = torch.tensor(0.).to(dtype=torch.float32) 
 
         self._max_x = 10.
         self._max_theta = 1.57 # 3.1415/2
-        self._max_dot_x = 100.
-        self._max_dot_theta = 100.
-        self._max_f = 100.
+        self._max_dot_x = 10.
+        self._max_dot_theta = 10.
+        self._max_ddot_theta = 10.
+        # self._max_u = 1.
 
     def update(self, dt, ddot_x=None, mu=None):
         """
@@ -53,7 +55,6 @@ class CartPole():
             L = self.lpole
             
             x, theta, dot_x, dot_theta = q[0], q[1], q[2], q[3]
-
             x = torch.clamp(x, -self._max_x, self._max_x).reshape(1)
             theta = torch.clamp(theta, -self._max_theta, self._max_theta).reshape(1)
             dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
@@ -70,31 +71,7 @@ class CartPole():
 
             elif self.ode_idx==2:
 
-                theta_0 = torch.tensor(0.431) 
-                delta = torch.tensor(1.234)
-
-                if torch.abs(dot_theta*torch.cos(theta))>=delta and torch.abs(theta)>=theta_0:
-                    f_hat = self._max_f * torch.sign(dot_theta*torch.cos(theta))
-                
-                elif torch.abs(dot_theta*torch.cos(theta))<delta and torch.abs(theta)>=theta_0:
-                    f_hat = 0.
-                
-                else: # torch.abs(theta) < theta_0:
-                    f_hat = -(8.268*theta + 2.043*dot_theta - 1.035*x - 2.611*dot_x)
-
-                if torch.abs(x) < self._max_x:
-                    f = max(-self._max_f, min(self._max_f, f_hat))
-                
-                elif x < -self._max_x:
-                    f = max(0., min(self._max_f, f_hat))
-                
-                else: # x > self._max_x:
-                    f = max(-self._max_f, min(self._max_f, f_hat))
-
-                f = f_hat
-
-            else:
-                raise NotImplementedError()
+                a = self.ddot_x
     
             # ODE equations   
             if self.ode_idx==0:
@@ -115,21 +92,17 @@ class CartPole():
 
             elif self.ode_idx==2:
 
-                a = 20. #19.726
-                c1 = 0.07 
                 c2 = self.mu 
-                viscous_friction = c1*dot_theta
+                viscous_friction = self.c1 * dot_theta
                 air_drag = c2 * dot_theta**2 * torch.sign(dot_theta)
-                ddot_theta = 3*g/L * torch.sin(theta) + 3*a/L * (f-dot_x) * torch.cos(theta) - viscous_friction - air_drag
-                ddot_x = a * (f-dot_x)
-                # print(ddot_x)
-
+                ddot_x = self.ddot_x
+                ddot_theta = (3*g/L) * torch.sin(theta) + (3*a/L) * torch.cos(theta) - viscous_friction - air_drag
             else:
                 raise NotImplementedError()
 
             dqdt = torch.FloatTensor([dot_x, dot_theta, ddot_x, ddot_theta]).to(device=self.device, dtype=torch.float32)
 
-            self.ddot_x = ddot_x.reshape(1)
+            # self.ddot_x = ddot_x.reshape(1)
             self.ddot_theta = ddot_theta.reshape(1)
 
             return dqdt
@@ -145,7 +118,8 @@ class CartPole():
         self.dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
         self.dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
 
-        print(self.x.item(), self.theta.item(), self.mu.item(), (self.mu * self.dot_theta**2).item()) # self.dot_x.item(), self.dot_theta.item(), c2)
+        print(self.x.item(), self.theta.item(), self.mu.item(), self.ddot_theta.item())
+        # print(self.mu * self.dot_theta**2 * torch.sign(self.dot_theta))
 
 class Environment:
     def __init__(self, cartpole):
@@ -225,8 +199,14 @@ class Agent:
 
     def update(self, parameters, dt):
         # the action take place and updates the variables
+
+        # if self._cartpole.ode_idx==0 or  self._cartpole.ode_idx==1:
         cart_acceleration = parameters
         self._cartpole.update(dt=dt, ddot_x=cart_acceleration)
+
+        # elif self._cartpole.ode_idx==2:
+        #     cart_velocity = parameters
+        #     self._cartpole.update(dt=dt, u=cart_velocity)
 
 
 class Model:

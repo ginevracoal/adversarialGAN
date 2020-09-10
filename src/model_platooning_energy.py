@@ -2,26 +2,26 @@ import json
 import torch
 import numpy as np
 
-#from diffquantitative import DiffQuantitativeSemantic
+from diffquantitative import DiffQuantitativeSemantic
 
 from scipy.interpolate import griddata
 import matplotlib.pyplot as plt
-
+import numpy
 
 
 class ElMotor:
     def __init__(self):
         self.EM_w_list=np.array([0,95,190,285,380,475,570,665,760,855,950,1045,1140])
         self.EM_T_list=np.array([0,11.25,22.5,33.75,45,56.25,67.5,78.75,90,101.25,112.5,123.75,135,146.25,157.5,168.75,180])
-        
+       
         x2d, y2d = np.meshgrid(self.EM_w_list, self.EM_T_list)
-        
+       
         self.x2d = x2d
         self.y2d = y2d
-        
+       
         self.x_speed_flat = x2d.flatten()
         self.y_torque_flat = y2d.flatten()
-        
+       
         self.EM_T_max_list   = np.array([179.1,179,180.05,180,174.76,174.76,165.13,147.78,147.78,109.68,109.68,84.46,84.46])
         #self.EM_T_min_list   = -self.EM_T_max_list
 
@@ -38,12 +38,16 @@ class ElMotor:
         [.69,.69,.79,.82,.84,.84,.84,.84,.83,.83,.83,.83,.83,.83,.83,.82,.82],
         [.69,.68,.75,.81,.82,.81,.81,.81,.81,.81,.81,.80,.80,.80,.80,.80,.80],
         [.69,.68,.73,.80,.81,.80,.76,.76,.76,.76,.76,.76,.76,.76,.75,.75,.75],
-        [.69,.68,.71,.75,.75,.75,.75,.75,.75,.75,.75,.75,.74,.74,.74,.74,.74] ])
+        [.69,.68,.71,.75,.75,.75,.75,.75,.75,.75,.75,.75,.74,.74,.74,.74,.74] ]).T
+       
+        self.efficiency[self.EM_T_list[:,np.newaxis] > self.EM_T_max_list] = np.nan
+        #self.efficiency > self.EM_T_max_list
+       
         self.efficiency_flat = self.efficiency.flatten()
-        
+       
     def getEfficiency(self, pair ):  # pair = (speed, torque) tuple
         return griddata((self.x_speed_flat, self.y_torque_flat), self.efficiency_flat, pair, method = "cubic")
-    
+   
     def getMinMaxTorque(self, speed):  # pair = (speed, torque) tuple
         max_tq = numpy.interp(speed, self.EM_w_list, self.EM_T_max_list)    
         return [-max_tq, max_tq]  #returns list of min tq, max tq
@@ -51,92 +55,72 @@ class ElMotor:
     def plotEffMap(self):
 
         fig = plt.figure()
-        ax1 = plt.contourf(self.x2d, self.y2d, self.efficiency.T, cmap = 'jet')
+        ax1 = plt.contourf(self.x2d, self.y2d, self.efficiency, cmap = 'jet')
         plt.colorbar(ax1)
         plt.show()
 
 
-
-
 class Car:
     """ Describes the physical behaviour of the vehicle """
-    def __init__(self):
+    def __init__(self, device):
+        self.device=device
+
         self._max_acceleration = 3.0   #m/s^2
         self._min_acceleration = -self._max_acceleration
-        self._max_velocity = 20.0  #m/s
+        self._max_velocity = 20.0 #m/s
         self._min_velocity = 0.0
-        self.gravity = 9.81           #m/s^2
-        self.position = torch.tensor(0.0)
-        self.velocity = torch.tensor(0.0)
-        self.acceleration = torch.tensor(0.0)
-        self.friction_coefficient = 0.01        # will be ignored
-        
-        ##
-        #######################################################################################
-        #new parameters
-        """
+        self.gravity = 9.81 #m/s^2
+        self.position = torch.tensor(0.0).to(dtype=torch.float32) 
+        self.velocity = torch.tensor(0.0).to(dtype=torch.float32) 
+        self.acceleration = torch.tensor(0.0).to(dtype=torch.float32) 
+        self.friction_coefficient = 0.01 # will be ignored
+
         self.mass = 800       #kg
         self.rho =  1.22          #the air density, 
         self.aer_coeff = 0.4     #the aerodynamic coefficient
         self.veh_surface  = 2  #equivalent vehicle surface
         self.rr_coeff =  8*10^-3     #rolling resistance coefficient
-        
         self.gear_ratio = 10
         self.wheel_radius = 0.3  #effective wheel radius
-        
         self._max_whl_brk_torque = 2000  #Nm
         
         self.e_motor = ElMotor()
         
-        self.max_e_tq = np.maximum(self.EM_T_max_list)
+        self.max_e_tq = np.max(self.e_motor.EM_T_max_list)
         self.min_e_tq = - self.max_e_tq
-        
-        self.e_motor_speed = torch.tensor(0.0)
-        self.e_torque= torch.tensor(0.0)
-        self.br_torque= torch.tensor(0.0)
-        self.e_power = torch.tensor(0.0)
-        """
-        #######################################################################################        
-        ##
-      
-    def update(self, in_acceleration, dt):
-        """ Differential equation for updating the state of the car """
-        self.acceleration = torch.clamp(in_acceleration, self._min_acceleration, self._max_acceleration)
-        if self.velocity > 0:
-            self.acceleration -= self.friction_coefficient * self.gravity
-        self.velocity = torch.clamp(self.velocity + self.acceleration * dt, self._min_velocity, self._max_velocity)
-        self.position += self.velocity * dt
+        self.e_motor_speed = torch.tensor(0.0).to(dtype=torch.float32) 
+        self.e_torque= torch.tensor(0.0).to(dtype=torch.float32) 
+        self.br_torque= torch.tensor(0.0).to(dtype=torch.float32) 
+        self.e_power = torch.tensor(0.0).to(dtype=torch.float32) 
 
-    ##
-    #######################################################################################        
-    # new functions
-    """
     def motor_efficiency(self):
         eff = self.e_motor.getEfficiency(self.e_motor_speed,self.e_torque)
-        return numpy.power(eff,np.sign(self.e_torque))
+        return numpy.power(eff,-np.sign(self.e_torque))
 
     
     def calculate_wheels_torque(self, e_torque, br_torque):
-            self.br_torque = torch.clamp(br_torque, 0, self._max_whl_brk_torque)
-            self.e_torque = torch.clamp(in_e_torque, self.min_e_tq, self.max_e_tq)
+        self.br_torque = torch.clamp(br_torque, 0, self._max_whl_brk_torque)
+        self.e_torque = torch.clamp(e_torque, self.min_e_tq, self.max_e_tq)
         return self.e_torque*self.gear_ratio - self.br_torque
 
     
     def resistance_force(self):
         F_loss = 1/2*self.rho*self.veh_surface*self.aer_coeff*(self.velocity**2) + \
-            self.rr_coeff*self.mass*self.gravity*self.velocity # check torch implementation
+            self.rr_coeff*self.mass*self.gravity*self.velocity
         return F_loss
 
 
-    def update_force(self, dt,  e_torque, br_torque , dist_force = 0):
+    def update(self, dt, e_torque, br_torque, dist_force=0):
         #Differential equation for updating the state of the car
 
-        in_wheels_torque = self.calculate_wheels_torque(e_torque, br_torque)
+        in_wheels_torque = self.calculate_wheels_torque(e_torque, br_torque).to(device=self.device, dtype=torch.float32) 
 
-        self.acceleration = ( in_wheels_torque/self.wheel_radius - self.resistance_force() + dist_force) / self.mass
+        acceleration = (in_wheels_torque/self.wheel_radius - self.resistance_force() + dist_force) / self.mass
            
-        self.acceleration = torch.clamp(self.acceleration, self._min_acceleration, self._max_acceleration)
-        self.velocity = torch.clamp(self.velocity + self.acceleration * dt, self._min_velocity, self._max_velocity)
+        self.acceleration = torch.clamp(acceleration, self._min_acceleration, self._max_acceleration)
+        
+        # self.velocity = torch.clamp(self.velocity + self.acceleration * dt, self._min_velocity, self._max_velocity)
+        self.velocity = self.velocity + self.acceleration * dt
         self.e_motor_speed = self.velocity*self.gear_ratio/self.wheel_radius
         
         #update min/max e-torque based on new motor speed
@@ -145,21 +129,18 @@ class Car:
         self.e_power = self.e_motor_speed*self.e_torque*self.motor_efficiency()
         
         self.position += self.velocity * dt
-        """
-    #######################################################################################
-    ##
 
 
 class Environment:
-    def __init__(self):
-        self._leader_car = Car()
+    def __init__(self, device):
+        self._leader_car = Car(device)
 
     def set_agent(self, agent):
         self._agent = agent
         self.initialized()
 
     def initialized(self):
-        self.actuators = 1
+        self.actuators = 2
         self.sensors = len(self.status)
 
     @property
@@ -189,20 +170,20 @@ class Environment:
         """ Updates the physical state with the parameters
             generated by the NN.
         """
-        acceleration = parameters
-        self._leader_car.update(acceleration, dt)
+        e_torque, br_torque = parameters
+        self._leader_car.update(e_torque=e_torque, br_torque=br_torque, dt=dt)
 
 
 class Agent:
-    def __init__(self):
-        self._car = Car()
+    def __init__(self, device):
+        self._car = Car(device)
 
     def set_environment(self, environment):
         self._environment = environment
         self.initialized()
 
     def initialized(self):
-        self.actuators = 1
+        self.actuators = 2
         self.sensors = len(self.status)
 
     @property
@@ -236,18 +217,17 @@ class Agent:
         """ Updates the physical state with the parameters
             generated by the NN.
         """
-        acceleration = parameters
-        self._car.update(acceleration, dt)
-
+        e_torque, br_torque = parameters
+        self._car.update(e_torque=e_torque, br_torque=br_torque, dt=dt)
 
 class Model:
     """ The model of the whole world.
         It includes both the attacker and the defender.
     """
 
-    def __init__(self, param_generator):
-        self.agent = Agent()
-        self.environment = Environment()
+    def __init__(self, param_generator, device="cuda"):
+        self.agent = Agent(device)
+        self.environment = Environment(device)
 
         self.agent.set_environment(self.environment)
         self.environment.set_agent(self.agent)
@@ -279,10 +259,10 @@ class Model:
 
     def reinitialize(self, agent_position, agent_velocity, leader_position, leader_velocity):
         """ Sets the world's state as specified """
-        self.agent.position = torch.tensor(agent_position).reshape(1)
-        self.agent.velocity = torch.tensor(agent_velocity).reshape(1)
-        self.environment.l_position = torch.tensor(leader_position).reshape(1)
-        self.environment.l_velocity = torch.tensor(leader_velocity).reshape(1)
+        self.agent.position = torch.tensor(agent_position).reshape(1).float()
+        self.agent.velocity = torch.tensor(agent_velocity).reshape(1).float()
+        self.environment.l_position = torch.tensor(leader_position).reshape(1).float()
+        self.environment.l_velocity = torch.tensor(leader_velocity).reshape(1).float()
 
         self.traces = {
             'dist': []

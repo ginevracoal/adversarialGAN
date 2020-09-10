@@ -22,9 +22,9 @@ parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
 cart_position = np.linspace(0., 1., 20)
-cart_velocity = np.linspace(-5., 5., 20)
-pole_angle = np.linspace(-0.392, 0.392, 10)
-pole_ang_velocity = np.linspace(-2., 2., 20)
+cart_velocity = np.linspace(-0.5, 0.5, 20)
+pole_angle = np.linspace(-0.5, 0.5, 10)
+pole_ang_velocity = np.linspace(-0.5, 0.5, 20)
 
 pg = misc.ParametersHyperparallelepiped(cart_position, cart_velocity, pole_angle, pole_ang_velocity)
 
@@ -51,6 +51,7 @@ def run(mode=None):
     sim_x = []
     sim_theta = []
     sim_ddot_x = []
+    sim_ddot_theta = []
     sim_attack = []
 
     t = 0
