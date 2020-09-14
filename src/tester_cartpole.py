@@ -17,14 +17,14 @@ parser.add_argument("-d", "--dir", default="../experiments/cartpole", dest="dirn
                     help="model's directory")
 parser.add_argument("-r", "--repetitions", dest="repetitions", type=int, default=1,
                     help="simulation repetions")
-parser.add_argument("--ode_idx", type=int, default=2)
+parser.add_argument("--ode_idx", type=int, default=1)
 parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
 cart_position = np.linspace(0., 1., 20)
-cart_velocity = np.linspace(-0.5, 0.5, 20)
+cart_velocity = np.linspace(-1., 1., 20)
 pole_angle = np.linspace(-0.5, 0.5, 10)
-pole_ang_velocity = np.linspace(-0.5, 0.5, 20)
+pole_ang_velocity = np.linspace(-1., 1., 20)
 
 pg = misc.ParametersHyperparallelepiped(cart_position, cart_velocity, pole_angle, pole_ang_velocity)
 
@@ -35,8 +35,8 @@ defender = architecture.Defender(physical_model, 2, 10)
 
 misc.load_models(attacker, defender, args.dirname+str(args.ode_idx))
 
-dt = 0.05 # timestep
-steps = 300
+dt = 0.005 # timestep
+steps = 50
 
 def run(mode=None):
     physical_model.initialize_random()
@@ -51,6 +51,7 @@ def run(mode=None):
     sim_x = []
     sim_theta = []
     sim_ddot_x = []
+    sim_dot_x = []
     sim_ddot_theta = []
     sim_attack = []
 
@@ -63,11 +64,11 @@ def run(mode=None):
             z = torch.rand(attacker.noise_size).float()
             
             if mode == 0:
-                atk_policy = lambda x: torch.tensor(0.5) if i > 100 and i < 200 else torch.tensor(-0.5)
+                atk_policy = lambda x: torch.tensor(0.005) if i > 10 and i < 30 else torch.tensor(-0.005)
             elif mode == 1:
-                atk_policy = lambda x: torch.tensor(0.5) if i > 100 else torch.tensor(-0.5)
+                atk_policy = lambda x: torch.tensor(0.005) if i > 10 else torch.tensor(-0.005)
             elif mode == 2:
-                atk_policy = lambda x: torch.tensor(0.5) if i < 100 else torch.tensor(-0.5)
+                atk_policy = lambda x: torch.tensor(0.005) if i < 10 else torch.tensor(-0.005)
             else:
                 atk_policy = attacker(torch.cat((z, oe)))
 
@@ -81,6 +82,7 @@ def run(mode=None):
         sim_t.append(t)
         sim_x.append(physical_model.agent.x)
         sim_theta.append(physical_model.agent.theta)
+        sim_dot_x.append(physical_model.agent.dot_x)
         sim_ddot_x.append(def_input)
         sim_attack.append(atk_input)
 
@@ -91,6 +93,7 @@ def run(mode=None):
             'sim_x': np.array(sim_x),
             'sim_theta': np.array(sim_theta),
             'sim_ddot_x': np.array(sim_ddot_x),
+            'sim_dot_x': np.array(sim_dot_x),
             'sim_attack': np.array(sim_attack),
     }
 

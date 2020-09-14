@@ -14,7 +14,7 @@ from argparse import ArgumentParser
 parser = ArgumentParser()
 parser.add_argument("-d", "--dir", default="../experiments/cartpole", dest="dirname",
                     help="model's directory")
-parser.add_argument("--ode_idx", default=2, type=int, help="Choose ode idx")
+parser.add_argument("--ode_idx", default=1, type=int, help="Choose ode idx")
 parser.add_argument("--fourplots", default=True, action="store_true" , help="Generate four plots")
 parser.add_argument("--scatter", default=False, action="store_true" , help="Generate scatterplot")
 parser.add_argument("--hist", default=False, action="store_true" , help="Generate histograms")
@@ -66,7 +66,7 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
     fig.suptitle('Initial conditions vs robustness $\\rho$')
     fig.savefig(os.path.join(args.dirname+str(args.ode_idx), filename), dpi=150)
 
-def plot(sim_time, sim_x, sim_theta, sim_ddot_x, sim_attack, filename):
+def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_attack, filename):
     fig, ax = plt.subplots(2, 2, figsize=(10, 4))
 
     ax[0,0].plot(sim_time, sim_x, label='')
@@ -77,22 +77,11 @@ def plot(sim_time, sim_x, sim_theta, sim_ddot_x, sim_attack, filename):
     ax[1,0].plot(sim_time, sim_theta, label='')
     ax[1,0].set(xlabel='time (s)', ylabel='pole angle (rad)')
 
-    if args.ode_idx==0:
-        ax[0,1].plot(sim_time, sim_ddot_x, label='')
-        ax[0,1].set(xlabel='time (s)', ylabel='defender acceleration (m/s^2)')
-    elif args.ode_idx==1 or args.ode_idx==2:
-        ax[0,1].plot(sim_time, sim_ddot_x, label='')
-        ax[0,1].set(xlabel='time (s)', ylabel='cart acceleration (m/s^2)')
+    ax[0,1].plot(sim_time, sim_dot_x, label='')
+    ax[0,1].set(xlabel='time (s)', ylabel='cart velocity')
 
-    if args.ode_idx==0:
-        ax[1,1].plot(sim_time, sim_attack, label='')
-        ax[1,1].set(xlabel='time (s)', ylabel='attacker acceleration (m/s^2)')
-    elif args.ode_idx==1:
-        ax[1,1].plot(sim_time, sim_attack, label='')
-        ax[1,1].set(xlabel='time (s)', ylabel='cart friction')
-    elif args.ode_idx==2:
-        ax[1,1].plot(sim_time, sim_attack, label='')
-        ax[1,1].set(xlabel='time (s)', ylabel='air drag')
+    ax[1,1].plot(sim_time, sim_attack, label='')
+    ax[1,1].set(xlabel='time (s)', ylabel='air drag coef.')
 
     fig.tight_layout()
     fig.savefig(os.path.join(args.dirname+str(args.ode_idx), filename), dpi=150)
@@ -107,16 +96,19 @@ if args.scatter:
     robustness_array = np.zeros(size)
     pole_angle_array = np.zeros(size)
     cart_acc_array = np.zeros(size)
+    cart_vel_array = np.zeros(size)
 
     for i in range(size):
         sample_trace = torch.tensor(records[i]['atk']['sim_theta'][-150:])
         robustness = float(robustness_computer.dqs.compute(theta=sample_trace))
         pole_angle = records[i]['atk']['init']['theta']
         cart_acc = records[i]['atk']['init']['ddot_x'] 
+        cart_vel = records[i]['atk']['init']['dot_x'] 
 
         robustness_array[i] = robustness
         pole_angle_array[i] = pole_angle
         cart_acc_array[i] = cart_acc
+        cart_vel_array[i] = cart_vel
 
     scatter(robustness_array, pole_angle_array, cart_acc_array, 'atk_scatterplot.png')
 
@@ -125,20 +117,20 @@ if args.fourplots:
     print('pulse:', records[n]['pulse']['init'])
     plot(records[n]['pulse']['sim_t'], 
          records[n]['pulse']['sim_x'], records[n]['pulse']['sim_theta'], 
-         records[n]['pulse']['sim_ddot_x'], records[n]['pulse']['sim_attack'], 'triplot_pulse.png')
+         records[n]['pulse']['sim_dot_x'], records[n]['pulse']['sim_attack'], 'triplot_pulse.png')
 
     # print('push:', records[n]['push']['init'])
     # plot(records[n]['push']['sim_t'], records[n]['push']['sim_x'], records[n]['push']['sim_theta'], 
-    #      records[n]['push']['sim_ddot_x'], records[n]['push']['sim_attack'], 'triplot_push.png')
+    #      records[n]['push']['sim_dot_x'], records[n]['push']['sim_attack'], 'triplot_push.png')
 
     # print('pull:', records[n]['pull']['init'])
     # plot(records[n]['pull']['sim_t'], records[n]['pull']['sim_x'], records[n]['pull']['sim_theta'],
-    #      records[n]['pull']['sim_ddot_x'], records[n]['pull']['sim_attack'], 'triplot_pull.png')
+    #      records[n]['pull']['sim_dot_x'], records[n]['pull']['sim_attack'], 'triplot_pull.png')
 
     print('attacker:', records[n]['atk']['init'])
     plot(records[n]['atk']['sim_t'], 
          records[n]['atk']['sim_x'], records[n]['atk']['sim_theta'], 
-         records[n]['atk']['sim_ddot_x'], records[n]['atk']['sim_attack'], 'triplot_attacker.png')
+         records[n]['atk']['sim_dot_x'], records[n]['atk']['sim_attack'], 'triplot_attacker.png')
 
 if args.hist:
 
