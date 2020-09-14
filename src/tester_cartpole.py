@@ -13,7 +13,7 @@ from tqdm import tqdm
 torch.set_default_tensor_type('torch.FloatTensor')
 
 parser = ArgumentParser()
-parser.add_argument("-d", "--dir", default="../experiments/cartpole", dest="dirname",
+parser.add_argument("-d", "--dir", default="../experiments/cartpole_xlim", dest="dirname",
                     help="model's directory")
 parser.add_argument("-r", "--repetitions", dest="repetitions", type=int, default=1,
                     help="simulation repetions")
@@ -21,10 +21,10 @@ parser.add_argument("--ode_idx", type=int, default=1)
 parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
-cart_position = np.linspace(0., 1., 20)
-cart_velocity = np.linspace(-1., 1., 20)
-pole_angle = np.linspace(-0.5, 0.5, 10)
-pole_ang_velocity = np.linspace(-1., 1., 20)
+cart_position = np.linspace(0., 5., 10)
+cart_velocity = np.linspace(-0.5, 0.5, 20)
+pole_angle = np.linspace(-0.196, 0.196, 10)
+pole_ang_velocity = np.linspace(-.5, .5, 20)
 
 pg = misc.ParametersHyperparallelepiped(cart_position, cart_velocity, pole_angle, pole_ang_velocity)
 
@@ -64,11 +64,11 @@ def run(mode=None):
             z = torch.rand(attacker.noise_size).float()
             
             if mode == 0:
-                atk_policy = lambda x: torch.tensor(0.005) if i > 10 and i < 30 else torch.tensor(-0.005)
+                atk_policy = lambda x: torch.tensor(0.05) if i > 10 and i < 30 else torch.tensor(-0.05)
             elif mode == 1:
-                atk_policy = lambda x: torch.tensor(0.005) if i > 10 else torch.tensor(-0.005)
+                atk_policy = lambda x: torch.tensor(0.05) if i > 10 else torch.tensor(-0.05)
             elif mode == 2:
-                atk_policy = lambda x: torch.tensor(0.005) if i < 10 else torch.tensor(-0.005)
+                atk_policy = lambda x: torch.tensor(0.05) if i < 10 else torch.tensor(-0.05)
             else:
                 atk_policy = attacker(torch.cat((z, oe)))
 

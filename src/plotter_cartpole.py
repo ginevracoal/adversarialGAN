@@ -12,7 +12,7 @@ import numpy as np
 from argparse import ArgumentParser
 
 parser = ArgumentParser()
-parser.add_argument("-d", "--dir", default="../experiments/cartpole", dest="dirname",
+parser.add_argument("-d", "--dir", default="../experiments/cartpole_xlim", dest="dirname",
                     help="model's directory")
 parser.add_argument("--ode_idx", default=1, type=int, help="Choose ode idx")
 parser.add_argument("--fourplots", default=True, action="store_true" , help="Generate four plots")
@@ -66,19 +66,21 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
     fig.suptitle('Initial conditions vs robustness $\\rho$')
     fig.savefig(os.path.join(args.dirname+str(args.ode_idx), filename), dpi=150)
 
-def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_attack, filename):
+def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_attack, filename):
     fig, ax = plt.subplots(2, 2, figsize=(10, 4))
 
+    ax[0,0].axhline(-10, ls='--', color='r')
+    ax[0,0].axhline(10, ls='--', color='r')
     ax[0,0].plot(sim_time, sim_x, label='')
     ax[0,0].set(xlabel='time (s)', ylabel='cart position (m)')
 
-    ax[1,0].axhline(-0.785, ls='--', color='r')
-    ax[1,0].axhline(0.785, ls='--', color='r')
+    ax[0,1].plot(sim_time, sim_ddot_x, label='')
+    ax[0,1].set(xlabel='time (s)', ylabel='cart acceleration')
+
+    ax[1,0].axhline(-0.392, ls='--', color='r')
+    ax[1,0].axhline(0.392, ls='--', color='r')
     ax[1,0].plot(sim_time, sim_theta, label='')
     ax[1,0].set(xlabel='time (s)', ylabel='pole angle (rad)')
-
-    ax[0,1].plot(sim_time, sim_dot_x, label='')
-    ax[0,1].set(xlabel='time (s)', ylabel='cart velocity')
 
     ax[1,1].plot(sim_time, sim_attack, label='')
     ax[1,1].set(xlabel='time (s)', ylabel='air drag coef.')
@@ -90,7 +92,7 @@ if args.scatter:
 
     size = len(records)
 
-    robustness_formula = 'G(theta >= -0.785 & theta <= 0.785)'
+    robustness_formula = 'G(theta >= -0.392 & theta <= 0.392 & x >= -10 & x <= 10)'
     robustness_computer = model_cartpole.RobustnessComputer(robustness_formula)
 
     robustness_array = np.zeros(size)
@@ -99,8 +101,9 @@ if args.scatter:
     cart_vel_array = np.zeros(size)
 
     for i in range(size):
-        sample_trace = torch.tensor(records[i]['atk']['sim_theta'][-150:])
-        robustness = float(robustness_computer.dqs.compute(theta=sample_trace))
+        trace_theta = torch.tensor(records[i]['atk']['sim_theta'][-150:])
+        trace_x = torch.tensor(records[i]['atk']['sim_x'][-150:])
+        robustness = float(robustness_computer.dqs.compute(theta=trace_theta, x=trace_x))
         pole_angle = records[i]['atk']['init']['theta']
         cart_acc = records[i]['atk']['init']['ddot_x'] 
         cart_vel = records[i]['atk']['init']['dot_x'] 
@@ -117,7 +120,8 @@ if args.fourplots:
     print('pulse:', records[n]['pulse']['init'])
     plot(records[n]['pulse']['sim_t'], 
          records[n]['pulse']['sim_x'], records[n]['pulse']['sim_theta'], 
-         records[n]['pulse']['sim_dot_x'], records[n]['pulse']['sim_attack'], 'triplot_pulse.png')
+         records[n]['pulse']['sim_dot_x'], records[n]['pulse']['sim_ddot_x'],
+         records[n]['pulse']['sim_attack'], 'fourplots_pulse.png')
 
     # print('push:', records[n]['push']['init'])
     # plot(records[n]['push']['sim_t'], records[n]['push']['sim_x'], records[n]['push']['sim_theta'], 
@@ -130,7 +134,8 @@ if args.fourplots:
     print('attacker:', records[n]['atk']['init'])
     plot(records[n]['atk']['sim_t'], 
          records[n]['atk']['sim_x'], records[n]['atk']['sim_theta'], 
-         records[n]['atk']['sim_dot_x'], records[n]['atk']['sim_attack'], 'triplot_attacker.png')
+         records[n]['atk']['sim_dot_x'], records[n]['pulse']['sim_ddot_x'],
+         records[n]['atk']['sim_attack'], 'fourplots_attacker.png')
 
 if args.hist:
 
@@ -141,14 +146,17 @@ if args.hist:
     atk_pct = np.zeros_like(records[0]['atk']['sim_theta'])
 
     for i in range(size):
+
+        safe_theta = 0.392
+
         t = records[i]['pulse']['sim_theta']
-        pulse_pct = pulse_pct + np.logical_and(t > -0.785, t < 0.785)
+        pulse_pct = pulse_pct + np.logical_and(t > -safe_theta, t < safe_theta)
         t = records[i]['push']['sim_theta']
-        push_pct = push_pct + np.logical_and(t > -0.785, t < 0.785)
+        push_pct = push_pct + np.logical_and(t > -safe_theta, t < safe_theta)
         t = records[i]['pull']['sim_theta']
-        pull_pct = pull_pct + np.logical_and(t > -0.785, t < 0.785)
+        pull_pct = pull_pct + np.logical_and(t > -safe_theta, t < safe_theta)
         t = records[i]['atk']['sim_theta']
-        atk_pct = atk_pct + np.logical_and(t > -0.785, t < 0.785)
+        atk_pct = atk_pct + np.logical_and(t > -safe_theta, t < safe_theta)
 
     time = records[0]['pulse']['sim_t']
     pulse_pct = pulse_pct / size

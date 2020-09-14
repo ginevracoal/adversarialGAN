@@ -11,16 +11,16 @@ from argparse import ArgumentParser
 
 # Specifies the initial conditions of the setup
 parser = ArgumentParser()
-parser.add_argument("--dir", default="../experiments/cartpole", help="model's directory")
-parser.add_argument("--training_steps", type=int, default=50)
-parser.add_argument("--ode_idx", type=int, default=2)
+parser.add_argument("--dir", default="../experiments/cartpole_xlim", help="model's directory")
+parser.add_argument("--training_steps", type=int, default=10)
+parser.add_argument("--ode_idx", type=int, default=1)
 parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
-cart_position = np.linspace(0., 1., 20)
+cart_position = np.linspace(0., 5., 10)
 cart_velocity = np.linspace(-0.5, 0.5, 20)
-pole_angle = np.linspace(-0.392, 0.392, 10)
-pole_ang_velocity = np.linspace(-0.5, 0.5, 20)
+pole_angle = np.linspace(-0.196, 0.196, 10)
+pole_ang_velocity = np.linspace(-.5, .5, 20)
 
 # Sets the device
 if args.device=="cuda":
@@ -35,7 +35,7 @@ pg = misc.ParametersHyperparallelepiped(cart_position, cart_velocity, pole_angle
 physical_model = model_cartpole.Model(pg.sample(sigma=0.05), device=args.device, ode_idx=args.ode_idx)
 
 # Specifies the STL formula to compute the robustness
-robustness_formula = 'G(theta >= -0.785 & theta <= 0.785)'
+robustness_formula = 'G(theta >= -0.392 & theta <= 0.392 & x >= -10 & x <= 10)'
 robustness_computer = model_cartpole.RobustnessComputer(robustness_formula)
 
 # Instantiates the NN architectures
@@ -53,8 +53,8 @@ tester = architecture.Tester(physical_model, robustness_computer, \
 # Starts the training
 dt = 0.05 # timestep
 training_steps = args.training_steps # number of episodes for training
-simulation_horizon = int(2 / dt) # 2 seconds
-trainer.run(training_steps, simulation_horizon, dt, atk_steps=1, def_steps=5)
+simulation_horizon = int(5. / dt) # 5 seconds
+trainer.run(training_steps, simulation_horizon, dt, atk_steps=1, def_steps=3)
 
 # Saves the trained models
 misc.save_models(attacker, defender, working_dir)

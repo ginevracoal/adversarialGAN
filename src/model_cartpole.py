@@ -5,7 +5,7 @@ import random
 
 from diffquantitative import DiffQuantitativeSemantic
 from torchdiffeq import odeint
-# from scipy.integrate import odeint
+
 
 class CartPole():
 
@@ -28,10 +28,10 @@ class CartPole():
         self.ddot_x, self.ddot_theta = (torch.tensor(0.).to(dtype=torch.float32), torch.tensor(0.).to(dtype=torch.float32))
         self.mu = torch.tensor(0.).to(dtype=torch.float32) 
 
-        # self._max_x = 10.
+        self._max_x = 30.
         self._max_theta = 1.57 # 3.1415/2
-        self._max_dot_x = 10.
-        self._max_dot_theta = 10.
+        self._max_dot_x = 100.
+        self._max_dot_theta = 100.
         self._max_ddot_x = 100.
         self._max_ddot_theta = 100.
         self._max_u = 2.
@@ -57,7 +57,7 @@ class CartPole():
             L = self.lpole
             
             x, theta, dot_x, dot_theta = q[0], q[1], q[2], q[3]
-            # x = torch.clamp(x, -self._max_x, self._max_x).reshape(1)
+            x = torch.clamp(x, -self._max_x, self._max_x).reshape(1)
             theta = torch.clamp(theta, -self._max_theta, self._max_theta).reshape(1)
             dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
             dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
@@ -121,7 +121,7 @@ class CartPole():
                 
                 l = L/2 
                 denom = M + mp * torch.cos(theta)**2
-                ddot_x = (mp * g * torch.sin(theta) * torch.cos(theta) + self.mu * dot_theta * torch.sign(theta) * torch.cos(theta) + mp * l * dot_theta * torch.sin(theta) + f) / denom
+                ddot_x = (mp * g * torch.sin(theta) * torch.cos(theta) + self.mu * dot_theta * torch.cos(theta) + mp * l * dot_theta * torch.sin(theta) + f) / denom
                 ddot_theta = g * torch.sin(theta)/l + self.mu * dot_theta * torch.sign(dot_theta) / (mp*l) - self.ddot_x * torch.cos(theta)/l
 
             else:
@@ -139,12 +139,12 @@ class CartPole():
         q = odeint(func=ode_func, y0=q0, t=t) 
 
         x, theta, dot_x, dot_theta = q[1]
-        self.x = x #torch.clamp(x, -self._max_x, self._max_x).reshape(1)
+        self.x = torch.clamp(x, -self._max_x, self._max_x).reshape(1)
         self.theta = torch.clamp(theta, -self._max_theta, self._max_theta).reshape(1)
         self.dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
         self.dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
 
-        print(self.x.item(), self.theta.item(), self.mu.item())#, self.ddot_theta.item())
+        print(self.x.item(), self.theta.item(), self.mu.item(), self.dot_x.item())
         # print(self.mu * self.dot_theta**2 * torch.sign(self.dot_theta))
 
 
@@ -281,5 +281,6 @@ class RobustnessComputer:
 
     def compute(self, model):
         theta = model.traces['theta']
-        return self.dqs.compute(theta=torch.cat(theta))
+        x = model.traces['x']
+        return self.dqs.compute(theta=torch.cat(theta), x=torch.cat(x))
         
