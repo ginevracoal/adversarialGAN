@@ -21,10 +21,10 @@ parser.add_argument("--ode_idx", type=int, default=1)
 parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
-cart_position = np.linspace(0., 5., 5)
-cart_velocity = np.linspace(-2., 2., 10)
+cart_position = np.linspace(0., 5., 10)
+cart_velocity = np.linspace(-0.5, 0.5, 10)
 pole_angle = np.linspace(-0.196, 0.196, 10)
-pole_ang_velocity = np.linspace(-1., 1., 10)
+pole_ang_velocity = np.linspace(-0.5, 0.5, 10)
 
 pg = misc.ParametersHyperparallelepiped(cart_position, cart_velocity, pole_angle, pole_ang_velocity)
 

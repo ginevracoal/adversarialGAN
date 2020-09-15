@@ -77,8 +77,8 @@ def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_attack, filename
     ax[0,0].plot(sim_time, sim_x, label='')
     ax[0,0].set(xlabel='time (s)', ylabel='cart position (m)')
 
-    ax[0,1].plot(sim_time, sim_ddot_x, label='')
-    ax[0,1].set(xlabel='time (s)', ylabel='cart acceleration')
+    ax[0,1].plot(sim_time, sim_dot_x, label='')
+    ax[0,1].set(xlabel='time (s)', ylabel='cart velocity')
 
     ax[1,0].axhline(-safe_theta, ls='--', color='r')
     ax[1,0].axhline(safe_theta, ls='--', color='r')

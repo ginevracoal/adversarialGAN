@@ -12,17 +12,17 @@ from argparse import ArgumentParser
 # Specifies the initial conditions of the setup
 parser = ArgumentParser()
 parser.add_argument("--dir", default="../experiments/cartpole", help="model's directory")
-parser.add_argument("--training_steps", type=int, default=10)
+parser.add_argument("--training_steps", type=int, default=30)
 parser.add_argument("--ode_idx", type=int, default=1)
 parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
 safe_theta = 0.392
 safe_x = 10
-cart_position = np.linspace(0., 5., 5)
-cart_velocity = np.linspace(-2., 2., 10)
+cart_position = np.linspace(0., 5., 10)
+cart_velocity = np.linspace(-0.5, 0.5, 10)
 pole_angle = np.linspace(-0.196, 0.196, 10)
-pole_ang_velocity = np.linspace(-2., 2., 10)
+pole_ang_velocity = np.linspace(-0.5, 0.5, 10)
 
 # Sets the device
 if args.device=="cuda":
@@ -37,6 +37,7 @@ pg = misc.ParametersHyperparallelepiped(cart_position, cart_velocity, pole_angle
 physical_model = model_cartpole.Model(pg.sample(sigma=0.05), device=args.device, ode_idx=args.ode_idx)
 
 # Specifies the STL formula to compute the robustness
+# robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta})'
 robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta} & x >= -{safe_x} & x <= {safe_x})'
 robustness_computer = model_cartpole.RobustnessComputer(robustness_formula)
 
@@ -56,7 +57,7 @@ tester = architecture.Tester(physical_model, robustness_computer, \
 dt = 0.05 # timestep
 training_steps = args.training_steps # number of episodes for training
 simulation_horizon = int(5. / dt) # 5 seconds
-trainer.run(training_steps, simulation_horizon, dt, atk_steps=1, def_steps=1)
+trainer.run(training_steps, simulation_horizon, dt, atk_steps=1, def_steps=5)
 
 # Saves the trained models
 misc.save_models(attacker, defender, working_dir)
