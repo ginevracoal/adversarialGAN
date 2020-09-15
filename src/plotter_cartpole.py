@@ -15,10 +15,10 @@ parser = ArgumentParser()
 parser.add_argument("-d", "--dir", default="../experiments/cartpole", dest="dirname",
                     help="model's directory")
 parser.add_argument("--ode_idx", default=1, type=int, help="Choose ode idx")
-parser.add_argument("--fourplots", default=True, action="store_true" , help="Generate four plots")
-parser.add_argument("--scatter", default=False, action="store_true" , help="Generate scatterplot")
-parser.add_argument("--hist", default=False, action="store_true" , help="Generate histograms")
-parser.add_argument("--dark", default=False, action="store_true" , help="Use dark theme")
+parser.add_argument("--fourplots", default=False, type=eval, help="Generate four plots")
+parser.add_argument("--scatter", default=False, type=eval, help="Generate scatterplot")
+parser.add_argument("--hist", default=False, type=eval, help="Generate histograms")
+parser.add_argument("--dark", default=False, type=eval, help="Use dark theme")
 args = parser.parse_args()
 
 safe_theta = 0.392
@@ -92,7 +92,7 @@ def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_attack, filename
     fig.tight_layout()
     fig.savefig(os.path.join(args.dirname+str(args.ode_idx), filename), dpi=150)
 
-if args.scatter:
+if args.scatter is True:
 
     size = len(records)
 
@@ -119,7 +119,7 @@ if args.scatter:
 
     scatter(robustness_array, pole_angle_array, cart_acc_array, 'atk_scatterplot.png')
 
-if args.fourplots:
+if args.fourplots is True:
     n = random.randrange(len(records))
     print('pulse:', records[n]['pulse']['init'])
     plot(records[n]['pulse']['sim_t'], 
@@ -141,7 +141,7 @@ if args.fourplots:
          records[n]['atk']['sim_dot_x'], records[n]['pulse']['sim_ddot_x'],
          records[n]['atk']['sim_attack'], 'fourplots_attacker.png')
 
-if args.hist:
+if args.hist is True:
 
     size = len(records)
     pulse_pct = np.zeros_like(records[0]['pulse']['sim_theta'])

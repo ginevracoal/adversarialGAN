@@ -32,9 +32,8 @@ class CartPole():
         self._max_theta = 1.57 # 3.1415/2
         self._max_dot_x = 100.
         self._max_dot_theta = 100.
-        self._max_ddot_x = 1000.
-        self._max_ddot_theta = 1000.
-        self._max_u = 2.
+        self._max_ddot_x = 100.
+        self._max_ddot_theta = 100.
 
     def update(self, dt, ddot_x=None, mu=None):
         """

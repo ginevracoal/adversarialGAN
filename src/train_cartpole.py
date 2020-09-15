@@ -22,7 +22,7 @@ safe_x = 10
 cart_position = np.linspace(0., 5., 5)
 cart_velocity = np.linspace(-2., 2., 10)
 pole_angle = np.linspace(-0.196, 0.196, 10)
-pole_ang_velocity = np.linspace(-1., 1., 10)
+pole_ang_velocity = np.linspace(-2., 2., 10)
 
 # Sets the device
 if args.device=="cuda":
