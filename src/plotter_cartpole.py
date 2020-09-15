@@ -12,7 +12,7 @@ import numpy as np
 from argparse import ArgumentParser
 
 parser = ArgumentParser()
-parser.add_argument("-d", "--dir", default="../experiments/cartpole_xlim", dest="dirname",
+parser.add_argument("-d", "--dir", default="../experiments/cartpole", dest="dirname",
                     help="model's directory")
 parser.add_argument("--ode_idx", default=1, type=int, help="Choose ode idx")
 parser.add_argument("--fourplots", default=True, action="store_true" , help="Generate four plots")
@@ -20,6 +20,9 @@ parser.add_argument("--scatter", default=False, action="store_true" , help="Gene
 parser.add_argument("--hist", default=False, action="store_true" , help="Generate histograms")
 parser.add_argument("--dark", default=False, action="store_true" , help="Use dark theme")
 args = parser.parse_args()
+
+safe_theta = 0.392
+safe_x = 10
 
 if args.dark:
     plt.style.use('./qb-common_dark.mplstyle')
@@ -69,21 +72,22 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
 def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_attack, filename):
     fig, ax = plt.subplots(2, 2, figsize=(10, 4))
 
-    ax[0,0].axhline(-10, ls='--', color='r')
-    ax[0,0].axhline(10, ls='--', color='r')
+    ax[0,0].axhline(-safe_x, ls='--', color='r')
+    ax[0,0].axhline(safe_x, ls='--', color='r')
     ax[0,0].plot(sim_time, sim_x, label='')
     ax[0,0].set(xlabel='time (s)', ylabel='cart position (m)')
 
     ax[0,1].plot(sim_time, sim_ddot_x, label='')
     ax[0,1].set(xlabel='time (s)', ylabel='cart acceleration')
 
-    ax[1,0].axhline(-0.392, ls='--', color='r')
-    ax[1,0].axhline(0.392, ls='--', color='r')
+    ax[1,0].axhline(-safe_theta, ls='--', color='r')
+    ax[1,0].axhline(safe_theta, ls='--', color='r')
     ax[1,0].plot(sim_time, sim_theta, label='')
     ax[1,0].set(xlabel='time (s)', ylabel='pole angle (rad)')
 
-    ax[1,1].plot(sim_time, sim_attack, label='')
-    ax[1,1].set(xlabel='time (s)', ylabel='air drag coef.')
+    if args.ode_idx != 0:
+        ax[1,1].plot(sim_time, sim_attack, label='')
+        ax[1,1].set(xlabel='time (s)', ylabel='air drag coef.')
 
     fig.tight_layout()
     fig.savefig(os.path.join(args.dirname+str(args.ode_idx), filename), dpi=150)
@@ -92,7 +96,7 @@ if args.scatter:
 
     size = len(records)
 
-    robustness_formula = 'G(theta >= -0.392 & theta <= 0.392 & x >= -10 & x <= 10)'
+    robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta} & x >= -{safe_x} & x <= {safe_x})'
     robustness_computer = model_cartpole.RobustnessComputer(robustness_formula)
 
     robustness_array = np.zeros(size)
@@ -146,8 +150,6 @@ if args.hist:
     atk_pct = np.zeros_like(records[0]['atk']['sim_theta'])
 
     for i in range(size):
-
-        safe_theta = 0.392
 
         t = records[i]['pulse']['sim_theta']
         pulse_pct = pulse_pct + np.logical_and(t > -safe_theta, t < safe_theta)

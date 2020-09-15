@@ -18,8 +18,8 @@ class CartPole():
         self.device = device
 
         self.gravity = 9.8 # acceleration due to gravity, positive is downward, m/sec^2
-        self.mcart = 10.0 # cart mass in kg
-        self.mpole = 1. # pole mass in kg
+        self.mcart = 1.0 # cart mass in kg
+        self.mpole = 0.1 # pole mass in kg
         self.lpole = 1.0 # pole length in meters
         self.c1 = 0.001
 
@@ -32,8 +32,8 @@ class CartPole():
         self._max_theta = 1.57 # 3.1415/2
         self._max_dot_x = 100.
         self._max_dot_theta = 100.
-        self._max_ddot_x = 100.
-        self._max_ddot_theta = 100.
+        self._max_ddot_x = 1000.
+        self._max_ddot_theta = 1000.
         self._max_u = 2.
 
     def update(self, dt, ddot_x=None, mu=None):
@@ -45,7 +45,11 @@ class CartPole():
             self.ddot_x = ddot_x
 
         if mu is not None:
-            self.mu = mu
+
+            if self.ode_idx == 0:
+                self.mu = 0.
+            else:
+                self.mu = mu
 
         def ode_func(dt, q):
 
@@ -63,30 +67,10 @@ class CartPole():
             dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
 
             # Control cart
-            if self.ode_idx==0 or self.ode_idx==1 or self.ode_idx==3:
-
-                f = M * self.ddot_x
-
-            elif self.ode_idx==2:
-    
-                u_hat = self.ddot_x 
-
-                if torch.abs(x) < self._max_x:
-                    u = max(-self._max_u, min(self._max_u, u_hat))
-                
-                elif x < -self._max_x:
-                    u = max(0., min(self._max_u, u_hat))
-                
-                else: # x > self._max_x:
-                    u = max(-self._max_u, min(self._max_u, u_hat))
-
-                a = 20. * (u-dot_x)
-
-                # a = self.ddot_x
+            f = M * self.ddot_x
 
             # ODE equations   
-            if self.ode_idx==0: # Florian
-
+            if self.ode_idx==0: # no attacker
                 delta = 1/(mp*torch.sin(theta)**2 + mc)
                 ddot_x = delta * (f + mp * torch.sin(theta) * (L * dot_theta**2 
                                                          + g * torch.cos(theta) ))
@@ -94,34 +78,11 @@ class CartPole():
                                          - mp * L * dot_theta**2 * torch.cos(theta) * torch.sin(theta)
                                          - M * g * torch.sin(theta))
 
-            elif self.ode_idx==1: # Barto
-
-                l = L/2 
-                mu_c, mu_p = 0.00001, 0.00001
-
-                air_drag = self.mu * dot_theta**2 * torch.sign(dot_theta)
-                Nc = M * g - mp * l * (self.ddot_theta * torch.sin(theta) + dot_theta**2 * torch.cos(theta)) 
-                
-                numer = (-f - mp * l * dot_theta**2 * (torch.sin(theta) + mu_c * torch.sign(Nc*dot_x)*torch.cos(theta))) / M + mu_c * g * torch.sign(Nc * dot_x)
-                denom = 4/3 - mp * torch.cos(theta) * (torch.cos(theta) - mu_c * torch.sign(Nc * dot_x)) / M
-
-                ddot_theta = (g * torch.sin(theta) + torch.cos(theta) * numer - (mu_p * dot_theta)/(mp * l))/(l * denom) - air_drag
-                ddot_x = (f + mp * l * (dot_theta**2 * torch.sin(theta) - ddot_theta * torch.cos(theta)) - mu_c * Nc * torch.sign(Nc * dot_x))/M
-
-                # print(ddot_x.item(), ddot_theta.item(), theta.item()) 
-
-            elif self.ode_idx==2: # Balcerzak
-
-                viscous_friction = self.c1 * dot_theta
-                air_drag = self.mu * dot_theta**2 * torch.sign(dot_theta)
-                ddot_x = a
-                ddot_theta = (3*g/L) * torch.sin(theta) + (3*a/L) * torch.cos(theta) - viscous_friction - air_drag
-            
-            elif self.ode_idx==3:
+            elif self.ode_idx==1: # air drag attacker
                 
                 l = L/2 
                 denom = M + mp * torch.cos(theta)**2
-                ddot_x = (mp * g * torch.sin(theta) * torch.cos(theta) + self.mu * dot_theta * torch.cos(theta) + mp * l * dot_theta * torch.sin(theta) + f) / denom
+                ddot_x = (mp * g * torch.sin(theta) * torch.cos(theta) + self.mu * dot_theta * torch.sign(dot_theta)*torch.cos(theta) + mp * l * dot_theta * torch.sin(theta) + f) / denom
                 ddot_theta = g * torch.sin(theta)/l + self.mu * dot_theta * torch.sign(dot_theta) / (mp*l) - self.ddot_x * torch.cos(theta)/l
 
             else:
@@ -130,7 +91,7 @@ class CartPole():
             dqdt = torch.FloatTensor([dot_x, dot_theta, ddot_x, ddot_theta]).to(device=self.device, dtype=torch.float32)
 
             self.ddot_x = torch.clamp(ddot_x.reshape(1), -self._max_ddot_x, self._max_ddot_x)
-            self.ddot_theta = ddot_theta.reshape(1)
+            self.ddot_theta = torch.clamp(ddot_theta.reshape(1), -self._max_ddot_theta, self._max_ddot_theta)
             return dqdt
         
         # Solve the ODE
@@ -144,8 +105,7 @@ class CartPole():
         self.dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
         self.dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
 
-        print(self.x.item(), self.theta.item(), self.mu.item(), self.dot_x.item())
-        # print(self.mu * self.dot_theta**2 * torch.sign(self.dot_theta))
+        print(self.x.item(), "\t", self.theta.item(), "\t", self.ddot_x.item(), "\t", self.mu.item())
 
 
 class Environment:
