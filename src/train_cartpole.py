@@ -20,9 +20,9 @@ args = parser.parse_args()
 safe_theta = 0.392
 safe_x = 10
 cart_position = np.linspace(0., 5., 10)
-cart_velocity = np.linspace(-0.5, 0.5, 10)
+cart_velocity = np.linspace(-0.1, 0.1, 10)
 pole_angle = np.linspace(-0.196, 0.196, 10)
-pole_ang_velocity = np.linspace(-0.5, 0.5, 10)
+pole_ang_velocity = np.linspace(-0.1, 0.1, 10)
 
 # Sets the device
 if args.device=="cuda":

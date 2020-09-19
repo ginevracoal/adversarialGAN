@@ -21,34 +21,30 @@ class CartPole():
         self.mcart = 1.0 # cart mass in kg
         self.mpole = 0.1 # pole mass in kg
         self.lpole = 1.0 # pole length in meters
-        self.c1 = 0.001
 
         self.x, self.theta = (torch.tensor(0.0).to(dtype=torch.float32), torch.tensor(0.0).to(dtype=torch.float32))
         self.dot_theta, self.dot_x = (torch.tensor(0.0).to(dtype=torch.float32), torch.tensor(0.0).to(dtype=torch.float32))
-        self.ddot_x, self.ddot_theta = (torch.tensor(0.).to(dtype=torch.float32), torch.tensor(0.).to(dtype=torch.float32))
-        self.mu = torch.tensor(0.05).to(dtype=torch.float32) 
+        self.ddot_x, self.ddot_theta = (torch.tensor(0.0).to(dtype=torch.float32), torch.tensor(0.).to(dtype=torch.float32))
+        self.mu, self.inp_acc = (torch.tensor(0.0).to(dtype=torch.float32), torch.tensor(0.0).to(dtype=torch.float32))
 
         self._max_x = 30.
         self._max_theta = 1.57 # 3.1415/2
         self._max_dot_x = 100.
         self._max_dot_theta = 100.
-        self._max_ddot_x = 1000.
+        self._max_ddot_x = 100.
         self._max_ddot_theta = 100.
-        self._max_mu=0.05
+        self._max_mu=0.5
+        self._max_inp_acc=100.
 
-    def update(self, dt, ddot_x=None, mu=None):
+    def update(self, dt, inp_acc=None, mu=None):
         """
         Update the system state.
         """        
-        if ddot_x is not None:
-            self.ddot_x = ddot_x
+        if inp_acc is not None:
+            self.inp_acc = torch.clamp(inp_acc, -self._max_inp_acc, self._max_inp_acc)
 
         if mu is not None:
-
-            if self.ode_idx == 0:
-                self.mu = 0.
-            else:
-                self.mu = torch.clamp(mu, -self._max_mu, self._max_mu)
+            self.mu = torch.clamp(mu, -self._max_mu, self._max_mu)
 
         def ode_func(dt, q):
 
@@ -56,8 +52,8 @@ class CartPole():
             g = self.gravity
             mp = self.mpole
             mc = self.mcart
-            M = mp + mc
             L = self.lpole
+            l = L/2 
             
             x, theta, dot_x, dot_theta = q[0], q[1], q[2], q[3]
             x = torch.clamp(x, -self._max_x, self._max_x).reshape(1)
@@ -66,32 +62,34 @@ class CartPole():
             dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
 
             # Control cart
-            f = M * self.ddot_x
-
-            # ODE equations   
-            if self.ode_idx==0: # no attacker
-
-                delta = 1/(mp*torch.sin(theta)**2 + mc)
-                ddot_x = delta * (f + mp * torch.sin(theta) * (L * dot_theta**2 
-                                                         + g * torch.cos(theta) ))
-                ddot_theta = delta/L * (- f * torch.cos(theta) 
-                                         - mp * L * dot_theta**2 * torch.cos(theta) * torch.sin(theta)
-                                         - M * g * torch.sin(theta))
+            f = (mp + mc) * self.inp_acc
+ 
+            # ODE equations
+            if self.ode_idx==0: # Barto 
+ 
+                mu_c = self.mu #0.0005
+                mu_p = 0.000002
+                num = (-f-mp*l*dot_theta**2*torch.sin(theta)+mu_c*torch.sign(dot_x))/(mc+mp)
+                den = 4/3 - (mp*torch.cos(theta)**2)/(mc+mp)
+                ddot_theta = (g*torch.sin(theta)+torch.cos(theta)*num-mu_p*dot_theta/(mp*l))/(l*den)
+                ddot_x = (f+mp*l*(ddot_theta**2*torch.sin(theta)-ddot_theta*torch.cos(theta))-mu_c*torch.sign(dot_x))/(mc+mp)
 
             elif self.ode_idx==1: # air drag attacker
                 
-                l = L/2 
-                denom = M + mp * (1+torch.cos(theta)**2)
-                ddot_x = (f+mp * g * torch.sin(theta) * torch.cos(theta) + self.mu*dot_theta*torch.cos(theta)*torch.sign(dot_theta) - mp * l * (dot_theta**2) * torch.sin(theta)) / denom
-                ddot_theta = (mp*g*torch.sin(theta) + self.mu * dot_theta * torch.sign(dot_theta) + mp*ddot_x * torch.cos(theta))/(mp*l)
+                rho=1.2
+                A=0.05*L
+                numer = mp*g*l*torch.cos(theta)*torch.sin(theta)+self.mu*0.5*rho*dot_theta**2*A*torch.cos(theta)**2-mp*l**2*dot_theta*torch.sin(theta)+l*f
+                denom = l*(mc+mp*torch.sin(theta)**2)
+                ddot_x = numer/denom
+                ddot_theta = ((mc+mp)*ddot_x+mp*l*dot_theta*torch.sin(theta)-f)/(mp*l*torch.cos(theta))
 
             else:
                 raise NotImplementedError()
-
+            
             dqdt = torch.FloatTensor([dot_x, dot_theta, ddot_x, ddot_theta]).to(device=self.device, dtype=torch.float32)
 
-            self.ddot_x = torch.clamp(ddot_x.reshape(1), -self._max_ddot_x, self._max_ddot_x)
-            self.ddot_theta = torch.clamp(ddot_theta.reshape(1), -self._max_ddot_theta, self._max_ddot_theta)
+            self.ddot_x = torch.clamp(ddot_x, -self._max_ddot_x, self._max_ddot_x).reshape(1)
+            self.ddot_theta = torch.clamp(ddot_theta, -self._max_ddot_theta, self._max_ddot_theta).reshape(1)
             return dqdt
                     
         # Solve the ODE
@@ -105,7 +103,7 @@ class CartPole():
         self.dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
         self.dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
 
-        print(f"x={self.x.item()}\ttheta={self.theta.item()}\tddotx={self.ddot_x.item()}\tmu={self.mu.item()}")
+        print(f"x={self.x.item()}\ttheta={self.theta.item()}\tinp_acc={self.inp_acc.item()}\tmu={self.mu.item()}")
 
 
 class Environment:
@@ -129,8 +127,8 @@ class Environment:
 
     def update(self, parameters, dt):
         # the environment updates according to the parameters
-        air_drag_coef = parameters
-        self._cartpole.update(mu=air_drag_coef, dt=dt)
+        mu = parameters
+        self._cartpole.update(mu=mu, dt=dt)
 
 
 class Agent:
@@ -187,7 +185,7 @@ class Agent:
     def update(self, parameters, dt):
         # the action take place and updates the variables
         cart_acceleration = parameters
-        self._cartpole.update(dt=dt, ddot_x=cart_acceleration)
+        self._cartpole.update(inp_acc=cart_acceleration, dt=dt)
 
 
 class Model:
@@ -207,6 +205,7 @@ class Model:
         self.traces = None
 
     def step(self, env_input, agent_input, dt):
+
         self.environment.update(env_input, dt)
         self.agent.update(agent_input, dt)
 
