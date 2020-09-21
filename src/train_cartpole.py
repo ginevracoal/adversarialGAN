@@ -18,11 +18,11 @@ parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
 safe_theta = 0.392
-safe_x = 10
-cart_position = np.linspace(0., 5., 10)
-cart_velocity = np.linspace(-0.1, 0.1, 10)
+safe_x = 10c
+art_position = np.linspace(0., 5., 10)
+cart_velocity = np.linspace(-0.5, 0.5, 10)
 pole_angle = np.linspace(-0.196, 0.196, 10)
-pole_ang_velocity = np.linspace(-0.1, 0.1, 10)
+pole_ang_velocity = np.linspace(-0.5, 0.5, 10)
 
 # Sets the device
 if args.device=="cuda":
@@ -42,8 +42,8 @@ robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta} & x >= -
 robustness_computer = model_cartpole.RobustnessComputer(robustness_formula)
 
 # Instantiates the NN architectures
-attacker = architecture.Attacker(physical_model, 2, 10, 2)
-defender = architecture.Defender(physical_model, 2, 10)
+attacker = architecture.Attacker(physical_model, 2, 10, 3)
+defender = architecture.Defender(physical_model, 3, 10)
 
 working_dir = args.dir+str(args.ode_idx)
 
@@ -56,7 +56,7 @@ tester = architecture.Tester(physical_model, robustness_computer, \
 # Starts the training
 dt = 0.05 # timestep
 training_steps = args.training_steps # number of episodes for training
-simulation_horizon = int(5. / dt) # 5 seconds
+simulation_horizon = int(2. / dt) # 5 seconds
 trainer.run(training_steps, simulation_horizon, dt, atk_steps=1, def_steps=5)
 
 # Saves the trained models

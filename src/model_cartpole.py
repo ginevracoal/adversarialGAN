@@ -33,8 +33,8 @@ class CartPole():
         self._max_dot_theta = 100.
         self._max_ddot_x = 100.
         self._max_ddot_theta = 100.
-        self._max_mu=0.5
         self._max_inp_acc=100.
+        self._max_mu=0.5
 
     def update(self, dt, inp_acc=None, mu=None):
         """
@@ -77,11 +77,11 @@ class CartPole():
             elif self.ode_idx==1: # air drag attacker
                 
                 rho=1.2
-                A=0.05*L
-                numer = mp*g*l*torch.cos(theta)*torch.sin(theta)+self.mu*0.5*rho*dot_theta**2*A*torch.cos(theta)**2-mp*l**2*dot_theta*torch.sin(theta)+l*f
-                denom = l*(mc+mp*torch.sin(theta)**2)
+                h=0.05
+                numer = f - mp*g*torch.sin(theta)*torch.cos(theta)-self.mu*0.5*rho*dot_theta**2*h*torch.cos(theta)**2+mp*l*dot_theta*torch.sin(theta)
+                denom = mc+mp*torch.sin(theta)**2
                 ddot_x = numer/denom
-                ddot_theta = ((mc+mp)*ddot_x+mp*l*dot_theta*torch.sin(theta)-f)/(mp*l*torch.cos(theta))
+                ddot_theta = (-mp*ddot_x*torch.cos(theta)+mp*g*torch.sin(theta)+self.mu*0.5*rho*dot_theta**2*h*torch.cos(theta))/(mp*l)
 
             else:
                 raise NotImplementedError()

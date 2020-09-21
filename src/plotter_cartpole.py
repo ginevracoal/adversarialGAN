@@ -30,7 +30,9 @@ if args.dark:
 with open(os.path.join(args.dirname+str(args.ode_idx), 'sims.pkl'), 'rb') as f:
     records = pickle.load(f)
 
-def hist(time, pulse, push, pull, atk, filename):
+def hist(time, pulse, 
+         # push, pull, 
+         atk, filename):
     fig, ax = plt.subplots(1, 4, figsize=(12, 3), sharex=True)
 
     ax[0].plot(time, push *100)
@@ -75,7 +77,7 @@ def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, po
     fig.suptitle('Initial conditions vs robustness $\\rho$')
     fig.savefig(os.path.join(args.dirname+str(args.ode_idx), filename), dpi=150)
 
-def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_dot_theta, sim_ddot_x, sim_attack, filename):
+def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_dot_theta, sim_defence, sim_attack, filename):
     fig, ax = plt.subplots(3, 2, figsize=(10, 6))
 
     # ax[0,0].axhline(-safe_x, ls='--', color='r')
@@ -86,8 +88,8 @@ def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_dot_theta, sim_ddot_x, sim_a
     ax[1,0].plot(sim_time, sim_dot_x, label='')
     ax[1,0].set(xlabel='time (s)', ylabel='cart velocity')
 
-    ax[2,0].plot(sim_time, sim_ddot_x, label='')
-    ax[2,0].set(xlabel='time (s)', ylabel='cart acceleration')
+    ax[2,0].plot(sim_time, sim_defence, label='defender acceleration')
+    ax[2,0].set(xlabel='time (s)', ylabel= f'defender acceleration (m/s^2)')
 
     ax[0,1].axhline(-safe_theta, ls='--', color='r')
     ax[0,1].axhline(safe_theta, ls='--', color='r')
@@ -145,7 +147,7 @@ if args.plot_evolution is True:
     plot(records[n]['pulse']['sim_t'], 
          records[n]['pulse']['sim_x'], records[n]['pulse']['sim_theta'], 
          records[n]['pulse']['sim_dot_x'], records[n]['pulse']['sim_dot_theta'],
-         records[n]['pulse']['sim_ddot_x'], records[n]['pulse']['sim_attack'], 
+         records[n]['pulse']['sim_defence'], records[n]['pulse']['sim_attack'], 
          'evolution_pulse.png')
 
     # print('push:', records[n]['push']['init'])
@@ -160,32 +162,34 @@ if args.plot_evolution is True:
     plot(records[n]['atk']['sim_t'], 
          records[n]['atk']['sim_x'], records[n]['atk']['sim_theta'], 
          records[n]['atk']['sim_dot_x'], records[n]['atk']['sim_dot_theta'],
-         records[n]['atk']['sim_ddot_x'], records[n]['atk']['sim_attack'], 
+         records[n]['atk']['sim_defence'], records[n]['atk']['sim_attack'], 
          'evolution_attacker.png')
 
 if args.hist is True:
 
     size = len(records)
     pulse_pct = np.zeros_like(records[0]['pulse']['sim_theta'])
-    push_pct = np.zeros_like(records[0]['push']['sim_theta'])
-    pull_pct = np.zeros_like(records[0]['pull']['sim_theta'])
+    # push_pct = np.zeros_like(records[0]['push']['sim_theta'])
+    # pull_pct = np.zeros_like(records[0]['pull']['sim_theta'])
     atk_pct = np.zeros_like(records[0]['atk']['sim_theta'])
 
     for i in range(size):
 
         t = records[i]['pulse']['sim_theta']
         pulse_pct = pulse_pct + np.logical_and(t > -safe_theta, t < safe_theta)
-        t = records[i]['push']['sim_theta']
-        push_pct = push_pct + np.logical_and(t > -safe_theta, t < safe_theta)
-        t = records[i]['pull']['sim_theta']
-        pull_pct = pull_pct + np.logical_and(t > -safe_theta, t < safe_theta)
+        # t = records[i]['push']['sim_theta']
+        # push_pct = push_pct + np.logical_and(t > -safe_theta, t < safe_theta)
+        # t = records[i]['pull']['sim_theta']
+        # pull_pct = pull_pct + np.logical_and(t > -safe_theta, t < safe_theta)
         t = records[i]['atk']['sim_theta']
         atk_pct = atk_pct + np.logical_and(t > -safe_theta, t < safe_theta)
 
     time = records[0]['pulse']['sim_t']
     pulse_pct = pulse_pct / size
-    push_pct = push_pct / size
-    pull_pct = pull_pct / size
+    # push_pct = push_pct / size
+    # pull_pct = pull_pct / size
     atk_pct = atk_pct / size
 
-    hist(time, pulse_pct, push_pct, pull_pct, atk_pct, 'pct_histogram.png')
+    hist(time, pulse_pct, 
+         # push_pct, pull_pct, 
+         atk_pct, 'pct_histogram.png')
