@@ -23,7 +23,6 @@ class ElMotor:
         self.y_torque_flat = y2d.flatten()
        
         self.EM_T_max_list   = np.array([179.1,179,180.05,180,174.76,174.76,165.13,147.78,147.78,109.68,109.68,84.46,84.46])
-        #self.EM_T_min_list   = -self.EM_T_max_list
 
         self.efficiency = np.array([
         [.50,.50,.50,.50,.50,.50,.50,.50,.50,.50,.50,.50,.50,.50,.50,.50,.50],
@@ -41,17 +40,20 @@ class ElMotor:
         [.69,.68,.71,.75,.75,.75,.75,.75,.75,.75,.75,.75,.74,.74,.74,.74,.74] ]).T
        
         self.efficiency[self.EM_T_list[:,np.newaxis] > self.EM_T_max_list] = np.nan
-        #self.efficiency > self.EM_T_max_list
        
         self.efficiency_flat = self.efficiency.flatten()
        
-    def getEfficiency(self, speed, torque):  # pair = (speed, torque) tuple
-        pair = [speed, torque]
-        return griddata((self.x_speed_flat, self.y_torque_flat), self.efficiency_flat, pair, method = "cubic")
+    def getEfficiency(self, speed, torque): 
+        points = (self.x_speed_flat, self.y_torque_flat)
+        pair = (speed.item(), torque.item())
+        grid = griddata(points, self.efficiency_flat, pair, method = "cubic")
+        # todo: debug
+        print(grid)
+        return grid
    
-    def getMinMaxTorque(self, speed):  # pair = (speed, torque) tuple
+    def getMinMaxTorque(self, speed):
         max_tq = numpy.interp(speed.cpu().detach().numpy(), self.EM_w_list, self.EM_T_max_list)
-        return -max_tq[0], max_tq[0]  #returns list of min tq, max tq
+        return -max_tq[0], max_tq[0]
 
     def plotEffMap(self):
 
@@ -97,16 +99,14 @@ class Car:
     def motor_efficiency(self):
         eff = self.e_motor.getEfficiency(self.e_motor_speed,self.e_torque)
         return eff**(-torch.sign(self.e_torque))
-
     
     def calculate_wheels_torque(self, e_torque, br_torque):
         self.br_torque = torch.clamp(br_torque, 0, self._max_whl_brk_torque)
         self.e_torque = torch.clamp(e_torque, self.min_e_tq, self.max_e_tq)
         return self.e_torque*self.gear_ratio - self.br_torque
 
-    
     def resistance_force(self):
-        F_loss = 1/2*self.rho*self.veh_surface*self.aer_coeff*(self.velocity**2) + \
+        F_loss = 0.5*self.rho*self.veh_surface*self.aer_coeff*(self.velocity**2) + \
             self.rr_coeff*self.mass*self.gravity*self.velocity
         return F_loss
 
@@ -127,8 +127,7 @@ class Car:
         #update min/max e-torque based on new motor speed
         self.min_e_tq, self.max_e_tq = self.e_motor.getMinMaxTorque(self.e_motor_speed)
         # update power consumed
-        self.e_power = self.e_motor_speed*self.e_torque*self.motor_efficiency()
-        
+        self.e_power = self.e_motor_speed*self.e_torque*self.motor_efficiency().item()        
         self.position += self.velocity * dt
 
         print(f"pos={self.position.item()}\tpower={self.e_power.item()}")
@@ -205,6 +204,14 @@ class Agent:
         self._car.velocity = value
 
     @property
+    def e_power(self):
+        return self._car.e_power.clone()
+
+    @e_power.setter
+    def e_power(self, value):
+        self._car.e_power = value
+
+    @property
     def distance(self):
         return self._environment.l_position - self._car.position
 
@@ -213,7 +220,8 @@ class Agent:
         """ Representation of the state """
         return (self._environment.l_velocity,
                 self.velocity,
-                self.distance)
+                self.distance, 
+                self.e_power)
 
     def update(self, parameters, dt):
         """ Updates the physical state with the parameters
@@ -246,6 +254,7 @@ class Model:
         self.agent.update(agent_input, dt)
 
         self.traces['dist'].append(self.agent.distance)
+        self.traces['e_power'].append(self.agent.e_power)
 
     def initialize_random(self):
         """ Sample a random initial state """
@@ -267,7 +276,8 @@ class Model:
         self.environment.l_velocity = torch.tensor(leader_velocity).reshape(1).float()
 
         self.traces = {
-            'dist': []
+            'dist': [],
+            'e_power': []
         }
 
 class RobustnessComputer:
@@ -278,5 +288,6 @@ class RobustnessComputer:
     def compute(self, model):
         """ Computes rho for the given trace """
         d = model.traces['dist']
+        e_power = model.traces['e_power'][-1].item()
 
-        return self.dqs.compute(dist=torch.cat(d))
+        return self.dqs.compute(dist=torch.cat(d))-e_power 
