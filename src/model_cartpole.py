@@ -34,7 +34,7 @@ class CartPole():
         self._max_ddot_x = 100.
         self._max_ddot_theta = 100.
         self._max_inp_acc=100.
-        self._max_mu=0.5
+        self._max_mu=0.05
 
     def update(self, dt, inp_acc=None, mu=None):
         """
@@ -78,10 +78,10 @@ class CartPole():
                 
                 rho=1.2
                 h=0.05
-                numer = f - mp*g*torch.sin(theta)*torch.cos(theta)-self.mu*0.5*rho*dot_theta**2*h*torch.cos(theta)**2+mp*l*dot_theta*torch.sin(theta)
+                numer = f - mp*g*torch.sin(theta)*torch.cos(theta)+self.mu*rho*dot_theta**2*h*(l+torch.cos(theta)**2)+mp*l*dot_theta*torch.sin(theta)
                 denom = mc+mp*torch.sin(theta)**2
                 ddot_x = numer/denom
-                ddot_theta = (-mp*ddot_x*torch.cos(theta)+mp*g*torch.sin(theta)+self.mu*0.5*rho*dot_theta**2*h*torch.cos(theta))/(mp*l)
+                ddot_theta = (-mp*ddot_x*torch.cos(theta)+mp*g*torch.sin(theta)+self.mu*rho*dot_theta**2*h*torch.cos(theta))/(mp*l)
 
             else:
                 raise NotImplementedError()
@@ -103,8 +103,9 @@ class CartPole():
         self.dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
         self.dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
 
-        print(f"x={self.x.item()}\ttheta={self.theta.item()}\tinp_acc={self.inp_acc.item()}\tmu={self.mu.item()}")
+        print(f"x={self.x.item()}\ttheta={self.theta.item()}\tddot_x={self.ddot_x.item()}\tinp_acc={self.inp_acc.item()}\tmu={self.mu.item()}")
 
+        # print(f"dot_x={self.dot_x.item()}\tddot_x={self.ddot_x.item()}")
 
 class Environment:
     def __init__(self, cartpole):

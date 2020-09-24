@@ -64,11 +64,9 @@ def run(mode=None):
             z = torch.rand(attacker.noise_size).float()
             
             if mode == 0:
-                atk_policy = lambda x: torch.tensor(0.05) if i > 10 and i < 30 else torch.tensor(-0.05)
+                atk_policy = lambda x: torch.tensor(0.05) 
             elif mode == 1:
-                atk_policy = lambda x: torch.tensor(0.05) if i > 10 else torch.tensor(-0.05)
-            elif mode == 2:
-                atk_policy = lambda x: torch.tensor(0.05) if i < 10 else torch.tensor(-0.05)
+                atk_policy = lambda x: torch.tensor(0.05) if i > 10 and i < 30 else torch.tensor(-0.05)
             else:
                 atk_policy = attacker(torch.cat((z, oe)))
 
@@ -102,9 +100,8 @@ def run(mode=None):
 records = []
 for i in range(args.repetitions):
     sim = {}
-    sim['pulse'] = run(0)
-    # sim['push'] = run(1)
-    # sim['pull'] = run(2)
+    sim['const'] = run(0)
+    sim['pulse'] = run(1)
     sim['atk'] = run()
 
     # print(sim)

@@ -143,53 +143,36 @@ if args.scatter is True:
 if args.plot_evolution is True:
     n = random.randrange(len(records))
 
-    print('pulse:', records[n]['pulse']['init'])
-    plot(records[n]['pulse']['sim_t'], 
-         records[n]['pulse']['sim_x'], records[n]['pulse']['sim_theta'], 
-         records[n]['pulse']['sim_dot_x'], records[n]['pulse']['sim_dot_theta'],
-         records[n]['pulse']['sim_defence'], records[n]['pulse']['sim_attack'], 
-         'evolution_pulse.png')
+    for mode in ["const","pulse","atk"]:
 
-    # print('push:', records[n]['push']['init'])
-    # plot(records[n]['push']['sim_t'], records[n]['push']['sim_x'], records[n]['push']['sim_theta'], 
-    #      records[n]['push']['sim_dot_x'], records[n]['push']['sim_attack'], 'triplot_push.png')
-
-    # print('pull:', records[n]['pull']['init'])
-    # plot(records[n]['pull']['sim_t'], records[n]['pull']['sim_x'], records[n]['pull']['sim_theta'],
-    #      records[n]['pull']['sim_dot_x'], records[n]['pull']['sim_attack'], 'triplot_pull.png')
-
-    print('attacker:', records[n]['atk']['init'])
-    plot(records[n]['atk']['sim_t'], 
-         records[n]['atk']['sim_x'], records[n]['atk']['sim_theta'], 
-         records[n]['atk']['sim_dot_x'], records[n]['atk']['sim_dot_theta'],
-         records[n]['atk']['sim_defence'], records[n]['atk']['sim_attack'], 
-         'evolution_attacker.png')
+        print(mode+":", records[n][mode]['init'])
+        plot(records[n][mode]['sim_t'], 
+             records[n][mode]['sim_x'], records[n][mode]['sim_theta'], 
+             records[n][mode]['sim_dot_x'], records[n][mode]['sim_dot_theta'],
+             records[n][mode]['sim_defence'], records[n][mode]['sim_attack'], 
+             'evolution_'+mode+'.png')
 
 if args.hist is True:
 
     size = len(records)
+    const_pct = np.zeros_like(records[0]['const']['sim_theta'])
     pulse_pct = np.zeros_like(records[0]['pulse']['sim_theta'])
-    # push_pct = np.zeros_like(records[0]['push']['sim_theta'])
-    # pull_pct = np.zeros_like(records[0]['pull']['sim_theta'])
     atk_pct = np.zeros_like(records[0]['atk']['sim_theta'])
 
     for i in range(size):
 
+        t = records[i]['const']['sim_theta']
+        const_pct = const_pct + np.logical_and(t > -safe_theta, t < safe_theta)
+
         t = records[i]['pulse']['sim_theta']
         pulse_pct = pulse_pct + np.logical_and(t > -safe_theta, t < safe_theta)
-        # t = records[i]['push']['sim_theta']
-        # push_pct = push_pct + np.logical_and(t > -safe_theta, t < safe_theta)
-        # t = records[i]['pull']['sim_theta']
-        # pull_pct = pull_pct + np.logical_and(t > -safe_theta, t < safe_theta)
+
         t = records[i]['atk']['sim_theta']
         atk_pct = atk_pct + np.logical_and(t > -safe_theta, t < safe_theta)
 
     time = records[0]['pulse']['sim_t']
+    const_pct = pulse_pct / size
     pulse_pct = pulse_pct / size
-    # push_pct = push_pct / size
-    # pull_pct = pull_pct / size
     atk_pct = atk_pct / size
 
-    hist(time, pulse_pct, 
-         # push_pct, pull_pct, 
-         atk_pct, 'pct_histogram.png')
+    hist(time, const_pct, pulse_pct, atk_pct, 'pct_histogram.png')

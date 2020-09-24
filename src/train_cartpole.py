@@ -18,8 +18,8 @@ parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
 safe_theta = 0.392
-safe_x = 10c
-art_position = np.linspace(0., 5., 10)
+safe_x = 10
+cart_position = np.linspace(0., 5., 10)
 cart_velocity = np.linspace(-0.5, 0.5, 10)
 pole_angle = np.linspace(-0.196, 0.196, 10)
 pole_ang_velocity = np.linspace(-0.5, 0.5, 10)
@@ -37,8 +37,8 @@ pg = misc.ParametersHyperparallelepiped(cart_position, cart_velocity, pole_angle
 physical_model = model_cartpole.Model(pg.sample(sigma=0.05), device=args.device, ode_idx=args.ode_idx)
 
 # Specifies the STL formula to compute the robustness
-# robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta})'
-robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta} & x >= -{safe_x} & x <= {safe_x})'
+robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta})'
+# robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta} & x >= -{safe_x} & x <= {safe_x})'
 robustness_computer = model_cartpole.RobustnessComputer(robustness_formula)
 
 # Instantiates the NN architectures
@@ -62,8 +62,8 @@ trainer.run(training_steps, simulation_horizon, dt, atk_steps=1, def_steps=5)
 # Saves the trained models
 misc.save_models(attacker, defender, working_dir)
 
-# Starts the testing
-test_steps = 10 # number of episodes for testing
-simulation_horizon = int(60 / dt) # 60 seconds
-tester.run(test_steps, simulation_horizon, dt)
+# # Starts the testing
+# test_steps = 10 # number of episodes for testing
+# simulation_horizon = int(60 / dt) # 60 seconds
+# tester.run(test_steps, simulation_horizon, dt)
 
