@@ -45,12 +45,13 @@ class ElMotor:
        
         self.efficiency_flat = self.efficiency.flatten()
        
-    def getEfficiency(self, pair ):  # pair = (speed, torque) tuple
+    def getEfficiency(self, speed, torque):  # pair = (speed, torque) tuple
+        pair = [speed, torque]
         return griddata((self.x_speed_flat, self.y_torque_flat), self.efficiency_flat, pair, method = "cubic")
    
     def getMinMaxTorque(self, speed):  # pair = (speed, torque) tuple
-        max_tq = numpy.interp(speed, self.EM_w_list, self.EM_T_max_list)    
-        return [-max_tq, max_tq]  #returns list of min tq, max tq
+        max_tq = numpy.interp(speed.cpu().detach().numpy(), self.EM_w_list, self.EM_T_max_list)
+        return -max_tq[0], max_tq[0]  #returns list of min tq, max tq
 
     def plotEffMap(self):
 
@@ -95,7 +96,7 @@ class Car:
 
     def motor_efficiency(self):
         eff = self.e_motor.getEfficiency(self.e_motor_speed,self.e_torque)
-        return numpy.power(eff,-np.sign(self.e_torque))
+        return eff**(-torch.sign(self.e_torque))
 
     
     def calculate_wheels_torque(self, e_torque, br_torque):
@@ -124,12 +125,13 @@ class Car:
         self.e_motor_speed = self.velocity*self.gear_ratio/self.wheel_radius
         
         #update min/max e-torque based on new motor speed
-        self.min_e_tq, self.max_e_tq= self.e_motor.getMinMaxTorque(self.e_motor_speed)
+        self.min_e_tq, self.max_e_tq = self.e_motor.getMinMaxTorque(self.e_motor_speed)
         # update power consumed
         self.e_power = self.e_motor_speed*self.e_torque*self.motor_efficiency()
         
         self.position += self.velocity * dt
 
+        print(f"pos={self.position.item()}\tpower={self.e_power.item()}")
 
 class Environment:
     def __init__(self, device):
