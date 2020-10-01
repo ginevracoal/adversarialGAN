@@ -16,13 +16,13 @@ parser.add_argument("-d", "--dir", default="../experiments/cartpole", dest="dirn
                     help="model's directory")
 parser.add_argument("--ode_idx", default=1, type=int, help="Choose ode idx")
 parser.add_argument("--plot_evolution", default=True, type=eval)
-parser.add_argument("--scatter", default=False, type=eval, help="Generate scatterplot")
-parser.add_argument("--hist", default=False, type=eval, help="Generate histograms")
+parser.add_argument("--scatter", default=True, type=eval, help="Generate scatterplot")
+parser.add_argument("--hist", default=True, type=eval, help="Generate histograms")
 parser.add_argument("--dark", default=False, type=eval, help="Use dark theme")
 args = parser.parse_args()
 
 safe_theta = 0.392
-# safe_x = 10
+safe_x = 1
 
 if args.dark:
     plt.style.use('./qb-common_dark.mplstyle')
@@ -30,30 +30,18 @@ if args.dark:
 with open(os.path.join(args.dirname+str(args.ode_idx), 'sims.pkl'), 'rb') as f:
     records = pickle.load(f)
 
-def hist(time, pulse, 
-         # push, pull, 
-         atk, filename):
-    fig, ax = plt.subplots(1, 4, figsize=(12, 3), sharex=True)
+def hist(time, pulse, atk, filename):
+    fig, ax = plt.subplots(1, 2, figsize=(12, 3), sharex=True)
 
-    ax[0].plot(time, push *100)
-    ax[0].fill_between(time, push *100, alpha=0.5)
+    ax[0].plot(time, pulse *100)
+    ax[0].fill_between(time, pulse *100, alpha=0.5)
     ax[0].set(xlabel='time (s)', ylabel='% correct')
-    ax[0].title.set_text('Sudden acceleration')
+    ax[0].title.set_text('Acceleration pulse')
 
-    ax[1].plot(time, pull *100)
-    ax[1].fill_between(time, pull *100, alpha=0.5)
+    ax[1].plot(time, atk *100)
+    ax[1].fill_between(time, atk *100, alpha=0.5)
     ax[1].set(xlabel='time (s)', ylabel='% correct')
-    ax[1].title.set_text('Sudden brake')
-
-    ax[2].plot(time, pulse *100)
-    ax[2].fill_between(time, pulse *100, alpha=0.5)
-    ax[2].set(xlabel='time (s)', ylabel='% correct')
-    ax[2].title.set_text('Acceleration pulse')
-
-    ax[3].plot(time, atk *100)
-    ax[3].fill_between(time, atk *100, alpha=0.5)
-    ax[3].set(xlabel='time (s)', ylabel='% correct')
-    ax[3].title.set_text('Against attacker')
+    ax[1].title.set_text('Against attacker')
 
     fig.tight_layout()
     fig.savefig(os.path.join(args.dirname+str(args.ode_idx), filename), dpi=150)
@@ -61,32 +49,33 @@ def hist(time, pulse,
 def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array, filename):
     fig, ax = plt.subplots(1, 2, figsize=(10, 5))
 
-    print(cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array)
+    print(cart_pos_array, "\n", pole_ang_array, "\n", cart_vel_array, "\n", pole_ang_vel_array)
 
     customnorm = mcolors.TwoSlopeNorm(0)
     sp0 = ax[0].scatter(cart_pos_array, cart_vel_array, c=robustness_array, cmap='RdYlGn', norm=customnorm)
     ax[0].set(xlabel='cart position', ylabel='cart velocity')
-    cb = fig.colorbar(sp0)
+    # cb = fig.colorbar(sp0)
     # cb.ax[0].set_label('$\\rho$')
 
     sp1 = ax[1].scatter(pole_ang_array, pole_ang_vel_array, c=robustness_array, cmap='RdYlGn', norm=customnorm)
     ax[1].set(xlabel='pole angle', ylabel='pole angular velocity')
-    cb = fig.colorbar(sp1)
+    # cb = fig.colorbar(sp1)
     # cb.ax[1].set_label('$\\rho$')
 
     fig.suptitle('Initial conditions vs robustness $\\rho$')
     fig.savefig(os.path.join(args.dirname+str(args.ode_idx), filename), dpi=150)
 
-def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_dot_theta, sim_defence, sim_attack, filename):
+def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_dot_theta, sim_defence, 
+            sim_attack_nu, sim_attack_mu, filename):
     fig, ax = plt.subplots(3, 2, figsize=(10, 6))
 
-    # ax[0,0].axhline(-safe_x, ls='--', color='r')
-    # ax[0,0].axhline(safe_x, ls='--', color='r')
+    ax[0,0].axhline(-safe_x, ls='--', color='r')
+    ax[0,0].axhline(safe_x, ls='--', color='r')
     ax[0,0].plot(sim_time, sim_x, label='')
     ax[0,0].set(xlabel='time (s)', ylabel='cart position (m)')
 
     ax[1,0].plot(sim_time, sim_dot_x, label='')
-    ax[1,0].set(xlabel='time (s)', ylabel='cart velocity')
+    ax[1,0].set(xlabel='time (s)', ylabel='cart velocity (m/s)')
 
     ax[2,0].plot(sim_time, sim_defence, label='defender acceleration')
     ax[2,0].set(xlabel='time (s)', ylabel= f'defender acceleration (m/s^2)')
@@ -99,11 +88,18 @@ def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_dot_theta, sim_defence, sim_
     ax[1,1].plot(sim_time, sim_dot_theta)
     ax[1,1].set(xlabel='time (s)', ylabel='pole angular velocity')
 
-    ax[2,1].plot(sim_time, sim_attack, label='')
     if args.ode_idx == 0:
-        ax[2,1].set(xlabel='time (s)', ylabel='car-track friction coef.')
+        ax[2,1].plot(sim_time, sim_attack_nu, label='')
+        ax[2,1].set(xlabel='time (s)', ylabel='cart friction coef.')
+
     elif args.ode_idx == 1:
+        ax[2,1].plot(sim_time, sim_attack_mu, label='')
         ax[2,1].set(xlabel='time (s)', ylabel='air drag coef.')
+
+    elif args.ode_idx == 2:
+        ax[2,1].plot(sim_time, sim_attack_nu, label='cart friction coef.')
+        ax[2,1].plot(sim_time, sim_attack_mu, label='air drag coef.')
+        ax[2,1].set(xlabel='time (s)', ylabel='attacker policy')
 
     fig.tight_layout()
     fig.savefig(os.path.join(args.dirname+str(args.ode_idx), filename), dpi=150)
@@ -112,8 +108,8 @@ if args.scatter is True:
 
     size = len(records)
 
-    robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta})'
-    # robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta} & x >= -{safe_x} & x <= {safe_x})'
+    # robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta})'
+    robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta} & x >= -{safe_x} & x <= {safe_x})'
     robustness_computer = model_cartpole.RobustnessComputer(robustness_formula)
 
     robustness_array = np.zeros(size)
@@ -122,57 +118,57 @@ if args.scatter is True:
     cart_vel_array = np.zeros(size)
     pole_ang_vel_array = np.zeros(size)
 
-    for i in range(size):
+    for mode in ["pulse", "atk"]:
+        for i in range(size):
 
-        trace_theta = torch.tensor(records[i]['atk']['sim_theta'][-150:])
-        trace_x = torch.tensor(records[i]['atk']['sim_x'][-150:])
-        robustness = float(robustness_computer.dqs.compute(theta=trace_theta, x=trace_x))
-        cart_pos = records[i]['atk']['init']['x'] 
-        pole_ang = records[i]['atk']['init']['theta'] 
-        cart_vel = records[i]['atk']['init']['dot_x'] 
-        pole_ang_vel = records[i]['atk']['init']['dot_theta'] 
+            trace_theta = torch.tensor(records[i][mode]['sim_theta'])
+            trace_x = torch.tensor(records[i][mode]['sim_x'])
+            robustness = float(robustness_computer.dqs.compute(theta=trace_theta, x=trace_x))
+            cart_pos = records[i][mode]['init']['x'] 
+            pole_ang = records[i][mode]['init']['theta'] 
+            cart_vel = records[i][mode]['init']['dot_x'] 
+            pole_ang_vel = records[i][mode]['init']['dot_theta'] 
 
-        robustness_array[i] = robustness
-        cart_pos_array[i] = cart_pos
-        pole_ang_array[i] = pole_ang
-        cart_vel_array[i] = cart_vel
-        pole_ang_vel_array[i] = pole_ang_vel
+            robustness_array[i] = robustness
+            cart_pos_array[i] = cart_pos
+            pole_ang_array[i] = pole_ang
+            cart_vel_array[i] = cart_vel
+            pole_ang_vel_array[i] = pole_ang_vel
 
-    scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array, 'atk_scatterplot.png')
+        scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array, 'atk_scatterplot.png')
 
 if args.plot_evolution is True:
     n = random.randrange(len(records))
 
-    for mode in ["const","pulse","atk"]:
+    # for mode in ["const","pulse","atk"]:
+    for mode in ["pulse","atk"]:
 
         print(mode+":", records[n][mode]['init'])
         plot(records[n][mode]['sim_t'], 
              records[n][mode]['sim_x'], records[n][mode]['sim_theta'], 
              records[n][mode]['sim_dot_x'], records[n][mode]['sim_dot_theta'],
-             records[n][mode]['sim_defence'], records[n][mode]['sim_attack'], 
+             records[n][mode]['sim_defence'], 
+             records[n][mode]['sim_attack_nu'], records[n][mode]['sim_attack_mu'], 
              'evolution_'+mode+'.png')
 
 if args.hist is True:
 
     size = len(records)
-    const_pct = np.zeros_like(records[0]['const']['sim_theta'])
     pulse_pct = np.zeros_like(records[0]['pulse']['sim_theta'])
     atk_pct = np.zeros_like(records[0]['atk']['sim_theta'])
 
     for i in range(size):
 
-        t = records[i]['const']['sim_theta']
-        const_pct = const_pct + np.logical_and(t > -safe_theta, t < safe_theta)
-
+        x = records[i]['pulse']['sim_x']
         t = records[i]['pulse']['sim_theta']
-        pulse_pct = pulse_pct + np.logical_and(t > -safe_theta, t < safe_theta)
+        pulse_pct = pulse_pct +  np.logical_and(np.logical_and(t > -safe_theta, t < safe_theta), np.logical_and( x > -safe_x, x < safe_x))
 
+        x = records[i]['atk']['sim_x']
         t = records[i]['atk']['sim_theta']
-        atk_pct = atk_pct + np.logical_and(t > -safe_theta, t < safe_theta)
+        atk_pct = atk_pct + np.logical_and(np.logical_and(t > -safe_theta, t < safe_theta), np.logical_and( x > -safe_x, x < safe_x))
 
     time = records[0]['pulse']['sim_t']
-    const_pct = pulse_pct / size
     pulse_pct = pulse_pct / size
     atk_pct = atk_pct / size
 
-    hist(time, const_pct, pulse_pct, atk_pct, 'pct_histogram.png')
+    hist(time, pulse_pct, atk_pct, 'pct_histogram.png')
