@@ -50,7 +50,6 @@ class Attacker(nn.Module):
         return policy_generator
 
 
-
 class Defender(nn.Module):
     """ NN architecture for the defender """
 
@@ -176,7 +175,6 @@ class Trainer:
             def_input = def_policy(t)
 
             self.model.step(atk_input, def_input, dt)
-
             t += dt
 
         rho = self.robustness_computer.compute(self.model)

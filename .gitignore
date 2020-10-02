@@ -6,3 +6,5 @@ venv
 **/*.pyc
 experiments/
 src/screenlog.0
+doc/
+misc/

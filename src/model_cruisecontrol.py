@@ -70,7 +70,6 @@ class Environment:
     def update(self, parameters, dt):
         """ Generates the altimetric profile of the road
         """
-        # print(parameters)
 
         if parameters is not None:
             parameters = parameters.reshape(2, BUMPS).float()

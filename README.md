@@ -1,17 +1,9 @@
-#### Master thesis 2020 - Data Science & Scientific Computing
 # Adversarial Learning of Robust and Safe Controllers for Cyber-Physical Systems 
 
+Code for paper "Adversarial Learning of Robust and Safe Controllers for Cyber-Physical Systems", Luca Bortolussi, Francesca Cairoli, Ginevra Carbone, Francesco Franchina, 2020.
+
 ## Abstract
-Data-driven models are bringing huge advantages in terms of performance and effectiveness in many sectors.
-In the field of Cyber-Physical Systems, although, they are not widespread since their opaqueness and lacks formal proofs pose a serious threat to their employment.
-
-We propose and analyze a novel approach in creating robust and safe controllers drawing from the literature of the adversarial learning.
-
-Our method trains in an adversarial way two Neural Networks to reach a twofold goal:
-obtain one network that is able to generate difficult configurations of the environment and another that is able to overcome them in a safe e robust way.
-The aim is to create a formally verified controller and, at the same time, to give insights on the most demanding corner cases of a given model.
-
-The approach is promising and worthy of further investigation.
+We introduce a novel learning-based approach to synthesize safe and robust con- trollers for autonomous Cyber-Physical Systems and, at the same time, to generate challenging tests. This procedure combines formal methods for model verification with Generative Adversarial Networks. The method learns two Neural Networks: the first one aims at generating troubling scenarios for the controller, while the second one aims at enforcing the safety constraints. We test the proposed method on a variety of case studies.
 
 ## Project structure
 The project has been developed in PyTorch and still needs to undergo a heavy refactoring.
