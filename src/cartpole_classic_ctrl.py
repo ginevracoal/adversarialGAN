@@ -93,13 +93,15 @@ class InvertedPendulumSystem():
     # state = x, dot_x, theta, dot_theta
     
     ############################################################
-    def __init__(self, linearized_symb_mat_A, linearized_symb_mat_B):
+    def __init__(self,  linearized_symb_mat_A = None, linearized_symb_mat_B= None, friction_map = None,):
         
         self.linearized_symb_mat_A = linearized_symb_mat_A
         self.linearized_symb_mat_B = linearized_symb_mat_B
         
-        self.err_x_integral = 0
         
+        self.x_max = 10
+        self.friction_map = friction_map
+       
         self.g = 9.81
         self.L = 1.5
         self.m = 1.0
@@ -110,6 +112,9 @@ class InvertedPendulumSystem():
         self.F_max = 50
 
         self.unstable_system = False
+        
+        self.dynamic_LQR = False
+        self.K = None
 
         # gains which worki in the simple case        
         Kp_th = 80
@@ -120,8 +125,8 @@ class InvertedPendulumSystem():
         
         self.ctrl_input = 0
         
-        #self.update_A_B()
-        self.update_A_B_new(state = [0,0,0,0], ctrl_u = 0)
+        self.update_A_B()
+        #self.update_A_B_new(state = [0,0,0,0], ctrl_u = 0)
 
     ############################################################        
     def update_A_B_new(self, state, ctrl_u):
@@ -159,20 +164,30 @@ class InvertedPendulumSystem():
         
     ############################################################   
     def get_ctrl_signal(self, ctrl = True):
+        """
         if ctrl:
             ctrl_input = np.clip(self.ctrl_input, -self.F_max, self.F_max)
             #print(ctrl_input)
         else:
             ctrl_input = 0
-            
-        return ctrl_input
+        """    
+        return self.ctrl_input
+
+    ############################################################
+    def get_friction(self, state):
+        return self.friction_map(state[0])
         
     ############################################################
     def derivatives(self, state,  ctrl = True):
         
+        if self.friction_map is not None:
+            friction = self.get_friction(state)
+        else:
+            friction = 0.01
+        
         ctrl_input = self.get_ctrl_signal(ctrl)
         
-        x_ddot = ctrl_input + self.m*self.L*state[3]**2* np.sin(state[2]) - self.m*self.g*np.cos(state[2]) *  np.sin(state[2])
+        x_ddot = ctrl_input - friction*state[1]  + self.m*self.L*state[3]**2* np.sin(state[2]) - self.m*self.g*np.cos(state[2]) *  np.sin(state[2])
         x_ddot = x_ddot / ( self.M+self.m-self.m* np.cos(state[2])**2 )
     
         theta_ddot = (self.g*np.sin( state[2] ) -  np.cos( state[2] )*x_ddot ) / self.L 
@@ -213,22 +228,26 @@ class InvertedPendulumSystem():
 
     ############################################################ 
     # LQR control law
-    def LQR_law(self, state, Q, R , x0 = 0):
+    def LQR_law(self, state, Q, R , x0 = 0 , dt = 0.05):
 
-        err_x = x0 - state[0]        
-        self.err_x_integral +=  err_x  #+ 0.995*self.err_x_integral
+        Kp = 30
+        err_x = x0 - state[0]  
+        x_thd = 1
+        Kp_min = 5
+        if abs(err_x) <x_thd:
+            Kp = Kp_min + (Kp-Kp_min)*abs(err_x)/x_thd
 
-                # K : State feedback for stavility
-        # S : Solution to Riccati Equation
-        # E : Eigen values of the closed loop system
-        K, S, E = control.lqr( self.A, self.B, Q, R )
-        self.compute_K(desired_eigs = E ) # Arbitarily set desired eigen values
+        if self.K is None or self.dynamic_LQR:
+                    # K : State feedback for stavility
+            # S : Solution to Riccati Equation
+            # E : Eigen values of the closed loop system
+            K, S, E = control.lqr( self.A, self.B, Q, R )
+            self.compute_K(desired_eigs = E ) # Arbitarily set desired eigen values
         
         u = -  np.matmul( self.K , state - np.array([x0,0,0,0]) )
         
-        self.ctrl_input = u[0,0] - ( 20 * err_x - 0.1* self.err_x_integral)
-        
-        
+        self.ctrl_input = u[0,0] - Kp * err_x 
+
         
         if (abs(self.ctrl_input)>1.5*self.F_max) or (abs(state[2])>np.pi/2 ) :
             self.unstable_system = True
@@ -298,7 +317,7 @@ class InvertedPendulumSystem():
             line.set_data(thisx, thisy)
             time_text.set_text(time_template % (i*dt))
             patch.set_x(xs[i] - cart_width/2)
-            target.set_offsets((target_pos[i],0))
+            target.set_offsets((target_pos[i],-0.2))
             return line, time_text, patch, target
         
         ani = animation.FuncAnimation(fig, animate, np.arange(1, len(solution), sample_step),
@@ -337,7 +356,7 @@ state = np.array([ x, Z,th, Y], dtype = np.float32)
 
 # simulation time
 dt = 0.05
-Tmax = 50
+Tmax = 100
 time_line = np.arange(0.0, Tmax, dt)
 
 solution = np.array(state)[np.newaxis,:]
@@ -348,17 +367,27 @@ ss.update_A_B()
 
 print("Integrating...")
 
-for i,t in tqdm(enumerate(time_line[:-1])):
+
+import cProfile
+import pstats
+import io
+
+pr = cProfile.Profile()
+pr.enable()
+
+
+for i,t in enumerate(tqdm(time_line[:-1])):
     
     omega_1 = .2
     omega_2 = .5
+    omega_3 = .4
 
-    x_target = 2*np.sin(omega_1*t) + 0.5*np.sin(omega_2*t + np.pi/7)
+    x_target = 2*np.sin(omega_1*t) + 0.5*np.sin(omega_2*t + np.pi/7) + 0.8*np.sin(omega_3*t - np.pi/12)
     
     def ode_fun( state, dt, x_target):
         
 
-        ss.LQR_law(state, Q, R, x0 = x_target)
+        ss.LQR_law(state, Q, R, x0 = x_target, dt = dt)
         #ss.PD_control_law(state)
         f_state = np.array(ss.derivatives(state))
         #f_state = np.array(ss.derivatives_simple(state, ctrl = True))
@@ -378,13 +407,20 @@ for i,t in tqdm(enumerate(time_line[:-1])):
         print('unstable system')
         break
 
+pr.disable()
+s = io.StringIO()
+ps = pstats.Stats(pr, stream=s).sort_stats('tottime')
+ps.print_stats()
+
+with open('test.txt', 'w+') as f:
+    f.write(s.getvalue())
 
 
 #%%
 
 
 if (abs(solution[-50:,2]) < 0.25).all() or True:
-    ss.generate_gif(solution,target_pos,dt, sample_step=5)
+    ss.generate_gif(solution,target_pos,dt, sample_step=10)
 
 #u = ss.PD_control_law( state, gains, x0 )
 
