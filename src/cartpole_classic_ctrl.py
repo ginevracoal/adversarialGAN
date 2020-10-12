@@ -42,7 +42,7 @@ class InvertedPendulum_LQR():
 
         # map generation
         self.theta_max = 0.9*(np.pi/2)
-        self.dot_theta_max = 2.5
+        self.dot_theta_max = 1.8
 
         # anim generation
         self.x_max = 5
@@ -58,7 +58,7 @@ class InvertedPendulum_LQR():
         self.correct_x = True
         self.ctrl_Kp_max = 40
         self.u_Kp_correction = 0
-        self.Kp_multiplier = 5
+        self.Kp_multiplier = 10
 
         # robust SMC parameters
         self.SMC_control = True
@@ -71,6 +71,14 @@ class InvertedPendulum_LQR():
 
         # initialize linearized system A,B
         self.update_A_B()
+        self.reset_store(np.array([0,0,0,0]))
+        
+    ############################################################
+    def reset_store(self, state):
+        
+        self.solution = np.array(state)[np.newaxis,:]
+        self.target_pos = np.zeros((1,))
+        self.ctrl_inputs = np.zeros((1,3))
 
         
     ############################################################
@@ -172,11 +180,14 @@ class InvertedPendulum_LQR():
             for j,dot_theta in enumerate(dot_theta_axis ):
                 
                 f_x, g_x = self.f_g_SMC(theta, dot_theta)
-                robustness_map[i,j] = abs((f_x  + self.alpha_sliding*dot_theta)/g_x)
+                robustness_map[i,j] = abs(f_x  + self.alpha_sliding*dot_theta )/abs(g_x)
                 f_x_map[i,j] = f_x  #+ alpha*dot_theta
                 g_x_map[i,j] = g_x
                 
-        return theta_axis,dot_theta_axis,np.fliplr(robustness_map), np.fliplr(f_x_map), np.fliplr(g_x_map)
+        return theta_axis,dot_theta_axis, np.flipud(robustness_map.T), f_x_map, g_x_map
+    #np.flipud(robustness_map), np.flipud(f_x_map), np.flipud(g_x_map) 
+    #robustness_map, f_x_map, g_x_map
+    
 
     
     ############################################################ 
@@ -225,6 +236,7 @@ class InvertedPendulum_LQR():
             #err_x = np.clip(x0 - state[0], -self.max_err, self.max_err)  
             x_thd = .5
             Kp_min = 5
+            
             if abs(err_x) <x_thd:
                 Kp = Kp_min + (Kp-Kp_min)*abs(err_x)/x_thd
             Kp *= self.Kp_multiplier
@@ -256,9 +268,7 @@ class InvertedPendulum_LQR():
     # run simulation
     def run_simulation(self,state, timeline):
     
-        self.solution = np.array(state)[np.newaxis,:]
-        self.target_pos = np.zeros((1,))
-        self.ctrl_inputs = np.zeros((1,3))
+        self.reset_store(state)
         
         for i,t in enumerate(tqdm(time_line[:-1])):
             
@@ -288,7 +298,7 @@ class InvertedPendulum_LQR():
 
     ############################################################ 
     #plot graph
-    def plot_graphs(self):
+    def plot_graphs(self, save = False, no_norm = False):
         
         fig1 = plt.figure()
         fig2 = plt.figure()
@@ -323,19 +333,28 @@ class InvertedPendulum_LQR():
         
         # fig 3
         theta_axis,dot_theta_axis,robustness_map, f_x_map, g_x_map = self.robustness_map()
-        mappable = ax5.imshow(robustness_map, aspect = 'auto',extent=extents(theta_axis) + extents(dot_theta_axis), cmap=mpl.cm.jet, norm=mpl.colors.PowerNorm(.8,1,200))
+        if no_norm:
+            mappable = ax5.imshow(robustness_map, aspect = 'auto',extent=extents(theta_axis) + extents(dot_theta_axis), cmap=mpl.cm.jet)
+        else:
+            mappable = ax5.imshow(robustness_map, aspect = 'auto',extent=extents(theta_axis) + extents(dot_theta_axis), cmap=mpl.cm.jet, norm=mpl.colors.PowerNorm(.8,1,200))
         plt.colorbar(mappable=mappable, ax = ax5)
-        plt.xlabel('theta')
-        plt.ylabel('dot theta')
+        fontsize = 15
+        plt.xlabel(r'$\theta$', fontsize=fontsize)
+        plt.ylabel(r'$\dot\theta$', fontsize=fontsize, rotation=0)
         
-        ax5.scatter(self.solution[:,2],self.solution[:,3],s=5,color='g')
+        ax5.scatter(self.solution[:,2],self.solution[:,3],s=7,color='g')
         idx_SMC_active = np.where(np.abs(self.ctrl_inputs[:,2])>10)
-        ax5.scatter(self.solution[idx_SMC_active,2][0,:],self.solution[idx_SMC_active,3][0,:],s=2,color='r')
+        ax5.scatter(self.solution[idx_SMC_active,2][0,:],self.solution[idx_SMC_active,3][0,:],s=4,color='r')
         
-        idx_plot = np.where(np.abs(self.alpha_sliding*theta_axis)<self.dot_theta_max)
+        idx_plot = np.where(np.abs(self.alpha_sliding*theta_axis)<dot_theta_axis[-1])
         ax5.plot(theta_axis[idx_plot],-self.alpha_sliding*theta_axis[idx_plot],'k')
         
         plt.show()
+        
+        if save:
+            fig1.savefig('states.eps')
+            fig2.savefig('ctrl_signals.eps')
+            fig3.savefig('phase_plan.eps')
         ##
 
 
@@ -445,17 +464,19 @@ def target_generator(t):
 # initialize system
     
 # Eigen Values set by LQR
-Q = np.diag( [100,1,1,1] )
+Q = np.diag( [100,.01,1,1] )
 R = np.diag( [1] )
-sys = InvertedPendulum_LQR() # Q,R not used, default values instead
+sys = InvertedPendulum_LQR(Q,R) # Q,R not used, default values instead
 sys.change_friction = False
-sys.correct_x = True
-sys.SMC_control = True
-sys.alpha_sliding = 4
+#sys.correct_x = False
+#sys.Kp_multiplier = 1.5 # to be used for LQR+Kp without SMC and change of friction
+#sys.SMC_control = False
+sys.alpha_sliding = 5
+sys.K_smc = 75
 
 # initial conditions
 # state = [x, dot_x, theta, dot_theta]
-state = np.array([ 0, 0, np.pi/8, -0.1], dtype = np.float32)
+state = np.array([ 0, 0, np.pi/6, 0.5], dtype = np.float32)
 
 # simulation time
 dt = 0.05
@@ -469,13 +490,17 @@ ax = fig.add_subplot(111)
 theta_axis,dot_theta_axis,robustness_map, f_x_map, g_x_map = sys.robustness_map()
 mappable = ax.imshow(robustness_map, aspect = 'auto',extent=extents(theta_axis) + extents(dot_theta_axis), cmap=mpl.cm.jet, norm=mpl.colors.PowerNorm(.8,1,200))
 plt.colorbar(mappable=mappable, ax = ax)
-plt.xlabel('theta')
-plt.ylabel('dot theta')
+fontsize = 15
+idx_plot = np.where(np.abs(sys.alpha_sliding*theta_axis)<dot_theta_axis[-1])
+ax.plot(theta_axis[idx_plot],-sys.alpha_sliding*theta_axis[idx_plot],'r', linewidth=3)
+plt.title('Minimum required SMC gain')
+plt.xlabel(r'$\theta$', fontsize=fontsize)
+plt.ylabel(r'$\dot\theta$', fontsize=fontsize, rotation=0)
 """
 #%%
 
 sys.run_simulation(state, time_line)
-sys.plot_graphs()
+sys.plot_graphs(save = True, no_norm = False)
 
 # generate animation
 if False:
