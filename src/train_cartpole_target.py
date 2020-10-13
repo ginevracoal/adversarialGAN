@@ -11,14 +11,13 @@ from argparse import ArgumentParser
 
 # Specifies the initial conditions of the setup
 parser = ArgumentParser()
-parser.add_argument("--dir", default="../experiments/cartpole", help="model's directory")
+parser.add_argument("--dir", default="../experiments/cartpole_target", help="model's directory")
 parser.add_argument("--training_steps", type=int, default=100)
-parser.add_argument("--ode_idx", type=int, default=2)
 parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
 safe_theta = 0.392
-delta = 0.05
+safe_dist = 0.05
 cart_position = np.linspace(-.1, .1, 10)
 cart_velocity = np.linspace(-.5, .5, 20)
 pole_angle = np.linspace(-0.1, 0.1, 20)
@@ -40,7 +39,7 @@ pg = misc.ParametersHyperparallelepiped(cart_position, cart_velocity, pole_angle
 physical_model = model_cartpole_target.Model(pg.sample(sigma=0.05), device=args.device, ode_idx=args.ode_idx)
 
 # Specifies the STL formula to compute the robustness
-robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta} & dist <= {delta})'
+robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta} & dist <= {safe_dist})'
 robustness_computer = model_cartpole_target.RobustnessComputer(robustness_formula)
 
 # Instantiates the NN architectures

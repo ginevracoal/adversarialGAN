@@ -9,9 +9,7 @@ from torchdiffeq import odeint
 
 class CartPole():
 
-    def __init__(self, device, ode_idx):
-
-        self.ode_idx=ode_idx
+    def __init__(self, device):
 
         if device == "cuda":
             torch.set_default_tensor_type('torch.cuda.FloatTensor')
@@ -240,9 +238,9 @@ class Agent:
 
 class Model:
     
-    def __init__(self, param_generator, ode_idx, device="cuda"):
+    def __init__(self, param_generator, device="cuda"):
         # setting of the initial conditions
-        cartpole = CartPole(device=device, ode_idx=ode_idx)
+        cartpole = CartPole(device=device)
 
         self.agent = Agent(cartpole)
         self.environment = Environment(cartpole)
