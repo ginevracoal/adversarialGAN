@@ -31,7 +31,6 @@ class Car:
         self.velocity = torch.clamp(self.velocity + self.acceleration * dt, self._min_velocity, self._max_velocity)
         self.position += self.velocity * dt
 
-
 class Environment:
     def __init__(self, device):
         self._leader_car = Car(device)

@@ -50,7 +50,7 @@ training_steps = 300000 # number of episodes for training
 simulation_horizon = int(0.5 / dt) # 0.5 second
 
 # Starts the training
-trainer.run(training_steps, simulation_horizon, dt, atk_steps=1, def_steps=10, atk_static=True)
+trainer.run(training_steps, tester, simulation_horizon, dt, atk_steps=1, def_steps=10, atk_static=True)
 
 # Saves the trained models
 misc.save_models(attacker, defender, args.dir)
