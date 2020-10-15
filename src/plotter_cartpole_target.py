@@ -21,7 +21,9 @@ parser.add_argument("--dark", default=False, type=eval, help="Use dark theme")
 args = parser.parse_args()
 
 safe_theta = 0.392
-safe_dist = 0.02
+safe_dist = 0.1
+mc = 1.
+mp = .1
 
 if args.dark:
     plt.style.use('./qb-common_dark.mplstyle')
@@ -64,33 +66,44 @@ def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, po
     fig.suptitle('Initial conditions vs robustness $\\rho$')
     fig.savefig(os.path.join(args.dirname, filename), dpi=150)
 
-def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_dot_theta, 
-         sim_x_target, sim_def_acc, sim_dist, sim_attack_mu, filename):
+def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_theta, 
+         sim_x_target, sim_def_acc, sim_dist, sim_attack_mu, sim_attack_nu, filename):
     fig, ax = plt.subplots(3, 2, figsize=(10, 6))
 
-    ax[0,0].axhline(-safe_dist, ls='--', color='r')
-    ax[0,0].axhline(safe_dist, ls='--', color='r')
-    ax[0,0].plot(sim_time, sim_x-sim_x_target, label='')
-    # ax[0,0].plot(sim_time, sim_x, label='x', color='b')
-    # ax[0,0].plot(sim_time, sim_x_target, label='x_target', color='r')
-    ax[0,0].set(xlabel='time (s)', ylabel='distance from target (m)')
+    ax[0,0].axhline(-safe_dist, ls='--', color='tab:orange', label="safe distance")
+    ax[0,0].axhline(safe_dist, ls='--', color='tab:orange')
+    ax[0,0].plot(sim_time, sim_x-sim_x_target, label='')    
+    ax[0,0].set(xlabel='time (s)', ylabel='distance from target')# (m)')
+    ax[0,0].legend()
 
-    ax[1,0].plot(sim_time, sim_dot_x, label='')
-    ax[1,0].set(xlabel='time (s)', ylabel='cart velocity (m/s)')
+    ax[1,0].plot(sim_time, sim_x, label='true x')
+    ax[1,0].plot(sim_time, sim_x_target, label='target x', color='tab:red')
+    ax[1,0].set(xlabel='time (s)', ylabel='cart position')# (m)')
+    ax[1,0].legend()
 
-    ax[2,0].plot(sim_time, sim_def_acc, label='defender acceleration')
-    ax[2,0].set(xlabel='time (s)', ylabel= f'defender acceleration (m/s^2)')
+    # ax[1,0].plot(sim_time, sim_dot_x, label='')
+    # ax[1,0].set(xlabel='time (s)', ylabel='cart velocity (m/s)')
 
-    ax[0,1].axhline(-safe_theta, ls='--', color='r')
-    ax[0,1].axhline(safe_theta, ls='--', color='r')
+    ax[2,1].plot(sim_time, (mp + mc) * sim_def_acc, label='', color='tab:green')
+    ax[2,1].set(xlabel='time (s)', ylabel= f'cart control')# (N)')
+
+    ax[0,1].axhline(-safe_theta, ls='--', color='tab:orange', label="safe theta")
+    ax[0,1].axhline(safe_theta, ls='--', color='tab:orange')
     ax[0,1].plot(sim_time, sim_theta, label='')
-    ax[0,1].set(xlabel='time (s)', ylabel='pole angle (rad)')
+    ax[0,1].set(xlabel='time (s)', ylabel='pole angle')# (rad)')
+    ax[0,1].legend()
 
-    ax[1,1].plot(sim_time, sim_dot_theta)
-    ax[1,1].set(xlabel='time (s)', ylabel='pole angular frequency (rad/s)')
+    # ax[1,1].plot(sim_time, sim_dot_theta)
+    # ax[1,1].set(xlabel='time (s)', ylabel='pole angular frequency (rad/s)')
+    
+    # ax[1,1].plot(sim_time, sim_def_acc, label='defender acceleration', color='g')
+    ax[2,0].plot(sim_time, sim_ddot_x, label='true acceleration')
+    ax[2,0].set(xlabel='time (s)', ylabel= f'cart acceleration')# (m/s^2)')
 
-    ax[2,1].plot(sim_time, sim_attack_mu, label='')
-    ax[2,1].set(xlabel='time (s)', ylabel='cart friction coef.')
+    ax[1,1].plot(sim_time, sim_attack_mu, label='cart friction', color='tab:red')
+    ax[1,1].plot(sim_time, sim_attack_nu, label='air friction', color='tab:red', linestyle='--')
+    ax[1,1].set(xlabel='time (s)', ylabel='friction coefficients')
+    ax[1,1].legend()
 
     fig.tight_layout()
     fig.savefig(os.path.join(args.dirname, filename), dpi=150)
@@ -135,9 +148,9 @@ if args.plot_evolution is True:
         print(mode+":", records[n][mode]['init'])
         plot(records[n][mode]['sim_t'], 
              records[n][mode]['sim_x'], records[n][mode]['sim_theta'], 
-             records[n][mode]['sim_dot_x'], records[n][mode]['sim_dot_theta'],
+             records[n][mode]['sim_dot_x'], records[n][mode]['sim_ddot_x'], records[n][mode]['sim_dot_theta'],
              records[n][mode]['sim_x_target'], records[n][mode]['sim_def_acc'], 
-             records[n][mode]['sim_dist'], records[n][mode]['sim_attack_mu'], 
+             records[n][mode]['sim_dist'], records[n][mode]['sim_attack_mu'], records[n][mode]['sim_attack_nu'], 
              'evolution_'+mode+'.png')
 
 if args.hist is True:
