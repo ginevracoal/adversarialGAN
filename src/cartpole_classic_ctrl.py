@@ -35,20 +35,31 @@ class InvertedPendulum_LQR():
         self.d1 = 1.0
         self.d2 = 0.5
         
+        #Ginevra's cartpole params
+        self.L = 1.0
+        self.m = .1
+        self.M = 1.0
+        
+        # force max
+        self.force_max = 3*(self.m + self.M)
+        self.input_dynamics = False
+        self.force_dynamics = DiscreteLowPassFilter()
+        
+        
         # friction options
         self.change_friction = True
-        self.friction_min = 1
-        self.friction_max = 40
+        self.friction_min = 0.1
+        self.friction_max = (self.m + self.M)*1
 
         # map generation
         self.theta_max = 0.9*(np.pi/2)
-        self.dot_theta_max = 1.8
+        self.dot_theta_max = 2
 
         # anim generation
         self.x_max = 5
 
         # LQR controller params
-        self.ctrl_LQR_max = 40
+        self.ctrl_LQR_max = self.force_max*0.55
         self.u_LQR_ctrl = 0
         self.K = None
         self.Q = Q
@@ -56,15 +67,15 @@ class InvertedPendulum_LQR():
 
         # proportional x controller parameters
         self.correct_x = True
-        self.ctrl_Kp_max = 40
+        self.ctrl_Kp_max = self.force_max*0.65
         self.u_Kp_correction = 0
-        self.Kp_multiplier = 10
+        self.Kp_multiplier =  self.force_max/10 #2
 
         # robust SMC parameters
         self.SMC_control = True
         self.u_SMC = 0
-        self.alpha_sliding = 3
-        self.K_smc = 75
+        self.alpha_sliding = 3.5
+        self.K_smc = self.force_max*2
 
         # instability flag (to stop simulation)
         self.unstable_system = False
@@ -72,6 +83,9 @@ class InvertedPendulum_LQR():
         # initialize linearized system A,B
         self.update_A_B()
         self.reset_store(np.array([0,0,0,0]))
+        
+        
+
         
     ############################################################
     def reset_store(self, state):
@@ -102,10 +116,15 @@ class InvertedPendulum_LQR():
         if self.correct_x:
             ctrl += self.u_Kp_correction
         
+        if self.input_dynamics:
+            ctrl_out = self.force_dynamics.applyFilter(ctrl)
+        else:
+            ctrl_out = ctrl
+        
         if split_components:
             return np.array([self.u_LQR_ctrl, self.u_Kp_correction, self.u_SMC])[np.newaxis,:]
         else:
-            return np.array([ctrl])
+            return np.array([np.clip(ctrl_out,-self.force_max ,self.force_max)])
 
     ############################################################
     def computeControlSignals(self, state, Q, R, x_target):
@@ -135,6 +154,23 @@ class InvertedPendulum_LQR():
                 return self.friction_min
             else:
                 return self.friction_min*np.ones(len(state))
+        
+    ############################################################
+    def derivativesGin(self, state,  ctrl = True):
+        
+        friction = self.get_friction(state)
+        ctrl_input = self.get_ctrl_signal()
+
+        num = (-ctrl_input-self.m*self.L*dot_theta**2*np.sin(theta)+self.mu*np.sign(dot_x))/(self.m+self.M)
+
+        den = 4/3-(self.m*np.cos(theta)**2)/(self.m+self.M)
+
+        ddot_theta = (self.g*np.sin(theta)+np.cos(theta)*num)/(self.L*den)
+
+        ddot_x = (ctrl_input+self.m*self.l*(dot_theta**2*np.sin(theta)-ddot_theta*np.cos(theta))\
+                 -self.mu*np.sign(dot_x))/(self.m+self.M)
+            
+        return [ state[1], ddot_x , state[3], ddot_theta ]
         
     ############################################################
     def derivatives(self, state,  ctrl = True):
@@ -209,7 +245,7 @@ class InvertedPendulum_LQR():
         
         if self.SMC_control:
            #z = odeint(ode_fun, self.state_z, delta_t)
-            zero_action_bound = 0.05
+            zero_action_bound = 0.1
             saturation_init = 1.5
             
             sigma = state[2]*self.alpha_sliding + state[3]
@@ -220,6 +256,7 @@ class InvertedPendulum_LQR():
                     control_action = np.sign(sigma);
                 else:
                     control_action = np.sign(sigma)*(abs(sigma)-zero_action_bound)/(saturation_init-zero_action_bound);
+
             
             self.u_SMC  = control_action *self.K_smc
         
@@ -234,7 +271,7 @@ class InvertedPendulum_LQR():
                     #self.max_err = 2.5
             Kp = 10
             #err_x = np.clip(x0 - state[0], -self.max_err, self.max_err)  
-            x_thd = .5
+            x_thd = .2
             Kp_min = 5
             
             if abs(err_x) <x_thd:
@@ -256,6 +293,9 @@ class InvertedPendulum_LQR():
             K, S, E = control.lqr( self.A, self.B, Q, R )
             self.compute_K(desired_eigs = E ) # Arbitarily set desired eigen values
         
+        theta_max = 0.1
+        state[2] = np.clip(state[2],-theta_max, theta_max)
+        
         LQR_ctrl = -np.matmul( self.K , state - np.array([x0,0,0,0]) )[0,0]   
         self.u_LQR_ctrl =  self.saturate(LQR_ctrl, self.ctrl_LQR_max)
         
@@ -266,7 +306,7 @@ class InvertedPendulum_LQR():
 
     ############################################################ 
     # run simulation
-    def run_simulation(self,state, timeline):
+    def run_simulation(self,state, timeline, model_Gin = False):
     
         self.reset_store(state)
         
@@ -274,10 +314,16 @@ class InvertedPendulum_LQR():
             
             x_target = target_generator(t)
             
-            def ode_fun( state, dt, x_target):
-                self.computeControlSignals(state, self.Q, self.R, x_target = x_target)
-                f_state = np.array(self.derivatives(state), dtype = np.float32)
-                return f_state
+            if model_Gin:
+                def ode_fun( state, dt, x_target):
+                    self.computeControlSignals(state, self.Q, self.R, x_target = x_target)
+                    f_state = np.array(self.derivatives(state), dtype = np.float32)
+                    return f_state
+            else:
+                def ode_fun( state, dt, x_target):
+                    self.computeControlSignals(state, self.Q, self.R, x_target = x_target)
+                    f_state = np.array(self.derivatives(state), dtype = np.float32)
+                    return f_state
            
             delta_t = [t, time_line[i+1]]
             
@@ -303,14 +349,20 @@ class InvertedPendulum_LQR():
         fig1 = plt.figure()
         fig2 = plt.figure()
         fig3 = plt.figure()
+        fig4 = plt.figure()
         
-        ax1 = fig1.add_subplot(211)
-        ax2 = fig1.add_subplot(212)
+        ax1 = fig1.add_subplot(311)
+        ax1_a = fig1.add_subplot(312)
+        ax2 = fig1.add_subplot(313)
+
         
         ax3 = fig2.add_subplot(211)
         ax4 = fig2.add_subplot(212)
         
         ax5 = fig3.add_subplot(111)
+        
+        ax6 = fig4.add_subplot(211)
+        ax7 = fig4.add_subplot(212)
         
         sim_end = len(self.target_pos)
         
@@ -318,6 +370,15 @@ class InvertedPendulum_LQR():
         ax1.plot(time_line[:sim_end], self.target_pos)
         ax1.plot(time_line[:sim_end], self.solution[:,0])
         ax1.legend(('target','actual'))
+        
+        thd_err_1 = .9
+        thd_err_2 = 1.4
+        ax1_a.plot(time_line[:sim_end], thd_err_1*np.ones(time_line[:sim_end].shape) ,'r--')
+        ax1_a.plot(time_line[:sim_end], -thd_err_1*np.ones(time_line[:sim_end].shape),'r--' )
+        ax1_a.plot(time_line[:sim_end], thd_err_2*np.ones(time_line[:sim_end].shape) ,'r')
+        ax1_a.plot(time_line[:sim_end], -thd_err_2*np.ones(time_line[:sim_end].shape),'r' )
+        ax1_a.plot(time_line[:sim_end], (self.solution[:,0]- self.target_pos) )
+        ax1_a.legend(['tracking error'])
         
         ax2.plot(time_line[:sim_end], self.solution[:,2])
         ax2.legend(['angle'])
@@ -336,7 +397,7 @@ class InvertedPendulum_LQR():
         if no_norm:
             mappable = ax5.imshow(robustness_map, aspect = 'auto',extent=extents(theta_axis) + extents(dot_theta_axis), cmap=mpl.cm.jet)
         else:
-            mappable = ax5.imshow(robustness_map, aspect = 'auto',extent=extents(theta_axis) + extents(dot_theta_axis), cmap=mpl.cm.jet, norm=mpl.colors.PowerNorm(.8,1,200))
+            mappable = ax5.imshow(robustness_map, aspect = 'auto',extent=extents(theta_axis) + extents(dot_theta_axis), cmap=mpl.cm.jet, norm=mpl.colors.PowerNorm(.8,1,2*self.force_max))
         plt.colorbar(mappable=mappable, ax = ax5)
         fontsize = 15
         plt.xlabel(r'$\theta$', fontsize=fontsize)
@@ -349,12 +410,21 @@ class InvertedPendulum_LQR():
         idx_plot = np.where(np.abs(self.alpha_sliding*theta_axis)<dot_theta_axis[-1])
         ax5.plot(theta_axis[idx_plot],-self.alpha_sliding*theta_axis[idx_plot],'k')
         
+        #fig 4
+        ax6.plot(time_line[:sim_end], self.solution[:,1])
+        ax6.legend(['x dot'])
+        
+        ax7.plot(time_line[:sim_end], self.solution[:,3])
+        ax7.legend(['theta dot'])
+        
+        
         plt.show()
         
         if save:
             fig1.savefig('states.eps')
             fig2.savefig('ctrl_signals.eps')
             fig3.savefig('phase_plan.eps')
+            fig4.savefig('state_derivatives.eps')
         ##
 
 
@@ -449,14 +519,21 @@ def extents(f):
   delta = f[1] - f[0]
   return [f[0] - delta/2, f[-1] + delta/2]
 
-def target_generator(t):
-    omega_1 = .2
-    omega_2 = .1
-    omega_3 = .3
-    omega_4 = .4
-
-    x_target = 2*np.sin(omega_1*t) + 0.5*np.sin(omega_2*t + np.pi/7) + 0.8*np.sin(omega_3*t - np.pi/12)+ 1*np.cos(omega_4*t+np.pi/5)
+def target_generator(time):
     
+    speed_factor = 1
+    
+    omega_1 = .3*speed_factor
+    omega_2 = .1*speed_factor
+    omega_3 = .2*speed_factor
+    omega_4 = .4*speed_factor
+
+    def fun_val(t):
+        return 2*np.sin(omega_1*t) + 0.5*np.sin(omega_2*t + np.pi/7) + 0.8*np.sin(omega_3*t - np.pi/12)+ 1*np.cos(omega_4*t+np.pi/5)
+    
+    alpha = 0.02
+    x_target = fun_val(time) - fun_val(0)*np.exp(-alpha*time)
+
     return x_target
 
 
@@ -464,19 +541,19 @@ def target_generator(t):
 # initialize system
     
 # Eigen Values set by LQR
-Q = np.diag( [100,.01,1,1] )
+Q = np.diag( [1,.01,1,1] )
 R = np.diag( [1] )
 sys = InvertedPendulum_LQR(Q,R) # Q,R not used, default values instead
 sys.change_friction = False
 #sys.correct_x = False
 #sys.Kp_multiplier = 1.5 # to be used for LQR+Kp without SMC and change of friction
-#sys.SMC_control = False
-sys.alpha_sliding = 5
-sys.K_smc = 75
+sys.SMC_control = True
+sys.alpha_sliding = 3.5
+#sys.K_smc = 75
 
 # initial conditions
 # state = [x, dot_x, theta, dot_theta]
-state = np.array([ 0, 0, np.pi/6, 0.5], dtype = np.float32)
+state = np.array([ 0, 0, np.pi/10, 0], dtype = np.float32)
 
 # simulation time
 dt = 0.05
@@ -499,7 +576,7 @@ plt.ylabel(r'$\dot\theta$', fontsize=fontsize, rotation=0)
 """
 #%%
 
-sys.run_simulation(state, time_line)
+sys.run_simulation(state, time_line, model_Gin = True)
 sys.plot_graphs(save = True, no_norm = False)
 
 # generate animation
