@@ -12,17 +12,17 @@ from argparse import ArgumentParser
 # Specifies the initial conditions of the setup
 parser = ArgumentParser()
 parser.add_argument("--dir", default="../experiments/cartpole", help="model's directory")
-parser.add_argument("--training_steps", type=int, default=100)
-parser.add_argument("--ode_idx", type=int, default=1)
+parser.add_argument("--training_steps", type=int, default=30)
+parser.add_argument("--ode_idx", type=int, default=2)
 parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
 safe_theta = 0.392
-safe_x = 3.
-cart_position = np.linspace(-0.5, 0.5, 10)
-cart_velocity = np.linspace(-.1, .1, 20)
-pole_angle = np.linspace(-0.314, 0.314, 20)
-pole_ang_velocity = np.linspace(-.1, .1, 20)
+safe_x = 2.
+cart_position = np.linspace(-1., 1., 10)
+cart_velocity = np.linspace(-.5, .5, 20)
+pole_angle = np.linspace(-0.1, 0.1, 20)
+pole_ang_velocity = np.linspace(-1., 1., 30)
 dt = 0.05
 simulation_horizon = int(2./dt)
 
@@ -44,8 +44,8 @@ robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta} & x >= -
 robustness_computer = model_cartpole.RobustnessComputer(robustness_formula)
 
 # Instantiates the NN architectures
-attacker = architecture.Attacker(physical_model, 2, 10, 3)
-defender = architecture.Defender(physical_model, 3, 10)
+attacker = architecture.Attacker(physical_model, 2, 10, 5)
+defender = architecture.Defender(physical_model, 3, 10, 5)
 
 working_dir = args.dir+str(args.ode_idx)
 
@@ -57,7 +57,7 @@ tester = architecture.Tester(physical_model, robustness_computer, \
 
 # Starts the training
 training_steps = args.training_steps # number of episodes for training
-trainer.run(training_steps, simulation_horizon, dt, atk_steps=1, def_steps=10)
+trainer.run(training_steps, tester, simulation_horizon, dt=dt, atk_steps=1, def_steps=5)
 
 # Saves the trained models
 misc.save_models(attacker, defender, working_dir)

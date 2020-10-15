@@ -78,7 +78,6 @@ class Defender(nn.Module):
 
     def forward(self, x):
         """ Uses the NN's output to compute the coefficients of the policy function """
-        # self.to("cuda")
         x = x.clone().detach().float()
         coefficients = self.nn(x)
         coefficients = torch.reshape(coefficients, (-1, self.n_coeff))
@@ -86,12 +85,11 @@ class Defender(nn.Module):
         def policy_generator(t):
             """ The policy function is defined as polynomial """
             basis = [t**i for i in range(self.n_coeff)]
-            basis = torch.tensor(basis, dtype=torch.get_default_dtype()).float()
+            basis = torch.tensor(basis).float()
             basis = torch.reshape(basis, (self.n_coeff, -1))
             return coefficients.mm(basis).squeeze()
 
         return policy_generator
-
 
 
 class Trainer:
@@ -106,8 +104,6 @@ class Trainer:
         self.attacker = attacker_nn
         self.defender = defender_nn
 
-        # self.attacker_loss_fn = lambda x: x
-        # self.defender_loss_fn = lambda x: -x
         self.attacker_loss_fn = lambda x: x.clone().detach().requires_grad_(True)
         self.defender_loss_fn = lambda x: -x.clone().detach().requires_grad_(True)
 
@@ -208,7 +204,7 @@ class Trainer:
         return (atk_loss, def_loss)
 
 
-    def run(self, n_steps, time_horizon=100, dt=0.05, *, atk_steps=1, def_steps=1, atk_static=False):
+    def run(self, n_steps, tester, time_horizon=100, dt=0.05, *, atk_steps=1, def_steps=1, atk_static=False):
         """ Trains the architecture and provides logging and visual feedback """
 
         if self.logging:
@@ -219,6 +215,7 @@ class Trainer:
             def_loss_vals = torch.zeros(n_steps).float()
 
         for i in tqdm(range(n_steps)):
+
             atk_loss, def_loss = self.train(atk_steps, def_steps, time_horizon, dt, atk_static)
 
             if self.logging:
@@ -235,6 +232,10 @@ class Trainer:
 
                     self.log.add_histogram('attacker loss hist', atk_loss_vals[a:b], i)
                     self.log.add_histogram('defender loss hist', def_loss_vals[a:b], i)
+
+            test_steps = 10 # number of episodes for testing
+            simulation_horizon = int(1 / dt) 
+            tester.run(test_steps, simulation_horizon, dt)
 
         if self.logging:
             self.log.close()
@@ -277,7 +278,7 @@ class Tester:
             self.model.step(atk_input, def_input, dt)
 
         rho = self.robustness_computer.compute(self.model)
-        print("\nRobustness = ", rho.item())
+        # print("\nRobustness = ", rho.item())
         
         return rho
 
@@ -287,11 +288,14 @@ class Tester:
         if self.logging:
             def_rho_vals = torch.zeros(times)
 
-        for i in tqdm(range(times)):
+        # for i in tqdm(range(times)):
+        for i in range(times):
             def_rho = self.test(time_horizon, dt)
 
             if self.logging:
                 def_rho_vals[i] = def_rho
+
+        print(f"avg robustness = {def_rho_vals.mean().item():.2f}")
 
         if self.logging:
             self.log.add_histogram('defender robustness', def_rho_vals, i)
