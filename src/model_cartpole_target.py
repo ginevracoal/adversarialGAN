@@ -14,6 +14,9 @@ class CartPole():
             torch.set_default_tensor_type('torch.cuda.FloatTensor')
         self.device = device
 
+        self.air_drag = False
+        self.cart_friction = True
+
         self.gravity = 9.81 # acceleration due to gravity, positive is downward, m/sec^2
         self.mcart = 1. # cart mass in kg
         self.mpole = .1 # pole mass in kg
@@ -35,7 +38,7 @@ class CartPole():
         self._max_theta = 1.5
         self._max_dot_x = 1000.
         self._max_dot_theta =  1000.
-        self._max_ddot_x =  100.
+        self._max_ddot_x = 100.
         self._max_ddot_theta = 100.
 
     def update(self, dt, inp_acc=None, dot_eps=None, mu=None, nu=None):
@@ -45,11 +48,14 @@ class CartPole():
         if inp_acc is not None:
             self.inp_acc = inp_acc
 
-        if mu is not None:
-            self.mu = mu
+        if self.cart_friction is True:
 
-        if nu is not None:
-            self.nu = nu
+            if mu is not None:
+                self.mu = mu
+
+        if self.air_drag is True:
+            if nu is not None:
+                self.nu = nu
 
         if dot_eps is not None:
             eps = dot_eps * dt
@@ -70,11 +76,21 @@ class CartPole():
             dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
             dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
             
-            if torch.abs(theta) >= .8:
-                self.f = torch.sign(theta) * 100
+            # theta_0_ths = .8
+            # theta_1_ths = .8
+            # ctrl_magnitude = 100
 
-            else:
-                self.f = ((mp + mc) * self.inp_acc).reshape(1) 
+            # if torch.abs(theta) >= theta_1_ths:
+            #     self.f = torch.sign(theta) * ctrl_magnitude
+
+            # elif torch.abs(theta) < theta_0_ths:
+            #     self.f = (mp + mc) * self.inp_acc
+
+            # else:
+            #     self.f = (mp + mc) * self.inp_acc if theta*dot_theta>0 else torch.sign(theta) * ctrl_magnitude
+
+                
+            self.f = (mp + mc) * self.inp_acc
 
             ########## Barto + air drag
             # rho=1.2
@@ -102,7 +118,7 @@ class CartPole():
 
             ddot_x = self.f - self.mu*dot_x  \
                        + mp*l*dot_theta**2* torch.sin(theta) \
-                       - mp*g*torch.cos(theta) *  torch.sin(theta)
+                       - mp*g*torch.cos(theta) * torch.sin(theta)
             ddot_x = ddot_x / ( mc+mp-mp* torch.cos(theta)**2 )
         
             ddot_theta = (g*torch.sin(theta) - torch.cos(theta)*ddot_x ) / l
@@ -142,9 +158,9 @@ class CartPole():
 class Environment:
     def __init__(self, cartpole):
         self._cartpole = cartpole
-        self._max_mu = .5 #0.05
-        self._max_nu = .5 #0.05
-        self._max_dot_eps = 5. #100.
+        self._max_mu = .5
+        self._max_nu = .5 
+        self._max_dot_eps = 1.
 
     def set_agent(self, agent):
         self._agent = agent
@@ -157,18 +173,24 @@ class Environment:
     @property
     def status(self):
         return (self._agent.x,
-                self._agent.theta,
+                self._agent.theta,  
                 self._agent.dot_x,
                 self._agent.dot_theta,
                 self._agent.x_target)
 
     def update(self, parameters, dt):
         # the environment updates according to the parameters
-        dot_eps, mu, nu = parameters
-        # dot_eps, mu = parameters
-        dot_eps = torch.tanh(dot_eps)*self._max_dot_eps
-        mu = torch.tanh(mu)*self._max_mu
-        nu = torch.tanh(nu)*self._max_nu
+        update_mu = np.random.binomial(n=1, p=0.1)
+
+        if update_mu==1:
+            dot_eps, mu, nu = parameters
+            mu = mu*self._max_mu
+        else:
+            dot_eps, _, nu = parameters
+            mu = None
+
+        dot_eps = dot_eps*self._max_dot_eps
+        nu = nu*self._max_nu
         self._cartpole.update(dot_eps=dot_eps, mu=mu, nu=nu, dt=dt)
 
 
@@ -252,8 +274,7 @@ class Agent:
     def update(self, parameters, dt):
         # the action take place and updates the variables
         cart_acceleration = parameters
-        cart_acceleration = torch.tanh(cart_acceleration)*self._max_inp_acc
-        # cart_acceleration = -torch.abs(cart_acceleration)*torch.sign(self.theta)
+        cart_acceleration = cart_acceleration*self._max_inp_acc
         self._cartpole.update(inp_acc=cart_acceleration, dt=dt)
 
 
@@ -297,11 +318,6 @@ class Model:
         self.agent.theta = torch.tensor(pole_angle).reshape(1).float()
         self.agent.dot_theta = torch.tensor(pole_ang_velocity).reshape(1).float()
         self.agent.x_target = torch.tensor(x_target).reshape(1).float()
-
-        # self.inp_acc = torch.tensor(0.0).to(dtype=torch.float32)
-        # self.eps = torch.tensor(0.0).to(dtype=torch.float32)
-        # self.dist = torch.tensor(0.0).to(dtype=torch.float32)
-        # self.mu = torch.tensor(0.0).to(dtype=torch.float32)
 
         self.traces = {'dist':[], 'theta': []}
 

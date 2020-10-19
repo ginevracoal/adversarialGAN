@@ -25,6 +25,7 @@ cart_velocity = np.linspace(-.3, .3, 20)
 pole_angle = np.linspace(-0.05, 0.05, 20)
 pole_ang_velocity = np.linspace(-.3, .3, 20)
 x_target = np.linspace(-.2, .2, 20)
+
 dt = 0.05
 steps = 40
 
@@ -33,8 +34,8 @@ pg = misc.ParametersHyperparallelepiped(cart_position, cart_velocity,
 
 physical_model = model_cartpole_target.Model(pg.sample(sigma=0.05), device=args.device)
 
-attacker = architecture.Attacker(physical_model, 3, 10, 5)
-defender = architecture.Defender(physical_model, 3, 10, 5)
+attacker = architecture.Attacker(physical_model, n_hidden_layers=2, layer_size=10, noise_size=3)
+defender = architecture.Defender(physical_model, n_hidden_layers=2, layer_size=10)
 
 misc.load_models(attacker, defender, args.dirname)
 
@@ -72,7 +73,18 @@ def run(mode=None):
                 atk_policy = lambda x: (torch.tensor(0.0), torch.tensor(0.0), torch.tensor(0.0))
 
             else:
-                atk_policy = attacker(torch.cat((z, oe)))
+
+                # atk_policy = attacker(torch.cat((z, oe)))
+
+                def atk_policy(x):
+                    dot_eps, mu, nu = attacker(torch.cat((z, oe)))(x)
+                    
+                    update_mu = 1 if i==0 else np.random.binomial(n=1, p=0.2)
+
+                    if update_mu==1:
+                        return dot_eps, mu, nu
+                    else:
+                        return dot_eps, torch.tensor(sim_attack_mu[i-1]), nu
 
             def_policy = defender(oa)
 

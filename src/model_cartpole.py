@@ -265,10 +265,6 @@ class Model:
         self.agent.theta = torch.tensor(pole_angle).reshape(1).float()
         self.agent.dot_theta = torch.tensor(pole_ang_velocity).reshape(1).float()
 
-        self.nu = torch.tensor(0.0).to(dtype=torch.float32)
-        self.mu = torch.tensor(0.0).to(dtype=torch.float32)
-        self.inp_acc = torch.tensor(0.0).to(dtype=torch.float32)
-
         self.traces = {'x': [], 'theta': []}
 
 class RobustnessComputer:

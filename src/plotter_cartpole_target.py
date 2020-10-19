@@ -21,7 +21,7 @@ parser.add_argument("--dark", default=False, type=eval, help="Use dark theme")
 args = parser.parse_args()
 
 safe_theta = 0.392
-safe_dist = 0.1
+safe_dist = 0.5
 mc = 1.
 mp = .1
 
@@ -100,8 +100,10 @@ def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_theta,
     ax[2,0].plot(sim_time, sim_ddot_x, label='true acceleration')
     ax[2,0].set(xlabel='time (s)', ylabel= f'cart acceleration')# (m/s^2)')
 
+    print(sim_attack_mu)
+
     ax[1,1].plot(sim_time, sim_attack_mu, label='cart friction', color='tab:red')
-    ax[1,1].plot(sim_time, sim_attack_nu, label='air friction', color='tab:red', linestyle='--')
+    # ax[1,1].plot(sim_time, sim_attack_nu, label='air friction', color='tab:red', linestyle='--')
     ax[1,1].set(xlabel='time (s)', ylabel='friction coefficients')
     ax[1,1].legend()
 

@@ -45,6 +45,7 @@ class Attacker(nn.Module):
             basis = [t**i for i in range(self.n_coeff)]
             basis = torch.tensor(basis, dtype=torch.get_default_dtype())
             basis = torch.reshape(basis, (self.n_coeff, -1))
+            # return torch.tanh(coefficients.mm(basis).squeeze())
             return coefficients.mm(basis).squeeze()
 
         return policy_generator
@@ -87,6 +88,7 @@ class Defender(nn.Module):
             basis = [t**i for i in range(self.n_coeff)]
             basis = torch.tensor(basis).float()
             basis = torch.reshape(basis, (self.n_coeff, -1))
+            # return torch.tanh(coefficients.mm(basis).squeeze())
             return coefficients.mm(basis).squeeze()
 
         return policy_generator
@@ -131,6 +133,7 @@ class Trainer:
 
         t = 0
         for i in range(time_horizon):
+            
             # if the attacker is static (e.g. in the case it does not vary over time)
             # the policy function is always sampled in the same point since the
             # attacker do not vary policy over time
@@ -144,12 +147,10 @@ class Trainer:
         rho = self.robustness_computer.compute(self.model)
 
         self.attacker_optimizer.zero_grad()
-
         loss = self.attacker_loss_fn(rho) 
         loss.backward()
 
         self.attacker_optimizer.step()
-
         return loss.detach().float()
 
 
@@ -166,6 +167,7 @@ class Trainer:
 
         t = 0
         for i in range(time_horizon):
+
             # if the attacker is static, see the comments above
             atk_input = atk_policy(0 if atk_static else t)
             def_input = def_policy(t)
@@ -176,14 +178,11 @@ class Trainer:
         rho = self.robustness_computer.compute(self.model)
 
         self.defender_optimizer.zero_grad()
-
         loss = self.defender_loss_fn(rho)
         loss.backward()
 
         self.defender_optimizer.step()
-
         return loss.detach().float()
-
 
     def train(self, atk_steps, def_steps, time_horizon, dt, atk_static):
         """ Trains both the attacker and the defender on the same
@@ -233,9 +232,9 @@ class Trainer:
                     self.log.add_histogram('attacker loss hist', atk_loss_vals[a:b], i)
                     self.log.add_histogram('defender loss hist', def_loss_vals[a:b], i)
 
-            test_steps = 10 # number of episodes for testing
-            simulation_horizon = int(1 / dt) 
-            tester.run(test_steps, simulation_horizon, dt)
+        test_steps = 50 # number of episodes for testing
+        simulation_horizon = int(1. / dt) 
+        tester.run(test_steps, simulation_horizon, dt)
 
         if self.logging:
             self.log.close()
