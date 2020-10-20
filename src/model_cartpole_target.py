@@ -41,6 +41,10 @@ class CartPole():
         self._max_ddot_x = 100.
         self._max_ddot_theta = 100.
 
+        self.theta_0_ths = .8
+        self.theta_1_ths = .8
+        self.ctrl_magnitude = 100
+
     def update(self, dt, inp_acc=None, dot_eps=None, mu=None, nu=None):
         """
         Update the system state.
@@ -58,6 +62,10 @@ class CartPole():
                 self.nu = nu
 
         if dot_eps is not None:
+
+            # if torch.abs(self.theta) >= self.theta_0_ths:
+            #     dot_eps = - torch.abs(dot_eps) * torch.sign(self.theta)
+
             eps = dot_eps * dt
             self.x_target = (self.x+eps)
 
@@ -75,22 +83,18 @@ class CartPole():
             theta = torch.clamp(theta, -self._max_theta, self._max_theta).reshape(1)
             dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
             dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
-            
-            # theta_0_ths = .8
-            # theta_1_ths = .8
-            # ctrl_magnitude = 100
 
-            # if torch.abs(theta) >= theta_1_ths:
-            #     self.f = torch.sign(theta) * ctrl_magnitude
+            self.f = (mp + mc) * self.inp_acc
 
-            # elif torch.abs(theta) < theta_0_ths:
+            # if torch.abs(theta) >= self.theta_1_ths:
+            #     self.f = torch.sign(theta) * self.ctrl_magnitude
+
+            # elif torch.abs(theta) < self.theta_0_ths:
             #     self.f = (mp + mc) * self.inp_acc
 
             # else:
             #     self.f = (mp + mc) * self.inp_acc if theta*dot_theta>0 else torch.sign(theta) * ctrl_magnitude
-
                 
-            self.f = (mp + mc) * self.inp_acc
 
             ########## Barto + air drag
             # rho=1.2
@@ -184,20 +188,20 @@ class Environment:
 
         if update_mu==1:
             dot_eps, mu, nu = parameters
-            mu = mu*self._max_mu
+            mu = mu#*self._max_mu
         else:
             dot_eps, _, nu = parameters
             mu = None
 
-        dot_eps = dot_eps*self._max_dot_eps
-        nu = nu*self._max_nu
+        dot_eps = dot_eps#*self._max_dot_eps
+        nu = nu#*self._max_nu
         self._cartpole.update(dot_eps=dot_eps, mu=mu, nu=nu, dt=dt)
 
 
 class Agent:
     def __init__(self, cartpole):
         self._cartpole = cartpole
-        self._max_inp_acc = 30.
+        self._max_inp_acc = 50.
 
     def set_environment(self, environment):
         self._environment = environment
@@ -274,7 +278,7 @@ class Agent:
     def update(self, parameters, dt):
         # the action take place and updates the variables
         cart_acceleration = parameters
-        cart_acceleration = cart_acceleration*self._max_inp_acc
+        cart_acceleration = cart_acceleration#*self._max_inp_acc
         self._cartpole.update(inp_acc=cart_acceleration, dt=dt)
 
 

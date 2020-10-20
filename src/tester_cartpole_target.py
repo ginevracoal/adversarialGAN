@@ -13,7 +13,7 @@ from tqdm import tqdm
 torch.set_default_tensor_type('torch.FloatTensor')
 
 parser = ArgumentParser()
-parser.add_argument("-d", "--dir", default="../experiments/cartpole_target", dest="dirname",
+parser.add_argument("-d", "--dir", default="../experiments/cartpole_target_sameinit", dest="dirname",
                     help="model's directory")
 parser.add_argument("-r", "--repetitions", dest="repetitions", type=int, default=10,
                     help="simulation repetions")

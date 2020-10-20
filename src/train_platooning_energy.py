@@ -12,8 +12,7 @@ from argparse import ArgumentParser
 # Specifies the initial conditions of the setup
 parser = ArgumentParser()
 parser.add_argument("--dir", default="../experiments/platooning_energy", help="model's directory")
-parser.add_argument("--training_steps", type=int, default=10)
-parser.add_argument("--ode_idx", type=int, default=0)
+parser.add_argument("--training_steps", type=int, default=100)
 parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
@@ -28,6 +27,9 @@ agent_position = 0
 agent_velocity = np.linspace(0, 20, 40)
 leader_position = np.linspace(1, 12, 15)
 leader_velocity = np.linspace(0, 20, 40)
+dt = 0.05 # timestep
+simulation_horizon = int(5. / dt) # 5 seconds
+
 # Initializes the generator of initial states
 pg = misc.ParametersHyperparallelepiped(agent_position, agent_velocity, leader_position, leader_velocity)
 
@@ -48,18 +50,15 @@ trainer = architecture.Trainer(physical_model, robustness_computer, \
 tester = architecture.Tester(physical_model, robustness_computer, \
                             attacker, defender, args.dir)
 
-dt = 0.05 # timestep
-training_steps = 10#000 # number of episodes for training
-simulation_horizon = int(5 / dt) # 5 seconds
 
 # Starts the training
-trainer.run(training_steps, simulation_horizon, dt, atk_steps=3, def_steps=5)
-
-test_steps = 10 # number of episodes for testing
-simulation_horizon = int(60 / dt) # 60 seconds
+training_steps = args.training_steps # number of episodes for training
+trainer.run(training_steps, tester, simulation_horizon, dt, atk_steps=1, def_steps=5)
 
 # Saves the trained models
 misc.save_models(attacker, defender, args.dir)
 
 # Starts the testing
-tester.run(test_steps, simulation_horizon, dt)
+# test_steps = 10 # number of episodes for testing
+# simulation_horizon = int(60 / dt) # 60 seconds
+# tester.run(test_steps, simulation_horizon, dt)

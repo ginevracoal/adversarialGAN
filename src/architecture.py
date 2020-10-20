@@ -5,6 +5,7 @@ import torch.optim as optim
 
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
@@ -117,7 +118,8 @@ class Trainer:
         self.logging = True if logging_dir else False
 
         if self.logging:
-            self.log = SummaryWriter(logging_dir)
+            # self.log = SummaryWriter(logging_dir)
+            self.logging_dir = logging_dir
 
 
     def train_attacker_step(self, time_horizon, dt, atk_static):
@@ -185,11 +187,8 @@ class Trainer:
         return loss.detach().float()
 
     def train(self, atk_steps, def_steps, time_horizon, dt, atk_static):
-        """ Trains both the attacker and the defender on the same
-            initial senario (different for each)
+        """ Trains both the attacker and the defender
         """
-        atk_loss, def_loss = 0, 0
-
         self.model.initialize_random() # samples a random initial state
         for i in range(atk_steps):
             atk_loss = self.train_attacker_step(time_horizon, dt, atk_static)
@@ -203,11 +202,12 @@ class Trainer:
         return (atk_loss, def_loss)
 
 
-    def run(self, n_steps, tester, time_horizon=100, dt=0.05, *, atk_steps=1, def_steps=1, atk_static=False):
+    def run(self, n_steps, tester, time_horizon=100, dt=0.05, *, atk_steps=1, def_steps=1, 
+            atk_static=False):
         """ Trains the architecture and provides logging and visual feedback """
 
         if self.logging:
-            hist_every = int(n_steps / 10)
+            hist_every = int(n_steps / 1)
             hist_counter = 0
 
             atk_loss_vals = torch.zeros(n_steps).float()
@@ -221,24 +221,32 @@ class Trainer:
                 atk_loss_vals[i] = atk_loss
                 def_loss_vals[i] = def_loss
 
-                self.log.add_scalar('attacker loss', atk_loss, i)
-                self.log.add_scalar('defender loss', def_loss, i)
+                # self.log.add_scalar('attacker loss', atk_loss, i)
+                # self.log.add_scalar('defender loss', def_loss, i)
 
-                if (i + 1) % hist_every == 0:
-                    a = hist_counter * hist_every
-                    b = (hist_counter + 1) * hist_every
-                    hist_counter += 1
+                # if (i + 1) % hist_every == 0:
+                #     a = hist_counter * hist_every
+                #     b = (hist_counter + 1) * hist_every
+                #     hist_counter += 1
 
-                    self.log.add_histogram('attacker loss hist', atk_loss_vals[a:b], i)
-                    self.log.add_histogram('defender loss hist', def_loss_vals[a:b], i)
+                #     self.log.add_histogram('attacker loss hist', atk_loss_vals[a:b], i)
+                #     self.log.add_histogram('defender loss hist', def_loss_vals[a:b], i)
 
-        test_steps = 50 # number of episodes for testing
-        simulation_horizon = int(1. / dt) 
-        tester.run(test_steps, simulation_horizon, dt)
+        def plot_loss(atk_loss, def_loss, path):
+            fig, ax = plt.subplots(1)
+            ax.plot(atk_loss, label="attacker loss")
+            ax.plot(def_loss, label="defender loss")
+            ax.legend()
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            fig.savefig(path+"/loss.png")
 
         if self.logging:
-            self.log.close()
+            # self.log.close()
+            plot_loss(atk_loss_vals.detach().cpu(), def_loss_vals.detach().cpu(), self.logging_dir)
 
+        test_steps = 10 # number of episodes for testing
+        simulation_horizon = int(1. / dt) 
+        tester.run(test_steps, simulation_horizon, dt)
 
 
 class Tester:
@@ -255,8 +263,8 @@ class Tester:
 
         self.logging = True if logging_dir else False
 
-        if self.logging:
-            self.log = SummaryWriter(logging_dir)
+        # if self.logging:
+            # self.log = SummaryWriter(logging_dir)
 
     def test(self, time_horizon, dt):
         """ Tests a whole episode """
@@ -296,6 +304,6 @@ class Tester:
 
         print(f"avg robustness = {def_rho_vals.mean().item():.2f}")
 
-        if self.logging:
-            self.log.add_histogram('defender robustness', def_rho_vals, i)
-            self.log.close()
+        # if self.logging:
+            # self.log.add_histogram('defender robustness', def_rho_vals, i)
+            # self.log.close()

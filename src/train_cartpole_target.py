@@ -12,7 +12,7 @@ from argparse import ArgumentParser
 # Specifies the initial conditions of the setup
 parser = ArgumentParser()
 parser.add_argument("--dir", default="../experiments/cartpole_target", help="model's directory")
-parser.add_argument("--training_steps", type=int, default=30)
+parser.add_argument("--training_steps", type=int, default=100)
 parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
@@ -44,20 +44,21 @@ robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta} & dist <
 robustness_computer = model_cartpole_target.RobustnessComputer(robustness_formula)
 
 # Instantiates the NN architectures
-attacker = architecture.Attacker(physical_model, n_hidden_layers=2, layer_size=10, noise_size=3)
-defender = architecture.Defender(physical_model, n_hidden_layers=2, layer_size=10)
+attacker = architecture.Attacker(physical_model, n_hidden_layers=2, layer_size=10, 
+                                                                    noise_size=3, n_coeff=2)
+defender = architecture.Defender(physical_model, n_hidden_layers=2, layer_size=10, n_coeff=2)
 
 working_dir = args.dir
 
 # Instantiates the traning and test environments
 trainer = architecture.Trainer(physical_model, robustness_computer, \
-                            attacker, defender, working_dir)
+                            attacker, defender, logging_dir=working_dir)
 tester = architecture.Tester(physical_model, robustness_computer, \
-                            attacker, defender, working_dir)
+                            attacker, defender, logging_dir=working_dir)
 
 # Starts the training
 training_steps = args.training_steps # number of episodes for training
-trainer.run(training_steps, tester, simulation_horizon, dt=dt, atk_steps=1, def_steps=1)
+trainer.run(training_steps, tester, simulation_horizon, dt=dt, atk_steps=1, def_steps=10)
 
 # Saves the trained models
 misc.save_models(attacker, defender, working_dir)

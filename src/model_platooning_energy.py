@@ -48,7 +48,7 @@ class ElMotor:
         pair = (speed.item(), torque.item())
         grid = griddata(points, self.efficiency_flat, pair, method = "cubic")
         # todo: debug
-        print(grid)
+        # print(grid)
         return grid
    
     def getMinMaxTorque(self, speed):
@@ -199,7 +199,7 @@ class Agent:
     def velocity(self):
         return self._car.velocity.clone()
 
-    @velocity.setter
+    @velocity.setter    
     def velocity(self, value):
         self._car.velocity = value
 
