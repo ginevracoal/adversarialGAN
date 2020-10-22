@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
+BREAK=False
 
 class Attacker(nn.Module):
     """ NN architecture for the attacker """
@@ -17,6 +18,8 @@ class Attacker(nn.Module):
 
         assert n_hidden_layers > 0
 
+        self.hid = n_hidden_layers
+        self.ls = layer_size
         self.noise_size = noise_size
         self.n_coeff = n_coeff
 
@@ -35,7 +38,6 @@ class Attacker(nn.Module):
 
         self.nn = nn.Sequential(*layers)
 
-
     def forward(self, x):
         """ Uses the NN's output to compute the coefficients of the policy function """
         coefficients = self.nn(x).float()
@@ -46,7 +48,6 @@ class Attacker(nn.Module):
             basis = [t**i for i in range(self.n_coeff)]
             basis = torch.tensor(basis, dtype=torch.get_default_dtype())
             basis = torch.reshape(basis, (self.n_coeff, -1))
-            # return torch.tanh(coefficients.mm(basis).squeeze())
             return coefficients.mm(basis).squeeze()
 
         return policy_generator
@@ -59,7 +60,9 @@ class Defender(nn.Module):
         super().__init__()
 
         assert n_hidden_layers > 0
-
+        
+        self.hid = n_hidden_layers
+        self.ls = layer_size
         self.n_coeff = n_coeff
 
         input_layer_size = model.agent.sensors
@@ -77,19 +80,19 @@ class Defender(nn.Module):
 
         self.nn = nn.Sequential(*layers)
 
-
     def forward(self, x):
         """ Uses the NN's output to compute the coefficients of the policy function """
-        x = x.clone().detach().float()
+        # x = x.clone().detach().float()
+        x = x.float()
         coefficients = self.nn(x)
         coefficients = torch.reshape(coefficients, (-1, self.n_coeff))
+        # print(coefficients, x)
 
         def policy_generator(t):
             """ The policy function is defined as polynomial """
             basis = [t**i for i in range(self.n_coeff)]
             basis = torch.tensor(basis).float()
             basis = torch.reshape(basis, (self.n_coeff, -1))
-            # return torch.tanh(coefficients.mm(basis).squeeze())
             return coefficients.mm(basis).squeeze()
 
         return policy_generator
@@ -99,7 +102,7 @@ class Trainer:
     """ The class contains the training logic """
 
     def __init__(self, world_model, robustness_computer, \
-                attacker_nn, defender_nn, logging_dir=None):
+                attacker_nn, defender_nn, lr, logging_dir=None):
 
         self.model = world_model
         self.robustness_computer = robustness_computer
@@ -107,11 +110,13 @@ class Trainer:
         self.attacker = attacker_nn
         self.defender = defender_nn
 
-        self.attacker_loss_fn = lambda x: x.clone().detach().requires_grad_(True)
-        self.defender_loss_fn = lambda x: -x.clone().detach().requires_grad_(True)
+        # self.attacker_loss_fn = lambda x: x.clone().detach().requires_grad_(True)
+        # self.defender_loss_fn = lambda x: -x.clone().detach().requires_grad_(True)
+        self.attacker_loss_fn = lambda x: x.requires_grad_(True)
+        self.defender_loss_fn = lambda x: -x.requires_grad_(True)
 
-        atk_optimizer = optim.Adam(attacker_nn.parameters())
-        def_optimizer = optim.Adam(defender_nn.parameters())
+        atk_optimizer = optim.Adam(attacker_nn.parameters(), lr=lr)
+        def_optimizer = optim.Adam(defender_nn.parameters(), lr=lr)
         self.attacker_optimizer = atk_optimizer
         self.defender_optimizer = def_optimizer
 
@@ -124,6 +129,7 @@ class Trainer:
 
     def train_attacker_step(self, time_horizon, dt, atk_static):
         """ Training step for the attacker. The defender's passive. """
+
         z = torch.rand(self.attacker.noise_size).float()
         oe = torch.tensor(self.model.environment.status).float()
         oa = torch.tensor(self.model.agent.status).float()
@@ -134,7 +140,21 @@ class Trainer:
             def_policy = self.defender(oa)
 
         t = 0
+        # loss_penalty = 0
         for i in range(time_horizon):
+
+            ####### NEW
+
+            # z = torch.rand(self.attacker.noise_size).float()
+            # oe = torch.tensor(self.model.environment.status).float()
+            # oa = torch.tensor(self.model.agent.status).float()
+
+            # atk_policy = self.attacker(torch.cat((z, oe)))
+
+            # with torch.no_grad():
+            #     def_policy = self.defender(oa)
+
+            ###########
             
             # if the attacker is static (e.g. in the case it does not vary over time)
             # the policy function is always sampled in the same point since the
@@ -146,18 +166,22 @@ class Trainer:
 
             t += dt
 
-        rho = self.robustness_computer.compute(self.model)
+            rho = self.robustness_computer.compute(self.model)
+
+            # if rho<0 and BREAK:
+            #     loss_penalty = +10
+            #     break        
 
         self.attacker_optimizer.zero_grad()
-        loss = self.attacker_loss_fn(rho) 
+        loss = self.attacker_loss_fn(rho) #+ loss_penalty
         loss.backward()
-
         self.attacker_optimizer.step()
         return loss.detach().float()
 
 
     def train_defender_step(self, time_horizon, dt, atk_static):
         """ Training step for the defender. The attacker's passive. """
+
         z = torch.rand(self.attacker.noise_size).float()
         oa = torch.tensor(self.model.agent.status).float()
         oe = torch.tensor(self.model.environment.status).float()
@@ -168,7 +192,21 @@ class Trainer:
         def_policy = self.defender(oa)
 
         t = 0
+        # loss_penalty = 0
         for i in range(time_horizon):
+
+            ###### NEW 
+
+            # z = torch.rand(self.attacker.noise_size).float()
+            # oa = torch.tensor(self.model.agent.status).float()
+            # oe = torch.tensor(self.model.environment.status).float()
+
+            # with torch.no_grad():
+            #     atk_policy = self.attacker(torch.cat((z, oe)))
+
+            # def_policy = self.defender(oa)
+
+            ##########
 
             # if the attacker is static, see the comments above
             atk_input = atk_policy(0 if atk_static else t)
@@ -177,27 +215,35 @@ class Trainer:
             self.model.step(atk_input, def_input, dt)
             t += dt
 
-        rho = self.robustness_computer.compute(self.model)
+            rho = self.robustness_computer.compute(self.model)
+
+            # if rho<0 and BREAK:
+            #     loss_penalty = +10
+            #     break
 
         self.defender_optimizer.zero_grad()
-        loss = self.defender_loss_fn(rho)
+        loss = self.defender_loss_fn(rho) #+ loss_penalty
         loss.backward()
-
         self.defender_optimizer.step()
         return loss.detach().float()
+
+    def initialize_random_batch(self, batch_size=30):
+        return [next(self.model._param_generator) for _ in range(batch_size)]
 
     def train(self, atk_steps, def_steps, time_horizon, dt, atk_static):
         """ Trains both the attacker and the defender
         """
-        self.model.initialize_random() # samples a random initial state
-        for i in range(atk_steps):
-            atk_loss = self.train_attacker_step(time_horizon, dt, atk_static)
-            self.model.initialize_rewind() # restores the initial state
+        random_batch = self.initialize_random_batch()
 
-        self.model.initialize_random() # samples a random initial state
+        for i in range(atk_steps):
+            for random_state in random_batch:
+                self.model.reinitialize(*random_state)
+                atk_loss = self.train_attacker_step(time_horizon, dt, atk_static)
+
         for i in range(def_steps):
-            def_loss = self.train_defender_step(time_horizon, dt, atk_static)
-            self.model.initialize_rewind() # restores the initial state
+            for random_state in random_batch:
+                self.model.reinitialize(*random_state)
+                def_loss = self.train_defender_step(time_horizon, dt, atk_static)
 
         return (atk_loss, def_loss)
 
@@ -207,7 +253,7 @@ class Trainer:
         """ Trains the architecture and provides logging and visual feedback """
 
         if self.logging:
-            hist_every = int(n_steps / 1)
+            hist_every = int(n_steps/10)
             hist_counter = 0
 
             atk_loss_vals = torch.zeros(n_steps).float()
@@ -216,6 +262,7 @@ class Trainer:
         for i in tqdm(range(n_steps)):
 
             atk_loss, def_loss = self.train(atk_steps, def_steps, time_horizon, dt, atk_static)
+            print(f"def_rob = {-def_loss.item():.4f}\tatk_rob = {atk_loss.item():.4f}")
 
             if self.logging:
                 atk_loss_vals[i] = atk_loss

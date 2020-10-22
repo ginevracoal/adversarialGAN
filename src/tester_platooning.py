@@ -1,39 +1,45 @@
 import os
 import pickle
-
 import model_platooning
-import misc
+from misc import *
 import architecture
-
 import torch
 import torch.nn as nn
 import numpy as np
-
 from argparse import ArgumentParser
 
-parser = ArgumentParser()
-parser.add_argument("-d", "--dir", dest="dirname", default="../experiments/platooning",
-                    help="model's directory")
-parser.add_argument("-r", "--repetitions", dest="repetitions", type=int, default=1,
-                    help="simulation repetions")
-parser.add_argument("--device", type=str, default="cuda")
-args = parser.parse_args()
+################
+### SETTINGS ###
+################
 
 agent_position = 0
 agent_velocity = np.linspace(0, 20, 10)
 leader_position = np.linspace(1, 12, 15)
 leader_velocity = np.linspace(0, 20, 10)
-pg = misc.ParametersHyperparallelepiped(agent_position, agent_velocity, leader_position, leader_velocity)
 
+atk_arch = {'hidden':3, 'size':10, 'noise':2, 'coef':4}
+def_arch = {'hidden':3, 'size':10, 'coef':4}
+train_par = {'train_steps': 1,'atk_steps':3, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':1. }
+test_par = {'test_steps': 300, 'dt': 0.05}
+
+################
+
+parser = ArgumentParser()
+parser.add_argument("-d", "--dir", default="platooning", help="model's directory")
+parser.add_argument("-r", "--repetitions", type=int, default=1, help="simulation repetions")
+parser.add_argument("--device", type=str, default="cuda")
+args = parser.parse_args()
+
+pg = ParametersHyperparallelepiped(agent_position, agent_velocity, leader_position, leader_velocity)
 physical_model = model_platooning.Model(pg.sample(sigma=0.05), device=args.device)
 
-attacker = architecture.Attacker(physical_model, 2, 10, 2)
-defender = architecture.Defender(physical_model, 2, 10)
+attacker = architecture.Attacker(physical_model, *atk_arch.values())
+defender = architecture.Defender(physical_model, *def_arch.values())
 
-misc.load_models(attacker, defender, args.dirname)
+relpath = args.dir+"_lr="+str(train_par["lr"])+"_dt="+str(train_par["dt"])+\
+          "_horizon="+str(train_par["horizon"])+"_train_steps="+str(train_par["train_steps"])
+load_models(attacker, defender, EXP+relpath)
 
-dt = 0.05
-steps = 300
 
 def run(mode=None):
     physical_model.initialize_random()
@@ -52,17 +58,22 @@ def run(mode=None):
     sim_env_acc = []
 
     t = 0
-    for i in range(steps):
+    dt = test_par["dt"]
+    for i in range(test_par["test_steps"]):
         with torch.no_grad():
             oa = torch.tensor(physical_model.agent.status)
             oe = torch.tensor(physical_model.environment.status)
             z = torch.rand(attacker.noise_size)
             if mode == 0:
-                atk_policy = lambda x: torch.tensor(2.) if i > 200 and i < 250 else torch.tensor(-2.)
+                atk_policy = lambda x: torch.tensor(2.) if i > int(test_par["test_steps"]/3) \
+                                        and i < int(test_par["test_steps"]/2) \
+                                        else torch.tensor(-2.)
             elif mode == 1:
-                atk_policy = lambda x: torch.tensor(2.) if i > 150 else torch.tensor(-2.)
+                atk_policy = lambda x: torch.tensor(2.) if i > int(test_par["test_steps"]/3) \
+                                        else torch.tensor(-2.)
             elif mode == 2:
-                atk_policy = lambda x: torch.tensor(2.) if i < 150 else torch.tensor(-2.)
+                atk_policy = lambda x: torch.tensor(2.) if i < int(test_par["test_steps"]/3) \
+                                        else torch.tensor(-2.)
             else:
                 atk_policy = attacker(torch.cat((z, oe)))
             def_policy = defender(oa)
@@ -97,8 +108,10 @@ for i in range(args.repetitions):
     sim['step_up'] = run(1)
     sim['step_down'] = run(2)
     sim['atk'] = run()
-    
     records.append(sim)
     
-with open(os.path.join(args.dirname, 'sims.pkl'), 'wb') as f:
+filename = 'sims_reps='+str(args.repetitions)+'_dt='+str(test_par["dt"])+\
+           '_test_steps='+str(test_par["test_steps"])+'.pkl'
+           
+with open(os.path.join(EXP+relpath, filename), 'wb') as f:
     pickle.dump(records, f)

@@ -1,54 +1,50 @@
 import os
-
-import misc
+from misc import *
 import architecture
 import model_platooning
-
 import torch
 import torch.nn as nn
 import numpy as np
 from argparse import ArgumentParser
 
-# Specifies the initial conditions of the setup
-parser = ArgumentParser()
-parser.add_argument("--dir", default="../experiments/platooning", help="model's directory")
-parser.add_argument("--training_steps", type=int, default=100)
-parser.add_argument("--ode_idx", type=int, default=0)
-parser.add_argument("--device", type=str, default="cuda")
-args = parser.parse_args()
+################
+### SETTINGS ###
+################
 
-# Specifies the initial conditions of the setup
 agent_position = 0
 agent_velocity = np.linspace(0, 20, 40)
 leader_position = np.linspace(1, 12, 15)
 leader_velocity = np.linspace(0, 20, 40)
-# Initializes the generator of initial states
-pg = misc.ParametersHyperparallelepiped(agent_position, agent_velocity, leader_position, leader_velocity)
 
-# Instantiates the world's model
-physical_model = model_platooning.Model(pg.sample(sigma=0.05), device=args.device)
+atk_arch = {'hidden':3, 'size':10, 'noise':2, 'coef':4}
+def_arch = {'hidden':3, 'size':10, 'coef':4}
+train_par = {'train_steps': 1,'atk_steps':3, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':1.}
 
-# Specifies the STL formula to compute the robustness
 robustness_formula = 'G(dist <= 10 & dist >= 2)'
+
+################
+
+parser = ArgumentParser()
+parser.add_argument("--dir", default="platooning", help="model's directory")
+parser.add_argument("--device", type=str, default="cuda")
+args = parser.parse_args()
+
+pg = ParametersHyperparallelepiped(agent_position, agent_velocity, leader_position, leader_velocity)
+physical_model = model_platooning.Model(pg.sample(sigma=0.05), device=args.device)
 robustness_computer = model_platooning.RobustnessComputer(robustness_formula)
 
-# Instantiates the NN architectures
-attacker = architecture.Attacker(physical_model, 2, 10, 2)
-defender = architecture.Defender(physical_model, 2, 10)
-
-# Instantiates the traning and test environments
+relpath = args.dir+"_lr="+str(train_par["lr"])+"_dt="+str(train_par["dt"])+\
+          "_horizon="+str(train_par["horizon"])+"_train_steps="+str(train_par["train_steps"])
+          
+attacker = architecture.Attacker(physical_model, *atk_arch.values())
+defender = architecture.Defender(physical_model, *def_arch.values())
 trainer = architecture.Trainer(physical_model, robustness_computer, \
-                            attacker, defender, args.dir)
+                            attacker, defender, train_par["lr"], EXP+relpath)
+
+save_models(attacker, defender, EXP+relpath)
+
 tester = architecture.Tester(physical_model, robustness_computer, \
-                            attacker, defender, args.dir)
-
-dt = 0.05 # timestep
-training_steps = args.training_steps # number of episodes for training
-simulation_horizon = int(5. / dt) # 5 seconds
-
-# Starts the training
-trainer.run(training_steps, tester, simulation_horizon, dt, atk_steps=3, def_steps=5)
-
-# Saves the trained models
-misc.save_models(attacker, defender, args.dir)
-
+                            attacker, defender, EXP+args.dir)
+simulation_horizon = int(train_par["horizon"] / train_par["dt"])
+trainer.run(train_par["train_steps"], tester, simulation_horizon, train_par["dt"], 
+            atk_steps=train_par["atk_steps"], def_steps=train_par["def_steps"])
