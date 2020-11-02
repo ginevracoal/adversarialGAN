@@ -13,25 +13,24 @@ from argparse import ArgumentParser
 ################
 
 agent_position = 0
-agent_velocity = np.linspace(0, 20, 10)
-leader_position = np.linspace(1, 12, 15)
-leader_velocity = np.linspace(0, 20, 10)
+agent_velocity = np.linspace(1, 3, 40)
+leader_position = np.linspace(1, 5, 15)
+leader_velocity = np.linspace(1, 3, 40)
 
-atk_arch = {'hidden':3, 'size':10, 'noise':2, 'coef':4}
-def_arch = {'hidden':3, 'size':10, 'coef':4}
-train_par = {'train_steps': 1,'atk_steps':3, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':1. }
-test_par = {'test_steps': 300, 'dt': 0.05}
+atk_arch = {'hidden':2, 'size':10, 'coef':3, 'noise':2}
+def_arch = {'hidden':2, 'size':10, 'coef':3}
+train_par = {'train_steps':20000, 'atk_steps':1, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':1.}
+test_par = {'test_steps':300, 'dt':0.05}
 
 ################
 
 parser = ArgumentParser()
 parser.add_argument("-d", "--dir", default="platooning", help="model's directory")
 parser.add_argument("-r", "--repetitions", type=int, default=1, help="simulation repetions")
-parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
 
 pg = ParametersHyperparallelepiped(agent_position, agent_velocity, leader_position, leader_velocity)
-physical_model = model_platooning.Model(pg.sample(sigma=0.05), device=args.device)
+physical_model = model_platooning.Model(pg.sample(sigma=0.05))
 
 attacker = architecture.Attacker(physical_model, *atk_arch.values())
 defender = architecture.Defender(physical_model, *def_arch.values())
@@ -65,15 +64,20 @@ def run(mode=None):
             oe = torch.tensor(physical_model.environment.status)
             z = torch.rand(attacker.noise_size)
             if mode == 0:
-                atk_policy = lambda x: torch.tensor(2.) if i > int(test_par["test_steps"]/3) \
-                                        and i < int(test_par["test_steps"]/2) \
-                                        else torch.tensor(-2.)
+                atk_policy = lambda x: torch.tensor(2.) if i > 200 and i < 250 else torch.tensor(-2.)
             elif mode == 1:
-                atk_policy = lambda x: torch.tensor(2.) if i > int(test_par["test_steps"]/3) \
-                                        else torch.tensor(-2.)
+                atk_policy = lambda x: torch.tensor(2.) if i > 150 else torch.tensor(-2.)
             elif mode == 2:
-                atk_policy = lambda x: torch.tensor(2.) if i < int(test_par["test_steps"]/3) \
-                                        else torch.tensor(-2.)
+                atk_policy = lambda x: torch.tensor(2.) if i < 150 else torch.tensor(-2.)
+            #     atk_policy = lambda x: torch.tensor(2.) if i > int(test_par["test_steps"]/3) \
+            #                             and i < int(test_par["test_steps"]/2) \
+            #                             else torch.tensor(-2.)
+            # elif mode == 1:
+            #     atk_policy = lambda x: torch.tensor(2.) if i > int(test_par["test_steps"]/3) \
+            #                             else torch.tensor(-2.)
+            # elif mode == 2:
+            #     atk_policy = lambda x: torch.tensor(2.) if i < int(test_par["test_steps"]/3) \
+            #                             else torch.tensor(-2.)
             else:
                 atk_policy = attacker(torch.cat((z, oe)))
             def_policy = defender(oa)
@@ -82,7 +86,6 @@ def run(mode=None):
         def_input = def_policy(dt)
 
         physical_model.step(atk_input, def_input, dt)
-
         sim_ag_acc.append(def_input)
         sim_env_acc.append(atk_input)
         sim_t.append(t)

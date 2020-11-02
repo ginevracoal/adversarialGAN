@@ -12,7 +12,7 @@ import numpy as np
 from argparse import ArgumentParser
 
 parser = ArgumentParser()
-parser.add_argument("-d", "--dir", default="../experiments/cartpole_target_sameinit", dest="dirname",
+parser.add_argument("-d", "--dir", default="../experiments/cartpole_target_noattack", dest="dirname",
                     help="model's directory")
 parser.add_argument("--plot_evolution", default=True, type=eval)
 parser.add_argument("--scatter", default=True, type=eval, help="Generate scatterplot")

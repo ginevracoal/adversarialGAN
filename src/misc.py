@@ -10,12 +10,12 @@ def save_models(attacker_model, defender_model, path):
 
     atk_name = 'attacker_hidden='+str(attacker_model.hid)+\
                '_size='+str(attacker_model.ls)+\
-               '_degree='+str(attacker_model.n_coeff-1)+\
+               '_coef='+str(attacker_model.n_coeff)+\
                '_noise='+str(attacker_model.noise_size)+'.pt'
 
     def_name = 'defender_hidden='+str(defender_model.hid)+\
                '_size='+str(defender_model.ls)+\
-               '_degree='+str(defender_model.n_coeff-1)+'.pt'
+               '_coef='+str(defender_model.n_coeff)+'.pt'
 
     atk_path = os.path.join(path, atk_name)
     def_path = os.path.join(path, def_name)
@@ -27,12 +27,12 @@ def load_models(attacker_model, defender_model, path):
 
     atk_name = 'attacker_hidden='+str(attacker_model.hid)+\
                '_size='+str(attacker_model.ls)+\
-               '_degree='+str(attacker_model.n_coeff-1)+\
+               '_coef='+str(attacker_model.n_coeff)+\
                '_noise='+str(attacker_model.noise_size)+'.pt'
 
     def_name = 'defender_hidden='+str(defender_model.hid)+\
                '_size='+str(defender_model.ls)+\
-               '_degree='+str(defender_model.n_coeff-1)+'.pt'
+               '_coef='+str(defender_model.n_coeff)+'.pt'
 
     atk_path = os.path.join(path, atk_name)
     def_path = os.path.join(path, def_name)

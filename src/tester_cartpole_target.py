@@ -13,9 +13,9 @@ from tqdm import tqdm
 torch.set_default_tensor_type('torch.FloatTensor')
 
 parser = ArgumentParser()
-parser.add_argument("-d", "--dir", default="../experiments/cartpole_target_sameinit", dest="dirname",
+parser.add_argument("-d", "--dir", default="../experiments/cartpole_target_noattack", dest="dirname",
                     help="model's directory")
-parser.add_argument("-r", "--repetitions", dest="repetitions", type=int, default=10,
+parser.add_argument("-r", "--repetitions", dest="repetitions", type=int, default=1,
                     help="simulation repetions")
 parser.add_argument("--device", type=str, default="cuda")
 args = parser.parse_args()
@@ -34,8 +34,9 @@ pg = misc.ParametersHyperparallelepiped(cart_position, cart_velocity,
 
 physical_model = model_cartpole_target.Model(pg.sample(sigma=0.05), device=args.device)
 
-attacker = architecture.Attacker(physical_model, n_hidden_layers=2, layer_size=10, noise_size=3)
-defender = architecture.Defender(physical_model, n_hidden_layers=2, layer_size=10)
+attacker = architecture.Attacker(physical_model, n_hidden_layers=3, layer_size=10, 
+                                                                     noise_size=3, n_coeff=4)
+defender = architecture.Defender(physical_model, n_hidden_layers=3, layer_size=10, n_coeff=4) 
 
 misc.load_models(attacker, defender, args.dirname)
 

@@ -6,34 +6,29 @@ from diffquantitative import DiffQuantitativeSemantic
 
 class Car:
     """ Describes the physical behaviour of the vehicle """
-    def __init__(self, device):
-
-        if device == "cuda":
-            torch.set_default_tensor_type('torch.cuda.FloatTensor')
-        self.device = device
-
+    def __init__(self):
         self._max_acceleration = 3.0
         self._min_acceleration = -self._max_acceleration
         self._max_velocity = 20.0
         self._min_velocity = 0.0
         self.gravity = 9.81
-        self.position = torch.tensor(0.0).to(dtype=torch.float32) 
-        self.velocity = torch.tensor(0.0).to(dtype=torch.float32) 
-        self.acceleration = torch.tensor(0.0).to(dtype=torch.float32) 
+        self.position = torch.tensor(0.0)
+        self.velocity = torch.tensor(0.0)
+        self.acceleration = torch.tensor(0.0)
         self.friction_coefficient = 0.01
 
     def update(self, in_acceleration, dt):
         """ Differential equation for updating the state of the car """
-        in_acceleration = in_acceleration.to(device=self.device, dtype=torch.float32) 
         self.acceleration = torch.clamp(in_acceleration, self._min_acceleration, self._max_acceleration)
         if self.velocity > 0:
             self.acceleration -= self.friction_coefficient * self.gravity
         self.velocity = torch.clamp(self.velocity + self.acceleration * dt, self._min_velocity, self._max_velocity)
         self.position += self.velocity * dt
 
+
 class Environment:
-    def __init__(self, device):
-        self._leader_car = Car(device)
+    def __init__(self):
+        self._leader_car = Car()
 
     def set_agent(self, agent):
         self._agent = agent
@@ -75,8 +70,8 @@ class Environment:
 
 
 class Agent:
-    def __init__(self, device):
-        self._car = Car(device)
+    def __init__(self):
+        self._car = Car()
 
     def set_environment(self, environment):
         self._environment = environment
@@ -126,9 +121,9 @@ class Model:
         It includes both the attacker and the defender.
     """
 
-    def __init__(self, param_generator, device):
-        self.agent = Agent(device)
-        self.environment = Environment(device)
+    def __init__(self, param_generator):
+        self.agent = Agent()
+        self.environment = Environment()
 
         self.agent.set_environment(self.environment)
         self.environment.set_agent(self.agent)
@@ -160,10 +155,10 @@ class Model:
 
     def reinitialize(self, agent_position, agent_velocity, leader_position, leader_velocity):
         """ Sets the world's state as specified """
-        self.agent.position = torch.tensor(agent_position).reshape(1).float()
-        self.agent.velocity = torch.tensor(agent_velocity).reshape(1).float()
-        self.environment.l_position = torch.tensor(leader_position).reshape(1).float()
-        self.environment.l_velocity = torch.tensor(leader_velocity).reshape(1).float()
+        self.agent.position = torch.tensor(agent_position).reshape(1)
+        self.agent.velocity = torch.tensor(agent_velocity).reshape(1)
+        self.environment.l_position = torch.tensor(leader_position).reshape(1)
+        self.environment.l_velocity = torch.tensor(leader_velocity).reshape(1)
 
         self.traces = {
             'dist': []
@@ -177,5 +172,5 @@ class RobustnessComputer:
     def compute(self, model):
         """ Computes rho for the given trace """
         d = model.traces['dist']
-        
+
         return self.dqs.compute(dist=torch.cat(d))

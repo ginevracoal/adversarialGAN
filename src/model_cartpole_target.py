@@ -8,11 +8,7 @@ from torchdiffeq import odeint
 
 class CartPole():
 
-    def __init__(self, device):
-
-        if device == "cuda":
-            torch.set_default_tensor_type('torch.cuda.FloatTensor')
-        self.device = device
+    def __init__(self):
 
         self.air_drag = False
         self.cart_friction = True
@@ -22,17 +18,17 @@ class CartPole():
         self.mpole = .1 # pole mass in kg
         self.lpole = 1. # pole length in meters
 
-        self.x, self.theta = (torch.tensor(0.0).to(dtype=torch.float32), torch.tensor(0.0).to(dtype=torch.float32))
-        self.dot_theta, self.dot_x = (torch.tensor(0.0).to(dtype=torch.float32), torch.tensor(0.0).to(dtype=torch.float32))
-        self.ddot_x, self.ddot_theta = (torch.tensor(0.0).to(dtype=torch.float32), torch.tensor(0.).to(dtype=torch.float32))
-        self.x_target = torch.tensor(0.0).to(dtype=torch.float32)
+        self.x, self.theta = (torch.tensor(0.0), torch.tensor(0.0))
+        self.dot_theta, self.dot_x = (torch.tensor(0.0), torch.tensor(0.0))
+        self.ddot_x, self.ddot_theta = (torch.tensor(0.0), torch.tensor(0.))
+        self.x_target = torch.tensor(0.0)
 
-        self.inp_acc = torch.tensor(0.0).to(dtype=torch.float32)
-        self.eps = torch.tensor(0.0).to(dtype=torch.float32)
-        self.dist = torch.tensor(0.0).to(dtype=torch.float32)
-        self.mu = torch.tensor(0.0).to(dtype=torch.float32)
-        self.nu = torch.tensor(0.0).to(dtype=torch.float32)
-        self.f = torch.tensor(0.0).to(dtype=torch.float32)
+        self.inp_acc = torch.tensor(0.0)
+        self.eps = torch.tensor(0.0)
+        self.dist = torch.tensor(0.0)
+        self.mu = torch.tensor(0.0)
+        self.nu = torch.tensor(0.0)
+        self.f = torch.tensor(0.0)#.to(dtype=torch.float32)
 
         self._max_x = 100.
         self._max_theta = 1.5
@@ -129,8 +125,8 @@ class CartPole():
     
             #########################
 
-            dqdt = torch.FloatTensor([dot_x, dot_theta, ddot_x, ddot_theta])\
-                                     .to(device=self.device, dtype=torch.float32)
+            dqdt = torch.tensor([dot_x, dot_theta, ddot_x, ddot_theta], requires_grad=True)#\
+                                     #.to(device=self.device)
 
             self.ddot_x = torch.clamp(ddot_x, -self._max_ddot_x, self._max_ddot_x).reshape(1)
             self.ddot_theta = torch.clamp(ddot_theta, -self._max_ddot_theta, self._max_ddot_theta).reshape(1)
@@ -138,10 +134,9 @@ class CartPole():
             return dqdt
                     
         # Solve the ODE
-        q0 = torch.FloatTensor([self.x, self.theta, self.dot_x, self.dot_theta])\
-                                .to(device=self.device, dtype=torch.float32) 
-        t = torch.FloatTensor(np.linspace(0, dt, 2))\
-                                .to(device=self.device, dtype=torch.float32) 
+        q0 = torch.tensor([self.x, self.theta, self.dot_x, self.dot_theta])#\
+                               # .to(device=self.device)
+        t = torch.tensor(np.linspace(0, dt, 2))#.to(device=self.device)
         q = odeint(func=ode_func, y0=q0, t=t)
 
         x, theta, dot_x, dot_theta = q[1]
@@ -152,19 +147,14 @@ class CartPole():
         self.dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
         self.dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
         
-        print(f"x-x_target={(x-self.x_target).item():.4f}\
-                theta={self.theta.item():.4f}\
-                mu={self.mu.item():.4f}\
-                f={self.f.item()}")
-                # inp_acc={self.inp_acc.item():.4f}"\
-                # ddot_x-inp_acc={self.ddot_x.item()-self.inp_acc.item():.4f}", end="\t")
+        # print(f"x-x_target={(x-self.x_target).item():.4f}\
+        #         theta={self.theta.item():.4f}\
+        #         mu={self.mu.item():.4f}\
+        #         f={self.f.item()}")
         
 class Environment:
     def __init__(self, cartpole):
         self._cartpole = cartpole
-        self._max_mu = .5
-        self._max_nu = .5 
-        self._max_dot_eps = 1.
 
     def set_agent(self, agent):
         self._agent = agent
@@ -188,20 +178,16 @@ class Environment:
 
         if update_mu==1:
             dot_eps, mu, nu = parameters
-            mu = mu#*self._max_mu
         else:
             dot_eps, _, nu = parameters
             mu = None
 
-        dot_eps = dot_eps#*self._max_dot_eps
-        nu = nu#*self._max_nu
         self._cartpole.update(dot_eps=dot_eps, mu=mu, nu=nu, dt=dt)
 
 
 class Agent:
     def __init__(self, cartpole):
         self._cartpole = cartpole
-        self._max_inp_acc = 50.
 
     def set_environment(self, environment):
         self._environment = environment
@@ -278,15 +264,15 @@ class Agent:
     def update(self, parameters, dt):
         # the action take place and updates the variables
         cart_acceleration = parameters
-        cart_acceleration = cart_acceleration#*self._max_inp_acc
+        cart_acceleration = cart_acceleration
         self._cartpole.update(inp_acc=cart_acceleration, dt=dt)
 
 
 class Model:
     
-    def __init__(self, param_generator, device="cuda"):
+    def __init__(self, param_generator):
         # setting of the initial conditions
-        cartpole = CartPole(device=device)
+        cartpole = CartPole()
 
         self.agent = Agent(cartpole)
         self.environment = Environment(cartpole)
@@ -316,12 +302,13 @@ class Model:
         self.reinitialize(*self._last_init)
 
     def reinitialize(self, cart_position, cart_velocity, pole_angle, pole_ang_velocity, x_target):
-        print("\n")
-        self.agent.x = torch.tensor(cart_position).reshape(1).float()
-        self.agent.dot_x = torch.tensor(cart_velocity).reshape(1).float()
-        self.agent.theta = torch.tensor(pole_angle).reshape(1).float()
-        self.agent.dot_theta = torch.tensor(pole_ang_velocity).reshape(1).float()
-        self.agent.x_target = torch.tensor(x_target).reshape(1).float()
+        # print("\n")
+
+        self.agent.x = torch.tensor(cart_position).reshape(1)
+        self.agent.dot_x = torch.tensor(cart_velocity).reshape(1)
+        self.agent.theta = torch.tensor(pole_angle).reshape(1)
+        self.agent.dot_theta = torch.tensor(pole_ang_velocity).reshape(1)
+        self.agent.x_target = torch.tensor(x_target).reshape(1)
 
         self.traces = {'dist':[], 'theta': []}
 
@@ -332,6 +319,6 @@ class RobustnessComputer:
     def compute(self, model):
         dist = model.traces['dist']
         theta = model.traces['theta']
-        # return self.dqs.compute(dist=torch.stack(dist, dim=0), theta=torch.cat(theta))
-        return self.dqs.compute(dist=torch.stack(dist, dim=0), theta=torch.stack(theta, dim=0))
+        return self.dqs.compute(dist=torch.cat(dist), theta=torch.cat(theta))
+        # return self.dqs.compute(dist=torch.stack(dist, dim=0), theta=torch.stack(theta, dim=0))
         

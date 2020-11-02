@@ -2,7 +2,7 @@ old
 .ipynb_checkpoints
 __pycache__
 models_*
-venv
+venv*
 **/*.pyc
 experiments/
 src/screenlog.0
