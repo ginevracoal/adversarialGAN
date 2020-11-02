@@ -6,9 +6,9 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
+FIXED_POLICY=True
 
 torch.set_default_tensor_type(torch.DoubleTensor)
-
 
 class Attacker(nn.Module):
     """ NN architecture for the attacker """
@@ -126,17 +126,30 @@ class Trainer:
 
     def train_attacker_step(self, time_horizon, dt, atk_static):
         """ Training step for the attacker. The defender's passive. """
-        z = torch.rand(self.attacker.noise_size)
-        oa = torch.tensor(self.model.agent.status)
-        oe = torch.tensor(self.model.environment.status)
 
-        atk_policy = self.attacker(torch.cat((z, oe)))
+        if FIXED_POLICY is True:
+            z = torch.rand(self.attacker.noise_size)
+            oa = torch.tensor(self.model.agent.status)
+            oe = torch.tensor(self.model.environment.status)
 
-        with torch.no_grad():
-            def_policy = self.defender(oa)
+            atk_policy = self.attacker(torch.cat((z, oe)))
+
+            with torch.no_grad():
+                def_policy = self.defender(oa)
 
         t = 0
         for i in range(time_horizon):
+
+            if FIXED_POLICY is False:
+                z = torch.rand(self.attacker.noise_size)
+                oa = torch.tensor(self.model.agent.status)
+                oe = torch.tensor(self.model.environment.status)
+
+                atk_policy = self.attacker(torch.cat((z, oe)))
+
+                with torch.no_grad():
+                    def_policy = self.defender(oa)
+
             # if the attacker is static (e.g. in the case it does not vary over time)
             # the policy function is always sampled in the same point since the
             # attacker do not vary policy over time
@@ -161,17 +174,30 @@ class Trainer:
 
     def train_defender_step(self, time_horizon, dt, atk_static):
         """ Training step for the defender. The attacker's passive. """
-        z = torch.rand(self.attacker.noise_size)
-        oa = torch.tensor(self.model.agent.status)
-        oe = torch.tensor(self.model.environment.status)
 
-        with torch.no_grad():
-            atk_policy = self.attacker(torch.cat((z, oe)))
+        if FIXED_POLICY is True:
+            z = torch.rand(self.attacker.noise_size)
+            oa = torch.tensor(self.model.agent.status)
+            oe = torch.tensor(self.model.environment.status)
 
-        def_policy = self.defender(oa)
+            with torch.no_grad():
+                atk_policy = self.attacker(torch.cat((z, oe)))
+
+            def_policy = self.defender(oa)
 
         t = 0
         for i in range(time_horizon):
+
+            if FIXED_POLICY is False:
+                z = torch.rand(self.attacker.noise_size)
+                oa = torch.tensor(self.model.agent.status)
+                oe = torch.tensor(self.model.environment.status)
+
+                with torch.no_grad():
+                    atk_policy = self.attacker(torch.cat((z, oe)))
+
+                def_policy = self.defender(oa)
+
             # if the attacker is static, see the comments above
             atk_input = atk_policy(0 if atk_static else t)
             def_input = def_policy(t)
@@ -214,7 +240,8 @@ class Trainer:
         return (atk_loss, def_loss)
 
 
-    def run(self, n_steps, time_horizon=100, dt=0.05, *, atk_steps=1, def_steps=1, atk_static=False):
+    def run(self, n_steps, time_horizon=100, dt=0.05, *, atk_steps=1, def_steps=1, 
+            atk_static=False):
         """ Trains the architecture and provides logging and visual feedback """
         if self.logging:
             hist_every = int(n_steps / 10)

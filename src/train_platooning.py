@@ -18,8 +18,8 @@ agent_velocity = np.linspace(0, 20, 100)
 leader_position = np.linspace(1, 12, 25)
 leader_velocity = np.linspace(0, 20, 100)
 
-atk_arch = {'hidden':2, 'size':10, 'coef':3, 'noise':2}
-def_arch = {'hidden':2, 'size':10, 'coef':3}
+atk_arch = {'hidden':2, 'size':10, 'coef':1, 'noise':2}
+def_arch = {'hidden':2, 'size':10, 'coef':4}
 train_par = {'train_steps':20000, 'atk_steps':3, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':1.}
 
 robustness_formula = 'G(dist <= 10 & dist >= 2)'
