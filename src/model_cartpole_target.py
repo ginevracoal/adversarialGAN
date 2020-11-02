@@ -36,10 +36,11 @@ class CartPole():
         self._max_dot_theta =  1000.
         self._max_ddot_x = 100.
         self._max_ddot_theta = 100.
+        self._max_f = 100.
 
-        self.theta_0_ths = .8
-        self.theta_1_ths = .8
-        self.ctrl_magnitude = 100
+        # self.theta_0_ths = .8
+        # self.theta_1_ths = .8
+        # self.ctrl_magnitude = 100
 
     def update(self, dt, inp_acc=None, dot_eps=None, mu=None, nu=None):
         """
@@ -80,7 +81,8 @@ class CartPole():
             dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
             dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
 
-            self.f = (mp + mc) * self.inp_acc
+            f = (mp + mc) * self.inp_acc
+            self.f = torch.clamp(f, -self._max_f, self._max_f)
 
             # if torch.abs(theta) >= self.theta_1_ths:
             #     self.f = torch.sign(theta) * self.ctrl_magnitude
@@ -128,8 +130,8 @@ class CartPole():
             dqdt = torch.tensor([dot_x, dot_theta, ddot_x, ddot_theta], requires_grad=True)#\
                                      #.to(device=self.device)
 
-            self.ddot_x = torch.clamp(ddot_x, -self._max_ddot_x, self._max_ddot_x).reshape(1)
-            self.ddot_theta = torch.clamp(ddot_theta, -self._max_ddot_theta, self._max_ddot_theta).reshape(1)
+            # self.ddot_x = torch.clamp(ddot_x, -self._max_ddot_x, self._max_ddot_x).reshape(1)
+            # self.ddot_theta = torch.clamp(ddot_theta, -self._max_ddot_theta, self._max_ddot_theta).reshape(1)
 
             return dqdt
                     
@@ -139,7 +141,12 @@ class CartPole():
         t = torch.tensor(np.linspace(0, dt, 2))#.to(device=self.device)
         q = odeint(func=ode_func, y0=q0, t=t)
 
-        x, theta, dot_x, dot_theta = q[1]
+        # x, theta, dot_x, dot_theta = q[1]
+        dot_x, dot_theta, ddot_x, ddot_theta = q[1]
+        x = self.x + dot_x * dt
+        theta = self.theta + dot_theta * dt
+        self.ddot_x = torch.clamp(ddot_x, -self._max_ddot_x, self._max_ddot_x).reshape(1)
+        self.ddot_theta = torch.clamp(ddot_theta, -self._max_ddot_theta, self._max_ddot_theta).reshape(1)
 
         self.dist = torch.abs(x-self.x_target)
         self.x = torch.clamp(x, -self._max_x, self._max_x).reshape(1)
@@ -147,10 +154,10 @@ class CartPole():
         self.dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
         self.dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
         
-        # print(f"x-x_target={(x-self.x_target).item():.4f}\
-        #         theta={self.theta.item():.4f}\
-        #         mu={self.mu.item():.4f}\
-        #         f={self.f.item()}")
+        print(f"x-x_target={(x-self.x_target).item():.4f}\
+                theta={self.theta.item():.4f}\
+                mu={self.mu.item():.4f}\
+                f={self.f.item()}")
         
 class Environment:
     def __init__(self, cartpole):

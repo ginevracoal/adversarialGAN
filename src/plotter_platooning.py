@@ -13,7 +13,7 @@ from argparse import ArgumentParser
 ### SETTINGS ###
 ################
 
-train_par = {'train_steps':20000, 'atk_steps':3, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':1.}
+train_par = {'train_steps':10000, 'atk_steps':3, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':.001}
 test_par = {'test_steps':300, 'dt':0.05}
 
 ################
@@ -23,7 +23,7 @@ parser.add_argument("-d", "--dir", default="platooning", help="model's directory
 parser.add_argument("-r", "--repetitions", type=int, default=1, help="simulation repetions")
 parser.add_argument("--triplots", default=True, help="Generate triplots")
 parser.add_argument("--scatter", default=True, help="Generate scatterplot")
-parser.add_argument("--hist", default=False, help="Generate histograms")
+parser.add_argument("--hist", default=True, help="Generate histograms")
 parser.add_argument("--dark", default=False, help="Use dark theme")
 args = parser.parse_args()
 
@@ -64,7 +64,7 @@ def hist(time, pulse, step_up, step_down, atk, filename):
     ax[3].title.set_text('Against attacker')
 
     fig.tight_layout()
-    fig.savefig(os.path.join(args.dir, filename), dpi=150)
+    fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
 def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
     fig, ax = plt.subplots(figsize=(10, 5))

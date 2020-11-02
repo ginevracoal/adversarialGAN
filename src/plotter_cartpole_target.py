@@ -1,15 +1,25 @@
 import os
 import random
 import pickle
-
 import model_cartpole_target
 import torch
-
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
-
 from argparse import ArgumentParser
+
+################
+### SETTINGS ###
+################
+
+train_par = {'train_steps':10000, 'atk_steps':3, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':.001}
+test_par = {'test_steps':300, 'dt':0.05}
+safe_theta = 0.392
+safe_dist = 0.5
+mc = 1.
+mp = .1
+
+################
 
 parser = ArgumentParser()
 parser.add_argument("-d", "--dir", default="../experiments/cartpole_target_noattack", dest="dirname",
@@ -20,24 +30,31 @@ parser.add_argument("--hist", default=True, type=eval, help="Generate histograms
 parser.add_argument("--dark", default=False, type=eval, help="Use dark theme")
 args = parser.parse_args()
 
-safe_theta = 0.392
-safe_dist = 0.5
-mc = 1.
-mp = .1
+relpath = args.dir+"_lr="+str(train_par["lr"])+"_dt="+str(train_par["dt"])+\
+          "_horizon="+str(train_par["horizon"])+"_train_steps="+str(train_par["train_steps"])+\
+          "_atk="+str(train_par["atk_steps"])+"_def="+str(train_par["def_steps"])
+
+sims_filename = 'sims_reps='+str(args.repetitions)+'_dt='+str(test_par["dt"])+\
+           '_test_steps='+str(test_par["test_steps"])+'.pkl'
 
 if args.dark:
     plt.style.use('./qb-common_dark.mplstyle')
     
-with open(os.path.join(args.dirname, 'sims.pkl'), 'rb') as f:
+with open(os.path.join(EXP+relpath, sims_filename), 'rb') as f:
     records = pickle.load(f)
 
-def hist(time, const, atk, filename):
-    fig, ax = plt.subplots(1, 2, figsize=(12, 3), sharex=True)
+def hist(time, const, pulse, atk, filename):
+    fig, ax = plt.subplots(1, 3, figsize=(12, 3), sharex=True)
 
     ax[0].plot(time, const *100)
     ax[0].fill_between(time, const *100, alpha=0.5)
     ax[0].set(xlabel='time (s)', ylabel='% correct')
     ax[0].title.set_text('Acceleration const')
+
+    ax[0].plot(time, pulse *100)
+    ax[0].fill_between(time, pulse *100, alpha=0.5)
+    ax[0].set(xlabel='time (s)', ylabel='% correct')
+    ax[0].title.set_text('Acceleration pulse')
 
     ax[1].plot(time, atk *100)
     ax[1].fill_between(time, atk *100, alpha=0.5)
@@ -64,7 +81,7 @@ def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, po
     # cb.ax[1].set_label('$\\rho$')
 
     fig.suptitle('Initial conditions vs robustness $\\rho$')
-    fig.savefig(os.path.join(args.dirname, filename), dpi=150)
+    fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
 def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_theta, 
          sim_x_target, sim_def_acc, sim_dist, sim_attack_mu, sim_attack_nu, filename):
@@ -108,7 +125,7 @@ def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_theta,
     ax[1,1].legend()
 
     fig.tight_layout()
-    fig.savefig(os.path.join(args.dirname, filename), dpi=150)
+    fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
 if args.scatter is True:
 
@@ -123,7 +140,7 @@ if args.scatter is True:
     cart_vel_array = np.zeros(size)
     pole_ang_vel_array = np.zeros(size)
 
-    for mode in ["const", "atk"]:
+    for mode in ["const","pulse","atk"]:
         for i in range(size):
 
             trace_theta = torch.tensor(records[i][mode]['sim_theta'])
@@ -145,7 +162,7 @@ if args.scatter is True:
 if args.plot_evolution is True:
     n = random.randrange(len(records))
 
-    for mode in ["const","atk"]:
+    for mode in ["const","pulse","atk"]:
 
         print(mode+":", records[n][mode]['init'])
         plot(records[n][mode]['sim_t'], 
@@ -159,6 +176,7 @@ if args.hist is True:
 
     size = len(records)
     const_pct = np.zeros_like(records[0]['const']['sim_theta'])
+    pulse_pct = np.zeros_like(records[0]['pulse']['sim_theta'])
     atk_pct = np.zeros_like(records[0]['atk']['sim_theta'])
 
     for i in range(size):
@@ -166,15 +184,24 @@ if args.hist is True:
         x = records[i]['const']['sim_x']
         t = records[i]['const']['sim_theta']
         dist = records[i]['const']['sim_dist']
-        const_pct = const_pct +  np.logical_and(np.logical_and(t > -safe_theta, t < safe_theta), dist < safe_dist)
+        const_pct = const_pct +  np.logical_and(t > -safe_theta, t < safe_theta)
+        # const_pct = const_pct +  np.logical_and(np.logical_and(t > -safe_theta, t < safe_theta), dist < safe_dist)
+        
+        x = records[i]['pulse']['sim_x']
+        t = records[i]['pulse']['sim_theta']
+        dist = records[i]['pulse']['sim_dist']
+        pulse_pct = pulse_pct +  np.logical_and(t > -safe_theta, t < safe_theta)
+        # pulse_pct = pulse_pct +  np.logical_and(np.logical_and(t > -safe_theta, t < safe_theta), dist < safe_dist)
 
         x = records[i]['atk']['sim_x']
         t = records[i]['atk']['sim_theta']
         dist = records[i]['atk']['sim_dist']
-        atk_pct = atk_pct + np.logical_and(np.logical_and(t > -safe_theta, t < safe_theta), dist < safe_dist)
+        atk_pct = atk_pct +  np.logical_and(t > -safe_theta, t < safe_theta)
+        # atk_pct = atk_pct + np.logical_and(np.logical_and(t > -safe_theta, t < safe_theta), dist < safe_dist)
 
     time = records[0]['const']['sim_t']
     const_pct = const_pct / size
+    pulse_pct = pulse_pct / size
     atk_pct = atk_pct / size
 
-    hist(time, const_pct, atk_pct, 'pct_histogram.png')
+    hist(time, const_pct, pulse_pct, atk_pct, 'pct_histogram.png')

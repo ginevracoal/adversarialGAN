@@ -6,7 +6,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-FIXED_POLICY=True
+FIXED_POLICY=False
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 

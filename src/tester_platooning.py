@@ -13,13 +13,13 @@ from argparse import ArgumentParser
 ################
 
 agent_position = 0
-agent_velocity = np.linspace(1, 3, 40)
-leader_position = np.linspace(1, 5, 15)
-leader_velocity = np.linspace(1, 3, 40)
+agent_velocity = np.linspace(0, 5, 40) 
+leader_position = np.linspace(2, 10, 25)
+leader_velocity = np.linspace(0, 5, 40)
 
-atk_arch = {'hidden':2, 'size':10, 'coef':3, 'noise':2}
-def_arch = {'hidden':2, 'size':10, 'coef':3}
-train_par = {'train_steps':20000, 'atk_steps':1, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':1.}
+atk_arch = {'hidden':2, 'size':10, 'coef':1, 'noise':2}
+def_arch = {'hidden':2, 'size':10, 'coef':5}
+train_par = {'train_steps':10000, 'atk_steps':3, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':0.001}
 test_par = {'test_steps':300, 'dt':0.05}
 
 ################
@@ -36,7 +36,9 @@ attacker = architecture.Attacker(physical_model, *atk_arch.values())
 defender = architecture.Defender(physical_model, *def_arch.values())
 
 relpath = args.dir+"_lr="+str(train_par["lr"])+"_dt="+str(train_par["dt"])+\
-          "_horizon="+str(train_par["horizon"])+"_train_steps="+str(train_par["train_steps"])
+          "_horizon="+str(train_par["horizon"])+"_train_steps="+str(train_par["train_steps"])+\
+          "_atk="+str(train_par["atk_steps"])+"_def="+str(train_par["def_steps"])
+
 load_models(attacker, defender, EXP+relpath)
 
 

@@ -10,35 +10,41 @@ import numpy as np
 from argparse import ArgumentParser
 from tqdm import tqdm
 
-torch.set_default_tensor_type('torch.FloatTensor')
+################
+### SETTINGS ###
+################
+
+cart_position = np.linspace(-.1, .1, 100)
+cart_velocity = np.linspace(-.5, .5, 100)
+pole_angle = np.linspace(-0.2, 0.2, 100)
+pole_ang_velocity = np.linspace(-.5, .5, 100)
+x_target = np.linspace(-.2, .2, 100)
+
+atk_arch = {'hidden':2, 'size':10, 'coef':1, 'noise':2}
+def_arch = {'hidden':2, 'size':10, 'coef':5}
+train_par = {'train_steps':1000, 'atk_steps':3, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':.001}
+test_par = {'test_steps':300, 'dt':0.05}
+
+################
 
 parser = ArgumentParser()
-parser.add_argument("-d", "--dir", default="../experiments/cartpole_target_noattack", dest="dirname",
-                    help="model's directory")
-parser.add_argument("-r", "--repetitions", dest="repetitions", type=int, default=1,
-                    help="simulation repetions")
-parser.add_argument("--device", type=str, default="cuda")
+parser.add_argument("-d", "--dir", default="cartpole_target", help="model's directory")
+parser.add_argument("-r", "--repetitions", type=int, default=1, help="simulation repetions")
 args = parser.parse_args()
-
-cart_position = np.linspace(-.1, .1, 10)
-cart_velocity = np.linspace(-.3, .3, 20)
-pole_angle = np.linspace(-0.05, 0.05, 20)
-pole_ang_velocity = np.linspace(-.3, .3, 20)
-x_target = np.linspace(-.2, .2, 20)
-
-dt = 0.05
-steps = 40
 
 pg = misc.ParametersHyperparallelepiped(cart_position, cart_velocity, 
                                         pole_angle, pole_ang_velocity, x_target)
 
 physical_model = model_cartpole_target.Model(pg.sample(sigma=0.05), device=args.device)
 
-attacker = architecture.Attacker(physical_model, n_hidden_layers=3, layer_size=10, 
-                                                                     noise_size=3, n_coeff=4)
-defender = architecture.Defender(physical_model, n_hidden_layers=3, layer_size=10, n_coeff=4) 
+attacker = architecture.Attacker(physical_model, *atk_arch.values())
+defender = architecture.Defender(physical_model, *def_arch.values())
 
-misc.load_models(attacker, defender, args.dirname)
+relpath = args.dir+"_lr="+str(train_par["lr"])+"_dt="+str(train_par["dt"])+\
+          "_horizon="+str(train_par["horizon"])+"_train_steps="+str(train_par["train_steps"])+\
+          "_atk="+str(train_par["atk_steps"])+"_def="+str(train_par["def_steps"])
+
+load_models(attacker, defender, EXP+relpath)
 
 def run(mode=None):
     physical_model.initialize_random()
@@ -126,12 +132,12 @@ records = []
 for i in range(args.repetitions):
     sim = {}
     sim['const'] = run(0)
-    # sim['pulse'] = run(1)
+    sim['pulse'] = run(1)
     sim['atk'] = run()
-
-    # print(sim)
-    
     records.append(sim)
     
-with open(os.path.join(args.dirname, 'sims.pkl'), 'wb') as f:
+filename = 'sims_reps='+str(args.repetitions)+'_dt='+str(test_par["dt"])+\
+           '_test_steps='+str(test_par["test_steps"])+'.pkl'
+           
+with open(os.path.join(EXP+relpath, filename), 'wb') as f:
     pickle.dump(records, f)

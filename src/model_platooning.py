@@ -7,7 +7,7 @@ from diffquantitative import DiffQuantitativeSemantic
 class Car:
     """ Describes the physical behaviour of the vehicle """
     def __init__(self):
-        self._max_acceleration = 3.0
+        self._max_acceleration = 10.0
         self._min_acceleration = -self._max_acceleration
         self._max_velocity = 20.0
         self._min_velocity = 0.0

@@ -11,20 +11,18 @@ import model_cartpole_target
 ### SETTINGS ###
 ################
 
-safe_theta = 0.392
-safe_dist = 0.5
 cart_position = np.linspace(-.1, .1, 100)
 cart_velocity = np.linspace(-.5, .5, 100)
-pole_angle = np.linspace(-0.1, 0.1, 100)
+pole_angle = np.linspace(-0.2, 0.2, 100)
 pole_ang_velocity = np.linspace(-.5, .5, 100)
 x_target = np.linspace(-.2, .2, 100)
-dt = 0.05
-simulation_horizon = int(2./dt) 
 
 atk_arch = {'hidden':2, 'size':10, 'coef':1, 'noise':2}
-def_arch = {'hidden':2, 'size':10, 'coef':4}
-train_par = {'train_steps':500, 'atk_steps':3, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':1.}
+def_arch = {'hidden':2, 'size':10, 'coef':5}
+train_par = {'train_steps':1000, 'atk_steps':3, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':.001}
 
+safe_theta = 0.392
+safe_dist = 0.5
 robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta})'# & dist <= {safe_dist})'
 
 ################

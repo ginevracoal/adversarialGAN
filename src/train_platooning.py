@@ -15,19 +15,19 @@ from argparse import ArgumentParser
 
 agent_position = 0
 agent_velocity = np.linspace(0, 20, 100) 
-leader_position = np.linspace(1, 12, 25)
+leader_position = np.linspace(2, 10, 50)
 leader_velocity = np.linspace(0, 20, 100)
 
 atk_arch = {'hidden':2, 'size':10, 'coef':1, 'noise':2}
-def_arch = {'hidden':2, 'size':10, 'coef':4}
-train_par = {'train_steps':20000, 'atk_steps':3, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':1.}
+def_arch = {'hidden':2, 'size':10, 'coef':5}
+train_par = {'train_steps':10000, 'atk_steps':3, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':0.001}
 
 robustness_formula = 'G(dist <= 10 & dist >= 2)'
 
 ################
 
 parser = ArgumentParser()
-parser.add_argument("--dir", default="platooning", help="model's directory")
+parser.add_argument("-d", "--dir", default="platooning", help="model's directory")
 args = parser.parse_args()
 
 pg = ParametersHyperparallelepiped(agent_position, agent_velocity, leader_position, leader_velocity)
