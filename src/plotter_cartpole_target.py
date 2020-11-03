@@ -7,12 +7,13 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
 from argparse import ArgumentParser
+from misc import *
 
 ################
 ### SETTINGS ###
 ################
 
-train_par = {'train_steps':10000, 'atk_steps':3, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':.001}
+train_par = {'train_steps':1000, 'atk_steps':3, 'def_steps':5, 'horizon':1.5, 'dt': 0.05, 'lr':.001}
 test_par = {'test_steps':300, 'dt':0.05}
 safe_theta = 0.392
 safe_dist = 0.5
@@ -22,20 +23,16 @@ mp = .1
 ################
 
 parser = ArgumentParser()
-parser.add_argument("-d", "--dir", default="../experiments/cartpole_target_noattack", dest="dirname",
-                    help="model's directory")
+parser.add_argument("-d", "--dir", default="cartpole_target", help="model's directory")
+parser.add_argument("-r", "--repetitions", type=int, default=1, help="simulation repetions")
 parser.add_argument("--plot_evolution", default=True, type=eval)
 parser.add_argument("--scatter", default=True, type=eval, help="Generate scatterplot")
 parser.add_argument("--hist", default=True, type=eval, help="Generate histograms")
 parser.add_argument("--dark", default=False, type=eval, help="Use dark theme")
 args = parser.parse_args()
 
-relpath = args.dir+"_lr="+str(train_par["lr"])+"_dt="+str(train_par["dt"])+\
-          "_horizon="+str(train_par["horizon"])+"_train_steps="+str(train_par["train_steps"])+\
-          "_atk="+str(train_par["atk_steps"])+"_def="+str(train_par["def_steps"])
-
-sims_filename = 'sims_reps='+str(args.repetitions)+'_dt='+str(test_par["dt"])+\
-           '_test_steps='+str(test_par["test_steps"])+'.pkl'
+relpath = get_relpath(main_dir=args.dir, train_params=train_par)
+sims_filename = get_sims_filename(repetitions=args.repetitions, test_params=test_par)
 
 if args.dark:
     plt.style.use('./qb-common_dark.mplstyle')
@@ -62,7 +59,7 @@ def hist(time, const, pulse, atk, filename):
     ax[1].title.set_text('Against attacker')
 
     fig.tight_layout()
-    fig.savefig(os.path.join(args.dirname, filename), dpi=150)
+    fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
 def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array, filename):
     fig, ax = plt.subplots(1, 2, figsize=(10, 5))

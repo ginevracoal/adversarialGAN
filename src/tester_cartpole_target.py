@@ -1,8 +1,7 @@
 import os
 import pickle
-
 import model_cartpole_target
-import misc
+from misc import *
 import architecture
 import torch
 import torch.nn as nn
@@ -14,15 +13,15 @@ from tqdm import tqdm
 ### SETTINGS ###
 ################
 
-cart_position = np.linspace(-.1, .1, 100)
-cart_velocity = np.linspace(-.5, .5, 100)
-pole_angle = np.linspace(-0.2, 0.2, 100)
-pole_ang_velocity = np.linspace(-.5, .5, 100)
-x_target = np.linspace(-.2, .2, 100)
+cart_position = np.linspace(-1., 1., 50)
+cart_velocity = np.linspace(-1., 1., 50)
+pole_angle = np.linspace(-.2, .2, 50)
+pole_ang_velocity = np.linspace(-1., 1., 50)
+x_target = np.linspace(-1., 1., 50)
 
 atk_arch = {'hidden':2, 'size':10, 'coef':1, 'noise':2}
 def_arch = {'hidden':2, 'size':10, 'coef':5}
-train_par = {'train_steps':1000, 'atk_steps':3, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':.001}
+train_par = {'train_steps':1000, 'atk_steps':5, 'def_steps':5, 'horizon':1.5, 'dt': 0.05, 'lr':.001}
 test_par = {'test_steps':300, 'dt':0.05}
 
 ################
@@ -32,10 +31,10 @@ parser.add_argument("-d", "--dir", default="cartpole_target", help="model's dire
 parser.add_argument("-r", "--repetitions", type=int, default=1, help="simulation repetions")
 args = parser.parse_args()
 
-pg = misc.ParametersHyperparallelepiped(cart_position, cart_velocity, 
+pg = ParametersHyperparallelepiped(cart_position, cart_velocity, 
                                         pole_angle, pole_ang_velocity, x_target)
 
-physical_model = model_cartpole_target.Model(pg.sample(sigma=0.05), device=args.device)
+physical_model = model_cartpole_target.Model(pg.sample(sigma=0.05))
 
 attacker = architecture.Attacker(physical_model, *atk_arch.values())
 defender = architecture.Defender(physical_model, *def_arch.values())
@@ -69,12 +68,13 @@ def run(mode=None):
     sim_dist = []
 
     t = 0
-    for i in tqdm(range(steps)):
+    dt = test_par["dt"]
+    for i in range(test_par["test_steps"]):
         with torch.no_grad():
 
-            oa = torch.tensor(physical_model.agent.status).float()
-            oe = torch.tensor(physical_model.environment.status).float()
-            z = torch.rand(attacker.noise_size).float()
+            oa = torch.tensor(physical_model.agent.status)
+            oe = torch.tensor(physical_model.environment.status)
+            z = torch.rand(attacker.noise_size)
             
             if mode == 0:
                 atk_policy = lambda x: (torch.tensor(0.0), torch.tensor(0.0), torch.tensor(0.0))
@@ -129,15 +129,14 @@ def run(mode=None):
     }
 
 records = []
-for i in range(args.repetitions):
+for i in tqdm(range(args.repetitions)):
     sim = {}
     sim['const'] = run(0)
     sim['pulse'] = run(1)
     sim['atk'] = run()
     records.append(sim)
     
-filename = 'sims_reps='+str(args.repetitions)+'_dt='+str(test_par["dt"])+\
-           '_test_steps='+str(test_par["test_steps"])+'.pkl'
+filename = get_sims_filename(repetitions=args.repetitions, test_params=test_par)
            
 with open(os.path.join(EXP+relpath, filename), 'wb') as f:
     pickle.dump(records, f)
