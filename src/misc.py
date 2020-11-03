@@ -5,6 +5,15 @@ import numpy as np
 
 EXP="../experiments/"
 
+def get_relpath(main_dir, train_params):
+    return main_dir+"_lr="+str(train_params["lr"])+"_dt="+str(train_params["dt"])+\
+          "_horizon="+str(train_params["horizon"])+"_train_steps="+str(train_params["train_steps"])+\
+          "_atk="+str(train_params["atk_steps"])+"_def="+str(train_params["def_steps"])
+
+def get_sims_filename(repetitions, test_params):
+    return 'sims_reps='+str(repetitions)+'_dt='+str(test_params["dt"])+\
+           '_test_steps='+str(test_params["test_steps"])+'.pkl'
+
 def save_models(attacker_model, defender_model, path):
     os.makedirs(path, exist_ok=True)
 

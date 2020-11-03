@@ -109,8 +109,8 @@ class Trainer:
         self.attacker = attacker_nn
         self.defender = defender_nn
 
-        self.attacker_loss_fn = lambda x: x
-        self.defender_loss_fn = lambda x: -x
+        self.attacker_loss_fn = lambda x: torch.tensor(x, requires_grad = True)
+        self.defender_loss_fn = lambda x: torch.tensor(-x, requires_grad = True)
 
         atk_optimizer = optim.Adam(attacker_nn.parameters(), lr=lr)
         def_optimizer = optim.Adam(defender_nn.parameters(), lr=lr)
@@ -169,7 +169,8 @@ class Trainer:
 
         self.attacker_optimizer.step()
 
-        return float(loss.detach())
+        # return float(loss.detach())
+        return float(loss)
 
 
     def train_defender_step(self, time_horizon, dt, atk_static):
@@ -215,7 +216,8 @@ class Trainer:
 
         self.defender_optimizer.step()
 
-        return float(loss.detach())
+        # return float(loss.detach())
+        return float(loss)
 
     # def initialize_random_batch(self, batch_size=128):
     #     return [next(self.model._param_generator) for _ in range(batch_size)]

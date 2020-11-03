@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from argparse import ArgumentParser
+from tqdm import tqdm
 
 ################
 ### SETTINGS ###
@@ -35,9 +36,7 @@ physical_model = model_platooning.Model(pg.sample(sigma=0.05))
 attacker = architecture.Attacker(physical_model, *atk_arch.values())
 defender = architecture.Defender(physical_model, *def_arch.values())
 
-relpath = args.dir+"_lr="+str(train_par["lr"])+"_dt="+str(train_par["dt"])+\
-          "_horizon="+str(train_par["horizon"])+"_train_steps="+str(train_par["train_steps"])+\
-          "_atk="+str(train_par["atk_steps"])+"_def="+str(train_par["def_steps"])
+relpath = get_relpath(main_dir=args.dir, train_par=train_par)
 
 load_models(attacker, defender, EXP+relpath)
 
@@ -107,7 +106,7 @@ def run(mode=None):
     }
 
 records = []
-for i in range(args.repetitions):
+for i in tqdm(range(args.repetitions)):
     sim = {}
     sim['pulse'] = run(0)
     sim['step_up'] = run(1)
@@ -115,8 +114,7 @@ for i in range(args.repetitions):
     sim['atk'] = run()
     records.append(sim)
     
-filename = 'sims_reps='+str(args.repetitions)+'_dt='+str(test_par["dt"])+\
-           '_test_steps='+str(test_par["test_steps"])+'.pkl'
+filename = get_sims_filename(repetitions=args.repetitions, test_params=test_par)
            
 with open(os.path.join(EXP+relpath, filename), 'wb') as f:
     pickle.dump(records, f)

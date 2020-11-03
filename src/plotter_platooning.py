@@ -27,12 +27,8 @@ parser.add_argument("--hist", default=True, help="Generate histograms")
 parser.add_argument("--dark", default=False, help="Use dark theme")
 args = parser.parse_args()
 
-relpath = args.dir+"_lr="+str(train_par["lr"])+"_dt="+str(train_par["dt"])+\
-          "_horizon="+str(train_par["horizon"])+"_train_steps="+str(train_par["train_steps"])+\
-          "_atk="+str(train_par["atk_steps"])+"_def="+str(train_par["def_steps"])
-
-sims_filename = 'sims_reps='+str(args.repetitions)+'_dt='+str(test_par["dt"])+\
-           '_test_steps='+str(test_par["test_steps"])+'.pkl'
+relpath = get_relpath(main_dir=args.dir, train_params=train_par)
+sims_filename = get_sims_filename(repetitions=args.repetitions, test_params=test_par)
 
 if args.dark:
     plt.style.use('./qb-common_dark.mplstyle')
