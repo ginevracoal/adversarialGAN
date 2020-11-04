@@ -5,7 +5,8 @@ import random
 from diffquantitative import DiffQuantitativeSemantic
 from torchdiffeq import odeint
 
-DEBUG=True
+DEBUG=False
+DIFF_EQ="gym" #gym, enrico
 
 class CartPole():
 
@@ -31,102 +32,13 @@ class CartPole():
         self.nu = torch.tensor(0.0)
         self.f = torch.tensor(0.0)
 
-        self._max_x = 100.
-        self._max_theta = 1.5
-        self._max_dot_x = 1000.
-        self._max_dot_theta =  1000.
+        self._max_x = 5.
+        self._max_theta = 1.
+        self._max_dot_x = 100.
+        self._max_dot_theta =  100.
         self._max_ddot_x = 100.
         self._max_ddot_theta = 100.
         self._max_f = 100.
-        self.a=1.
-
-        # self.theta_0_ths = .8
-        # self.theta_1_ths = .8
-        # self.ctrl_magnitude = 100
-
-    def old_update(self, dt, inp_acc=None, dot_eps=None, mu=None, nu=None):
-        """
-        Update the system state.
-        """        
-        if inp_acc is not None:
-            self.inp_acc = inp_acc
-
-        if self.cart_friction is True:
-            if mu is not None:
-                self.mu = mu
-
-        if self.air_drag is True:
-            if nu is not None:
-                self.nu = nu
-
-        if dot_eps is not None:
-            eps = self.eps + dot_eps * dt
-            self.x_target = (self.x+eps)
-
-        def ode_func(dt, q):
-
-            # Locals for readability.
-            g = self.gravity
-            mp = self.mpole
-            mc = self.mcart
-            L = self.lpole
-            l = L/2 
-            
-            x, theta, dot_x, dot_theta = q[0], q[1], q[2], q[3]
-            x = torch.clamp(x, -self._max_x, self._max_x).reshape(1)
-            theta = torch.clamp(theta, -self._max_theta, self._max_theta).reshape(1)
-            dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
-            dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
-
-            f = (mp + mc) * self.inp_acc * self.a
-            self.f = torch.clamp(f, -self._max_f, self._max_f)
-
-            #########################
-            # # ENRICO
-
-            ddot_x = self.f - self.mu*dot_x  \
-                       + mp*l*dot_theta**2* torch.sin(theta) \
-                       - mp*g*torch.cos(theta) * torch.sin(theta)
-            ddot_x = ddot_x / ( mc+mp-mp* torch.cos(theta)**2 )
-        
-            ddot_theta = (g*torch.sin(theta) - torch.cos(theta)*ddot_x ) / l
-    
-            #########################
-            # # wiki
-
-            # ddot_x = (self.f - self.mu*dot_x  \
-            #            + mp*l*self.ddot_theta*torch.cos(theta) \
-            #            - mp * l**2 * dot_theta**2 * torch.sin(theta)) / (mc+mp)
-        
-            # ddot_theta = (g*torch.sin(theta) - torch.cos(theta)*ddot_x ) / l
-
-            #########################
-
-            dqdt = torch.tensor([dot_x, dot_theta, ddot_x, ddot_theta], requires_grad=True)
-
-            self.ddot_x = torch.clamp(ddot_x, -self._max_ddot_x, self._max_ddot_x).reshape(1)
-            self.ddot_theta = torch.clamp(ddot_theta, -self._max_ddot_theta, self._max_ddot_theta).reshape(1)
-
-            return dqdt
-                    
-        # Solve the ODE
-        q0 = torch.tensor([self.x, self.theta, self.dot_x, self.dot_theta])
-        t = torch.tensor(np.linspace(0, dt, 2))
-        q = odeint(func=ode_func, y0=q0, t=t)
-
-        x, theta, dot_x, dot_theta = q[1]
-
-        self.dist = torch.abs(x-self.x_target)
-        self.x = torch.clamp(x, -self._max_x, self._max_x).reshape(1)
-        self.theta = torch.clamp(theta, -self._max_theta, self._max_theta).reshape(1)
-        self.dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
-        self.dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
-        
-        if DEBUG:
-            print(f"x-x_target={(x-self.x_target).item():.4f}\
-                    theta={self.theta.item():.4f}\
-                    mu={self.mu.item():.4f}\
-                    f={self.f.item()}")
 
     def update(self, dt, inp_acc=None, dot_eps=None, mu=None, nu=None):
         """
@@ -152,14 +64,25 @@ class CartPole():
         mc = self.mcart
         l = self.lpole/2 
         
-        f = (mp + mc) * self.inp_acc * self.a
+        # f = (mp + mc) * self.inp_acc
+        f = (mp + mc) * torch.abs(self.inp_acc) * torch.sign(self.theta) 
         self.f = torch.clamp(f, -self._max_f, self._max_f)
 
-        ## openai gym ##
-        temp = (self.f+mp*l*self.dot_theta**2*torch.sin(self.theta))/(mp+mc)
-        denom = l*(4/3-(mp*torch.cos(self.theta)**2)/(mp+mc))
-        ddot_theta = (g*torch.sin(self.theta)-torch.cos(self.theta)*temp)/denom
-        ddot_x = temp - (mp*l*ddot_theta*torch.cos(self.theta))/(mp+mc)
+        if DIFF_EQ=="gym":
+
+            temp = (self.f+mp*l*self.dot_theta**2*torch.sin(self.theta))/(mp+mc)
+            denom = l*(4/3-(mp*torch.cos(self.theta)**2)/(mp+mc))
+            ddot_theta = (g*torch.sin(self.theta)-torch.cos(self.theta)*temp)/denom
+            ddot_x = temp - (mp*l*ddot_theta*torch.cos(self.theta))/(mp+mc)
+
+        elif DIFF_EQ=="enrico":
+
+            ddot_x = self.f - self.mu*self.dot_x  \
+                       + mp*l*self.dot_theta**2* torch.sin(self.theta) \
+                       - mp*g*torch.cos(self.theta) * torch.sin(self.theta)
+            ddot_x = ddot_x / ( mc+mp-mp* torch.cos(self.theta)**2 )
+        
+            ddot_theta = (g*torch.sin(self.theta) - torch.cos(self.theta)*ddot_x ) / l
 
         x = self.x + dt * self.dot_x
         theta = self.theta + dt * self.dot_theta
@@ -171,12 +94,11 @@ class CartPole():
         self.theta = torch.clamp(theta, -self._max_theta, self._max_theta).reshape(1)
         self.dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
         self.dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
-        
+
         if DEBUG:
             print(f"x-x_target={(x-self.x_target).item():.4f}\
                     theta={self.theta.item():.4f}\
                     f={self.f.item()}")
-
 
 class Environment:
     def __init__(self, cartpole):
@@ -195,10 +117,10 @@ class Environment:
     @property
     def status(self):
         return (self._agent.x,
-                self._agent.theta,  
-                self._agent.dot_x,
-                self._agent.dot_theta,
-                self._agent.x_target)
+                self._agent.theta)  
+                # self._agent.dot_x),
+                # self._agent.dot_theta,
+                # self._agent.x_target)
 
     def update(self, parameters, dt):
         # the environment updates according to the parameters

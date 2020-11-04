@@ -1,33 +1,29 @@
 import os
 import random
-from misc import *
 import pickle
-import model_platooning
+import model_cartpole
 import torch
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
 from argparse import ArgumentParser
-
-################
-### SETTINGS ###
-################
-
-train_par = {'train_steps':10000, 'atk_steps':3, 'def_steps':5, 'horizon':5., 'dt': 0.05, 'lr':.001}
-test_par = {'test_steps':300, 'dt':0.05}
-
-################
+from misc import *
+from settings_platooning import get_settings
 
 parser = ArgumentParser()
-parser.add_argument("-d", "--dir", default="platooning", help="model's directory")
 parser.add_argument("-r", "--repetitions", type=int, default=1, help="simulation repetions")
-parser.add_argument("--triplots", default=True, help="Generate triplots")
-parser.add_argument("--scatter", default=True, help="Generate scatterplot")
-parser.add_argument("--hist", default=True, help="Generate histograms")
-parser.add_argument("--dark", default=False, help="Use dark theme")
+parser.add_argument("--architecture", type=str, default="default", help="architecture's name")
+parser.add_argument("--plot_evolution", default=True, type=eval)
+parser.add_argument("--scatter", default=True, type=eval, help="Generate scatterplot")
+parser.add_argument("--hist", default=True, type=eval, help="Generate histograms")
+parser.add_argument("--dark", default=False, type=eval, help="Use dark theme")
 args = parser.parse_args()
 
-relpath = get_relpath(main_dir=args.dir, train_params=train_par)
+agent_position, agent_velocity, leader_position, leader_velocity, \
+            atk_arch, def_arch, train_par, test_par, \
+            robustness_formula = get_settings(args.architecture, mode="train")
+
+relpath = get_relpath(main_dir="platooning_"+args.architecture, train_params=train_par)
 sims_filename = get_sims_filename(repetitions=args.repetitions, test_params=test_par)
 
 if args.dark:

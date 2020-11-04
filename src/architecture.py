@@ -163,10 +163,8 @@ class Trainer:
         rho = self.robustness_computer.compute(self.model)
 
         self.attacker_optimizer.zero_grad()
-
         loss = self.attacker_loss_fn(rho)
         loss.backward()
-
         self.attacker_optimizer.step()
 
         # return float(loss.detach())
@@ -210,24 +208,22 @@ class Trainer:
         rho = self.robustness_computer.compute(self.model)
 
         self.defender_optimizer.zero_grad()
-
         loss = self.defender_loss_fn(rho)
         loss.backward()
-
         self.defender_optimizer.step()
 
         # return float(loss.detach())
         return float(loss)
 
-    # def initialize_random_batch(self, batch_size=128):
-    #     return [next(self.model._param_generator) for _ in range(batch_size)]
+    def initialize_random_batch(self, batch_size=128):
+        return [next(self.model._param_generator) for _ in range(batch_size)]
 
     def train(self, atk_steps, def_steps, time_horizon, dt, atk_static):
         """ Trains both the attacker and the defender on the same
             initial senario (different for each)
         """
 
-        atk_loss, def_loss = 0, 0
+        # random_batch = initialize_random_batch() 
 
         self.model.initialize_random() # samples a random initial state
         for i in range(atk_steps):

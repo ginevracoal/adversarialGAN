@@ -19,6 +19,7 @@ class Car:
 
     def update(self, in_acceleration, dt):
         """ Differential equation for updating the state of the car """
+
         self.acceleration = torch.clamp(in_acceleration, self._min_acceleration, self._max_acceleration)
         if self.velocity > 0:
             self.acceleration -= self.friction_coefficient * self.gravity

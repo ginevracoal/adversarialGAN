@@ -6,37 +6,22 @@ import torch.nn as nn
 from argparse import ArgumentParser
 import architecture
 import model_cartpole_target
-
-################
-### SETTINGS ###
-################
-
-cart_position = np.linspace(-1., 1., 50)
-cart_velocity = np.linspace(-1., 1., 50)
-pole_angle = np.linspace(-.2, .2, 50)
-pole_ang_velocity = np.linspace(-1., 1., 50)
-x_target = np.linspace(-1., 1., 50)
-
-atk_arch = {'hidden':2, 'size':10, 'coef':1, 'noise':2}
-def_arch = {'hidden':2, 'size':10, 'coef':5}
-train_par = {'train_steps':10000, 'atk_steps':5, 'def_steps':5, 'horizon':1.5, 'dt': 0.05, 'lr':.001}
-
-safe_theta = 0.392
-safe_dist = 0.5
-robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta})'# & dist <= {safe_dist})'
-
-################
+from settings_cartpole_target import get_settings
 
 parser = ArgumentParser()
-parser.add_argument("--dir", default="cartpole_target", help="model's directory")
+parser.add_argument("--architecture", type=str, default="default", help="architecture's name")
 args = parser.parse_args()
+
+cart_position, cart_velocity, pole_angle, pole_ang_velocity, x_target, \
+        atk_arch, def_arch, train_par, test_par, \
+        robustness_formula = get_settings(args.architecture, mode="train")
 
 pg = ParametersHyperparallelepiped(cart_position, cart_velocity, pole_angle, 
                                         pole_ang_velocity, x_target)
 physical_model = model_cartpole_target.Model(pg.sample(sigma=0.05))
 robustness_computer = model_cartpole_target.RobustnessComputer(robustness_formula)
 
-relpath = get_relpath(main_dir=args.dir, train_params=train_par)
+relpath = get_relpath(main_dir="cartpole_target_"+args.architecture, train_params=train_par)
 
 attacker = architecture.Attacker(physical_model, *atk_arch.values())
 defender = architecture.Defender(physical_model, *def_arch.values())

@@ -1,43 +1,35 @@
 import os
 import pickle
-
 import model_cartpole
-import misc
+from misc import *
 import architecture
 import torch
 import torch.nn as nn
 import numpy as np
 from argparse import ArgumentParser
 from tqdm import tqdm
-
-torch.set_default_tensor_type('torch.FloatTensor')
+from settings_cartpole import get_settings
 
 parser = ArgumentParser()
-parser.add_argument("-d", "--dir", default="../experiments/cartpole", dest="dirname",
-                    help="model's directory")
-parser.add_argument("-r", "--repetitions", dest="repetitions", type=int, default=2,
-                    help="simulation repetions")
-parser.add_argument("--ode_idx", type=int, default=2)
-parser.add_argument("--device", type=str, default="cuda")
+parser.add_argument("-r", "--repetitions", type=int, default=1, help="simulation repetions")
+parser.add_argument("--architecture", type=str, default="default", help="architecture's name")
 args = parser.parse_args()
 
-cart_position = np.linspace(-1., 1., 10)
-cart_velocity = np.linspace(-.3, .3, 20)
-pole_angle = np.linspace(-0.05, 0.05, 20)
-pole_ang_velocity = np.linspace(-1., 1., 30)
-dt = 0.005 
-steps = 100
+cart_position, cart_velocity, pole_angle, pole_ang_velocity, \
+        atk_arch, def_arch, train_par, test_par, \
+        robustness_formula = get_settings(args.architecture, mode="test")
 
-pg = misc.ParametersHyperparallelepiped(cart_position, cart_velocity, 
+pg = ParametersHyperparallelepiped(cart_position, cart_velocity, 
                                         pole_angle, pole_ang_velocity)
 
-physical_model = model_cartpole.Model(pg.sample(sigma=0.05), device=args.device, 
-                                        ode_idx=args.ode_idx)
+physical_model = model_cartpole.Model(pg.sample(sigma=0.05))
 
-attacker = architecture.Attacker(physical_model, 2, 10, 8)
-defender = architecture.Defender(physical_model, 3, 10, 8)
+attacker = architecture.Attacker(physical_model, *atk_arch.values())
+defender = architecture.Defender(physical_model, *def_arch.values())
 
-misc.load_models(attacker, defender, args.dirname+str(args.ode_idx))
+relpath = get_relpath(main_dir="cartpole_"+args.architecture, train_params=train_par)
+
+load_models(attacker, defender, EXP+relpath)
 
 def run(mode=None):
     physical_model.initialize_random()
@@ -52,33 +44,23 @@ def run(mode=None):
     sim_x = []
     sim_theta = []
     sim_dot_x = []
+    sim_ddot_x = []
     sim_dot_theta = []
-    sim_attack_nu = []
-    sim_attack_mu = []
-    sim_defence = []
+    sim_def_acc = []
 
     t = 0
-    for i in tqdm(range(steps)):
+    dt = test_par["dt"]
+    for i in range(test_par["test_steps"]):
         with torch.no_grad():
 
-            oa = torch.tensor(physical_model.agent.status).float()
-            oe = torch.tensor(physical_model.environment.status).float()
-            z = torch.rand(attacker.noise_size).float()
+            oa = torch.tensor(physical_model.agent.status)
+            oe = torch.tensor(physical_model.environment.status)
+            z = torch.rand(attacker.noise_size)
             
-            if mode == 0:
-                atk_policy = lambda x: (torch.tensor(0.0), torch.tensor(0.0))
-
-            elif mode == 1:
-                atk_policy = lambda x: (torch.tensor(0.05), torch.tensor(0.01)) \
-                                        if i > 5 and i < 10 \
-                                        else (-torch.tensor(0.05), -torch.tensor(0.01))
-            else:
-                atk_policy = attacker(torch.cat((z, oe)))
-
+            atk_policy = attacker(torch.cat((z, oe)))
             def_policy = defender(oa)
 
-        atk_input = (-torch.tensor(0.05), atk_policy(dt)[1]) if i > 8 and i < 15 \
-                    else (torch.tensor(0.05), atk_policy(dt)[1])
+        atk_input = atk_policy(dt)
         def_input = def_policy(dt)
 
         physical_model.step(env_input=atk_input, agent_input=def_input, dt=dt)
@@ -87,10 +69,9 @@ def run(mode=None):
         sim_x.append(physical_model.agent.x.item())
         sim_theta.append(physical_model.agent.theta.item())
         sim_dot_x.append(physical_model.agent.dot_x.item())
+        sim_ddot_x.append(physical_model.agent.ddot_x.item())
         sim_dot_theta.append(physical_model.agent.dot_theta.item())
-        sim_attack_nu.append(atk_input[0].item())
-        sim_attack_mu.append(atk_input[1].item())
-        sim_defence.append(def_input.item())
+        sim_def_acc.append(def_input.item())
 
         t += dt
         
@@ -99,22 +80,18 @@ def run(mode=None):
             'sim_x': np.array(sim_x),
             'sim_theta': np.array(sim_theta),
             'sim_dot_x': np.array(sim_dot_x),
+            'sim_ddot_x': np.array(sim_dot_x),
             'sim_dot_theta': np.array(sim_dot_theta),
-            'sim_attack_nu': np.array(sim_attack_nu),
-            'sim_attack_mu': np.array(sim_attack_mu),
-            'sim_defence': np.array(sim_defence),
+            'sim_def_acc': np.array(sim_def_acc),
     }
 
 records = []
-for i in range(args.repetitions):
+for i in tqdm(range(args.repetitions)):
     sim = {}
     sim['const'] = run(0)
-    # sim['pulse'] = run(1)
-    sim['atk'] = run()
-
-    # print(sim)
-    
     records.append(sim)
     
-with open(os.path.join(args.dirname+str(args.ode_idx), 'sims.pkl'), 'wb') as f:
+filename = get_sims_filename(repetitions=args.repetitions, test_params=test_par)
+           
+with open(os.path.join(EXP+relpath, filename), 'wb') as f:
     pickle.dump(records, f)
