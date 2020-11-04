@@ -1,9 +1,7 @@
 import json
 import torch
 import numpy as np
-
 from diffquantitative import DiffQuantitativeSemantic
-
 from scipy.interpolate import griddata
 import matplotlib.pyplot as plt
 import numpy
@@ -73,9 +71,9 @@ class Car:
         self._max_velocity = 20.0 #m/s
         self._min_velocity = 0.0
         self.gravity = 9.81 #m/s^2
-        self.position = torch.tensor(0.0).to(dtype=torch.float32) 
-        self.velocity = torch.tensor(0.0).to(dtype=torch.float32) 
-        self.acceleration = torch.tensor(0.0).to(dtype=torch.float32) 
+        self.position = torch.tensor(0.0)
+        self.velocity = torch.tensor(0.0)
+        self.acceleration = torch.tensor(0.0)
         self.friction_coefficient = 0.01 # will be ignored
 
         self.mass = 800       #kg
@@ -91,10 +89,10 @@ class Car:
         
         self.max_e_tq = np.max(self.e_motor.EM_T_max_list)
         self.min_e_tq = - self.max_e_tq
-        self.e_motor_speed = torch.tensor(0.0).to(dtype=torch.float32) 
-        self.e_torque= torch.tensor(0.0).to(dtype=torch.float32) 
-        self.br_torque= torch.tensor(0.0).to(dtype=torch.float32) 
-        self.e_power = torch.tensor(0.0).to(dtype=torch.float32) 
+        self.e_motor_speed = torch.tensor(0.0)
+        self.e_torque= torch.tensor(0.0)
+        self.br_torque= torch.tensor(0.0)
+        self.e_power = torch.tensor(0.0)
 
     def motor_efficiency(self):
         eff = self.e_motor.getEfficiency(self.e_motor_speed,self.e_torque)
@@ -114,7 +112,7 @@ class Car:
     def update(self, dt, e_torque, br_torque, dist_force=0):
         #Differential equation for updating the state of the car
 
-        in_wheels_torque = self.calculate_wheels_torque(e_torque, br_torque).to(device=self.device, dtype=torch.float32) 
+        in_wheels_torque = self.calculate_wheels_torque(e_torque, br_torque)
 
         acceleration = (in_wheels_torque/self.wheel_radius - self.resistance_force() + dist_force) / self.mass
            
@@ -270,10 +268,10 @@ class Model:
 
     def reinitialize(self, agent_position, agent_velocity, leader_position, leader_velocity):
         """ Sets the world's state as specified """
-        self.agent.position = torch.tensor(agent_position).reshape(1).float()
-        self.agent.velocity = torch.tensor(agent_velocity).reshape(1).float()
-        self.environment.l_position = torch.tensor(leader_position).reshape(1).float()
-        self.environment.l_velocity = torch.tensor(leader_velocity).reshape(1).float()
+        self.agent.position = torch.tensor(agent_position).reshape(1)
+        self.agent.velocity = torch.tensor(agent_velocity).reshape(1)
+        self.environment.l_position = torch.tensor(leader_position).reshape(1)
+        self.environment.l_velocity = torch.tensor(leader_velocity).reshape(1)
 
         self.traces = {
             'dist': [],
