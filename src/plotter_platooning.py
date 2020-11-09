@@ -1,7 +1,7 @@
 import os
 import random
 import pickle
-import model_cartpole
+import model_platooning
 import torch
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -116,7 +116,7 @@ if args.scatter:
 
     scatter(robustness_array, delta_pos_array, delta_vel_array, 'atk_scatterplot.png')
 
-if args.triplots:
+if args.plot_evolution:
     n = random.randrange(len(records))
     print('pulse:', records[n]['pulse']['init'])
     plot(records[n]['pulse']['sim_t'], records[n]['pulse']['sim_ag_pos'], records[n]['pulse']['sim_ag_dist'], records[n]['pulse']['sim_ag_acc'], records[n]['pulse']['sim_env_pos'], records[n]['pulse']['sim_env_acc'], 'triplot_pulse.png')

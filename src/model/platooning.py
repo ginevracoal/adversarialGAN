@@ -1,7 +1,5 @@
 import json
 import torch
-import numpy as np
-
 from diffquantitative import DiffQuantitativeSemantic
 
 class Car:
@@ -173,5 +171,4 @@ class RobustnessComputer:
     def compute(self, model):
         """ Computes rho for the given trace """
         d = model.traces['dist']
-
         return self.dqs.compute(dist=torch.cat(d))

@@ -5,10 +5,15 @@ import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+from torch.autograd import Variable
 
 FIXED_POLICY=False
+MINIBATCH=False
+BATCH_SIZE=32
+DEBUG=False
 
 torch.set_default_tensor_type(torch.DoubleTensor)
+
 
 class Attacker(nn.Module):
     """ NN architecture for the attacker """
@@ -36,7 +41,6 @@ class Attacker(nn.Module):
         layers.append(nn.Linear(layer_size, output_layer_size))
 
         self.nn = nn.Sequential(*layers)
-
 
     def forward(self, x):
         """ Uses the NN's output to compute the coefficients of the policy function """
@@ -109,8 +113,8 @@ class Trainer:
         self.attacker = attacker_nn
         self.defender = defender_nn
 
-        self.attacker_loss_fn = lambda x: torch.tensor(x, requires_grad = True)
-        self.defender_loss_fn = lambda x: torch.tensor(-x, requires_grad = True)
+        self.attacker_loss_fn = lambda x: x
+        self.defender_loss_fn = lambda x: -x
 
         atk_optimizer = optim.Adam(attacker_nn.parameters(), lr=lr)
         def_optimizer = optim.Adam(defender_nn.parameters(), lr=lr)
@@ -118,14 +122,12 @@ class Trainer:
         self.defender_optimizer = def_optimizer
 
         self.logging = True if logging_dir else False
-
         if self.logging:
-            # self.log = SummaryWriter(logging_dir)
             self.logging_dir = logging_dir
-
 
     def train_attacker_step(self, time_horizon, dt, atk_static):
         """ Training step for the attacker. The defender's passive. """
+        self.attacker_optimizer.zero_grad()
 
         if FIXED_POLICY is True:
             z = torch.rand(self.attacker.noise_size)
@@ -138,6 +140,7 @@ class Trainer:
                 def_policy = self.defender(oa)
 
         t = 0
+        loss = 0
         for i in range(time_horizon):
 
             if FIXED_POLICY is False:
@@ -155,24 +158,20 @@ class Trainer:
             # attacker do not vary policy over time
             atk_input = atk_policy(0 if atk_static else t)
             def_input = def_policy(t)
-
             self.model.step(atk_input, def_input, dt)
-
             t += dt
 
-        rho = self.robustness_computer.compute(self.model)
+            rho = self.robustness_computer.compute(self.model)
+            loss += self.attacker_loss_fn(rho)
 
-        self.attacker_optimizer.zero_grad()
-        loss = self.attacker_loss_fn(rho)
         loss.backward()
-        self.attacker_optimizer.step()
+        self.attacker_optimizer.step()  
 
-        # return float(loss.detach())
-        return float(loss)
-
+        return loss.detach()
 
     def train_defender_step(self, time_horizon, dt, atk_static):
         """ Training step for the defender. The attacker's passive. """
+        self.defender_optimizer.zero_grad()
 
         if FIXED_POLICY is True:
             z = torch.rand(self.attacker.noise_size)
@@ -185,7 +184,10 @@ class Trainer:
             def_policy = self.defender(oa)
 
         t = 0
+        loss = 0
+
         for i in range(time_horizon):
+
 
             if FIXED_POLICY is False:
                 z = torch.rand(self.attacker.noise_size)
@@ -200,43 +202,61 @@ class Trainer:
             # if the attacker is static, see the comments above
             atk_input = atk_policy(0 if atk_static else t)
             def_input = def_policy(t)
-
             self.model.step(atk_input, def_input, dt)
-
             t += dt
+        
+            rho = self.robustness_computer.compute(self.model)
+            loss += self.defender_loss_fn(rho)
 
-        rho = self.robustness_computer.compute(self.model)
-
-        self.defender_optimizer.zero_grad()
-        loss = self.defender_loss_fn(rho)
         loss.backward()
-        self.defender_optimizer.step()
+        self.defender_optimizer.step()     
 
-        # return float(loss.detach())
-        return float(loss)
+        return loss.detach()
 
-    def initialize_random_batch(self, batch_size=128):
-        return [next(self.model._param_generator) for _ in range(batch_size)]
+    # DEBUG
+    # def initialize_random_batch(self, batch_size=BATCH_SIZE):
+    #     return [next(self.model._param_generator) for _ in range(batch_size)]
+
 
     def train(self, atk_steps, def_steps, time_horizon, dt, atk_static):
-        """ Trains both the attacker and the defender on the same
-            initial senario (different for each)
+        """ Trains both the attacker and the defender
         """
 
-        # random_batch = initialize_random_batch() 
+        if MINIBATCH is True:
 
-        self.model.initialize_random() # samples a random initial state
-        for i in range(atk_steps):
-            atk_loss = self.train_attacker_step(time_horizon, dt, atk_static)
-            self.model.initialize_rewind() # restores the initial state
+            random_batch = self.initialize_random_batch() 
 
-        self.model.initialize_random() # samples a random initial state
-        for i in range(def_steps):
-            def_loss = self.train_defender_step(time_horizon, dt, atk_static)
-            self.model.initialize_rewind() # restores the initial state
+            for random_init in random_batch:
+
+                for i in range(atk_steps):
+
+                    print(random_init)
+                    self.model.reinitialize(*random_init)
+                    atk_loss = self.train_attacker_step(time_horizon, dt, atk_static)
+
+                    if DEBUG:
+                        print(self.attacker.state_dict()["nn.0.bias"])
+
+                for i in range(def_steps):
+                    self.model.reinitialize(*random_init)
+                    def_loss = self.train_defender_step(time_horizon, dt, atk_static)
+
+        else:
+
+            self.model.initialize_random()
+            for i in range(atk_steps):
+                atk_loss = self.train_attacker_step(time_horizon, dt, atk_static)
+                self.model.initialize_rewind()
+
+                if DEBUG:
+                    print(self.attacker.state_dict()["nn.0.bias"])
+
+            self.model.initialize_random()
+            for i in range(def_steps):
+                def_loss = self.train_defender_step(time_horizon, dt, atk_static)
+                self.model.initialize_rewind()
 
         return (atk_loss, def_loss)
-
 
     def run(self, n_steps, time_horizon=100, dt=0.05, *, atk_steps=1, def_steps=1, 
             atk_static=False):
@@ -256,17 +276,6 @@ class Trainer:
                 atk_loss_vals[i] = atk_loss
                 def_loss_vals[i] = def_loss
 
-                # self.log.add_scalar('attacker loss', atk_loss, i)
-                # self.log.add_scalar('defender loss', def_loss, i)
-
-                # if (i + 1) % hist_every == 0:
-                #     a = hist_counter * hist_every
-                #     b = (hist_counter + 1) * hist_every
-                #     hist_counter += 1
-
-                #     self.log.add_histogram('attacker loss hist', atk_loss_vals[a:b], i)
-                #     self.log.add_histogram('defender loss hist', def_loss_vals[a:b], i)
-
         def plot_loss(atk_loss, def_loss, path):
             fig, ax = plt.subplots(1)
             ax.plot(atk_loss, label="attacker loss")
@@ -276,9 +285,7 @@ class Trainer:
             fig.savefig(path+"/loss.png")
 
         if self.logging:
-            # self.log.close()
             plot_loss(atk_loss_vals.detach().cpu(), def_loss_vals.detach().cpu(), self.logging_dir)
-
 
 
 class Tester:
@@ -295,8 +302,6 @@ class Tester:
 
         self.logging = True if logging_dir else False
 
-        # if self.logging:
-        #     self.log = SummaryWriter(logging_dir)
 
     def test(self, time_horizon, dt):
         """ Tests a whole episode """
@@ -331,9 +336,5 @@ class Tester:
 
             if self.logging:
                 def_rho_vals[i] = def_rho
-
-        # if self.logging:
-        #     self.log.add_histogram('defender robustness', def_rho_vals, i)
-        #     self.log.close()
 
         print(f"avg robustness = {def_rho_vals.mean().item():.2f}")

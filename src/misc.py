@@ -56,6 +56,8 @@ class ParametersHyperparallelepiped:
         order to encourage the exploration of the space.
     """
 
+    np.random.seed(0)
+
     def __init__(self, *ranges):
         self._ranges = ranges
 
