@@ -1,17 +1,20 @@
 import os
 import random
 import pickle
-import model_platooning
 import torch
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
 from argparse import ArgumentParser
 from misc import *
-from settings_platooning import get_settings
+# import model_platooning
+# from settings_platooning import get_settings
+from model.platooning import *
+from settings.platooning import *
+from architecture.default import *
 
 parser = ArgumentParser()
-parser.add_argument("-r", "--repetitions", type=int, default=1, help="simulation repetions")
+parser.add_argument("-r", "--repetitions", type=int, default=10, help="simulation repetions")
 parser.add_argument("--architecture", type=str, default="default", help="architecture's name")
 parser.add_argument("--plot_evolution", default=True, type=eval)
 parser.add_argument("--scatter", default=True, type=eval, help="Generate scatterplot")
@@ -24,7 +27,7 @@ agent_position, agent_velocity, leader_position, leader_velocity, \
             robustness_formula = get_settings(args.architecture, mode="train")
 
 relpath = get_relpath(main_dir="platooning_"+args.architecture, train_params=train_par)
-sims_filename = get_sims_filename(repetitions=args.repetitions, test_params=test_par)
+sims_filename = get_sims_filename(args.repetitions, test_par)
 
 if args.dark:
     plt.style.use('./qb-common_dark.mplstyle')
@@ -97,8 +100,7 @@ def plot(sim_time, sim_agent_pos, sim_agent_dist, sim_agent_acc, sim_env_pos, si
 if args.scatter:
     size = len(records)
 
-    robustness_formula = 'G(dist <= 10 & dist >= 2)'
-    robustness_computer = model_platooning.RobustnessComputer(robustness_formula)
+    robustness_computer = RobustnessComputer(robustness_formula)
 
     robustness_array = np.zeros(size)
     delta_pos_array = np.zeros(size)

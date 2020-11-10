@@ -31,13 +31,13 @@ def get_settings(name, mode):
     elif name=="fast":
 
         net_arch = {'hidden':2, 'size':10}
-        train_par = {'train_steps':30, 'horizon':5., 'dt': 0.05, 'lr':.001}
+        train_par = {'train_steps':10, 'horizon':5., 'dt': 0.05, 'lr':.001}
         test_par = {'test_steps':100, 'dt':0.05}
 
     elif name=="long":
 
-        net_arch = {'hidden':3, 'size':10}
-        train_par = {'train_steps':1000, 'horizon':5., 'dt': 0.05, 'lr':.001}
+        net_arch = {'hidden':2, 'size':10}
+        train_par = {'train_steps':500, 'horizon':5., 'dt': 0.05, 'lr':.01}
         test_par = {'test_steps':100, 'dt':0.05}
 
     else:

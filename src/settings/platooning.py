@@ -22,9 +22,17 @@ def get_settings(name, mode):
 
     if name=="default":
 
-        atk_arch = {'hidden':2, 'size':10, 'coef':1, 'noise':2}
-        def_arch = {'hidden':2, 'size':10, 'coef':1}
-        train_par = {'train_steps':1000, 'atk_steps':1, 'def_steps':8, 'horizon':5., \
+        atk_arch = {'hidden':2, 'size':10, 'coef':3, 'noise':2}
+        def_arch = {'hidden':2, 'size':10, 'coef':3}
+        train_par = {'train_steps':10000, 'atk_steps':3, 'def_steps':5, 'horizon':5., \
+                     'dt': 0.05, 'lr':0.001}
+        test_par = {'test_steps':300, 'dt':0.05}
+
+    elif name=="minib":
+
+        atk_arch = {'hidden':2, 'size':10, 'coef':3, 'noise':2}
+        def_arch = {'hidden':2, 'size':10, 'coef':3}
+        train_par = {'train_steps':1000, 'atk_steps':3, 'def_steps':5, 'horizon':5., \
                      'dt': 0.05, 'lr':0.001}
         test_par = {'test_steps':300, 'dt':0.05}
 
@@ -32,5 +40,4 @@ def get_settings(name, mode):
         raise NotImplementedError
 
     return agent_position, agent_velocity, leader_position, leader_velocity, \
-            atk_arch, def_arch, train_par, test_par, \
-            robustness_formula
+            atk_arch, def_arch, train_par, test_par, robustness_formula

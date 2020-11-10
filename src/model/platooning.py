@@ -128,7 +128,6 @@ class Model:
         self.environment.set_agent(self.agent)
 
         self._param_generator = param_generator
-
         self.traces = None
 
     def step(self, env_input, agent_input, dt):

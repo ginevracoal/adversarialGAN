@@ -26,9 +26,9 @@ def get_settings(name, mode):
 
     if name=="default":
 
-        atk_arch = {'hidden':2, 'size':10, 'coef':1, 'noise':2}
-        def_arch = {'hidden':2, 'size':10, 'coef':1}
-        train_par = {'train_steps':30000, 'atk_steps':5, 'def_steps':8, 'horizon':2., 'dt': 0.05, 'lr':.001}
+        atk_arch = {'hidden':2, 'size':10, 'coef':3, 'noise':2}
+        def_arch = {'hidden':2, 'size':10, 'coef':3}
+        train_par = {'train_steps':100, 'atk_steps':3, 'def_steps':5, 'horizon':2., 'dt': 0.05, 'lr':.001}
         test_par = {'test_steps':300, 'dt':0.05}
         
     else:

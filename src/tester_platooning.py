@@ -1,33 +1,37 @@
 import os
 import pickle
-import model_platooning
 from misc import *
-import architecture
 import torch
 import torch.nn as nn
 import numpy as np
 from argparse import ArgumentParser
 from tqdm import tqdm
-from settings_platooning import get_settings
+# import architecture
+# import model_platooning
+# from settings_platooning import get_settings
+from model.platooning import *
+from settings.platooning import *
+from architecture.default import *
+
 
 parser = ArgumentParser()
-parser.add_argument("-r", "--repetitions", type=int, default=1, help="simulation repetions")
+parser.add_argument("-r", "--repetitions", type=int, default=10, help="simulation repetions")
 parser.add_argument("--architecture", type=str, default="default", help="architecture's name")
 args = parser.parse_args()
 
 agent_position, agent_velocity, leader_position, leader_velocity, \
-            atk_arch, def_arch, train_par, test_par, \
-            robustness_formula = get_settings(args.architecture, mode="test")
+        atk_arch, def_arch, train_par, test_par, \
+        robustness_formula = get_settings(args.architecture, mode="test")
+relpath = get_relpath(main_dir="platooning_"+args.architecture, train_params=train_par)
+sims_filename = get_sims_filename(args.repetitions, test_par)
 
 pg = ParametersHyperparallelepiped(agent_position, agent_velocity, 
                                     leader_position, leader_velocity)
 
-physical_model = model_platooning.Model(pg.sample(sigma=0.05))
+physical_model = Model(pg.sample(sigma=0.05))
 
-attacker = architecture.Attacker(physical_model, *atk_arch.values())
-defender = architecture.Defender(physical_model, *def_arch.values())
-
-relpath = get_relpath(main_dir="platooning_"+args.architecture, train_params=train_par)
+attacker = Attacker(physical_model, *atk_arch.values())
+defender = Defender(physical_model, *def_arch.values())
 
 load_models(attacker, defender, EXP+relpath)
 
@@ -103,8 +107,6 @@ for i in range(args.repetitions):
     sim['step_down'] = run(2)
     sim['atk'] = run()
     records.append(sim)
-    
-filename = get_sims_filename(repetitions=args.repetitions, test_params=test_par)
-           
-with open(os.path.join(EXP+relpath, filename), 'wb') as f:
+               
+with open(os.path.join(EXP+relpath, sims_filename), 'wb') as f:
     pickle.dump(records, f)

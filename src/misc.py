@@ -10,6 +10,15 @@ def get_relpath(main_dir, train_params):
           "_horizon="+str(train_params["horizon"])+"_train_steps="+str(train_params["train_steps"])+\
           "_atk="+str(train_params["atk_steps"])+"_def="+str(train_params["def_steps"])
 
+def get_nets_filenames(attacker_model, defender_model):
+    return ('attacker_hidden='+str(attacker_model.hid)+\
+               '_size='+str(attacker_model.ls)+\
+               '_coef='+str(attacker_model.n_coeff)+\
+               '_noise='+str(attacker_model.noise_size)+'.pt',
+            'defender_hidden='+str(defender_model.hid)+\
+               '_size='+str(defender_model.ls)+\
+               '_coef='+str(defender_model.n_coeff)+'.pt')
+
 def get_sims_filename(repetitions, test_params):
     return 'sims_reps='+str(repetitions)+'_dt='+str(test_params["dt"])+\
            '_test_steps='+str(test_params["test_steps"])+'.pkl'
@@ -17,14 +26,16 @@ def get_sims_filename(repetitions, test_params):
 def save_models(attacker_model, defender_model, path):
     os.makedirs(path, exist_ok=True)
 
-    atk_name = 'attacker_hidden='+str(attacker_model.hid)+\
-               '_size='+str(attacker_model.ls)+\
-               '_coef='+str(attacker_model.n_coeff)+\
-               '_noise='+str(attacker_model.noise_size)+'.pt'
+    # atk_name = 'attacker_hidden='+str(attacker_model.hid)+\
+    #            '_size='+str(attacker_model.ls)+\
+    #            '_coef='+str(attacker_model.n_coeff)+\
+    #            '_noise='+str(attacker_model.noise_size)+'.pt'
 
-    def_name = 'defender_hidden='+str(defender_model.hid)+\
-               '_size='+str(defender_model.ls)+\
-               '_coef='+str(defender_model.n_coeff)+'.pt'
+    # def_name = 'defender_hidden='+str(defender_model.hid)+\
+    #            '_size='+str(defender_model.ls)+\
+    #            '_coef='+str(defender_model.n_coeff)+'.pt'
+
+    atk_name, def_name = get_nets_filenames(attacker_model, defender_model)
 
     atk_path = os.path.join(path, atk_name)
     def_path = os.path.join(path, def_name)
@@ -34,14 +45,16 @@ def save_models(attacker_model, defender_model, path):
 
 def load_models(attacker_model, defender_model, path):
 
-    atk_name = 'attacker_hidden='+str(attacker_model.hid)+\
-               '_size='+str(attacker_model.ls)+\
-               '_coef='+str(attacker_model.n_coeff)+\
-               '_noise='+str(attacker_model.noise_size)+'.pt'
+    # atk_name = 'attacker_hidden='+str(attacker_model.hid)+\
+    #            '_size='+str(attacker_model.ls)+\
+    #            '_coef='+str(attacker_model.n_coeff)+\
+    #            '_noise='+str(attacker_model.noise_size)+'.pt'
 
-    def_name = 'defender_hidden='+str(defender_model.hid)+\
-               '_size='+str(defender_model.ls)+\
-               '_coef='+str(defender_model.n_coeff)+'.pt'
+    # def_name = 'defender_hidden='+str(defender_model.hid)+\
+    #            '_size='+str(defender_model.ls)+\
+    #            '_coef='+str(defender_model.n_coeff)+'.pt'
+
+    atk_name, def_name = get_nets_filenames(attacker_model, defender_model)
 
     atk_path = os.path.join(path, atk_name)
     def_path = os.path.join(path, def_name)

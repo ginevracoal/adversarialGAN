@@ -86,7 +86,7 @@ class Trainer:
         
         loss.backward()
         self.optimizer.step()
-        return loss
+        return loss.detach()
 
     def initialize_random_batch(self, batch_size=BATCH_SIZE):
         return [next(self.model._param_generator) for _ in range(batch_size)]
@@ -101,7 +101,7 @@ class Trainer:
             self.model.reinitialize(*random_init)
             loss = self.train_step(time_horizon, dt)
 
-        return loss.detach() #float(loss.detach())
+        return loss.detach()
 
     def run(self, n_steps, time_horizon=100, dt=0.05):
         """ Trains the architecture and provides logging and visual feedback """
@@ -126,5 +126,5 @@ class Trainer:
             fig.savefig(path+"/loss.png")
 
         if self.logging:
-            plot_loss(loss, self.logging_dir)
+            plot_loss(loss_vals, self.logging_dir)
 

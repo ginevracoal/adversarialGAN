@@ -7,8 +7,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from torch.autograd import Variable
 
-FIXED_POLICY=False
-MINIBATCH=False
+FIXED_POLICY=True
+MINIBATCH=True
 BATCH_SIZE=32
 DEBUG=False
 
@@ -24,8 +24,8 @@ class Attacker(nn.Module):
 
         self.hid = n_hidden_layers
         self.ls = layer_size
-        self.noise_size = noise_size
         self.n_coeff = n_coeff
+        self.noise_size = noise_size
 
         input_layer_size = model.environment.sensors + noise_size
         output_layer_size = model.environment.actuators * n_coeff
@@ -69,7 +69,7 @@ class Defender(nn.Module):
         self.ls = layer_size
         self.n_coeff = n_coeff
 
-        input_layer_size = model.agent.sensors
+        input_layer_size = model.agent.sensors 
         output_layer_size = model.agent.actuators * n_coeff
 
         layers = []
@@ -98,7 +98,6 @@ class Defender(nn.Module):
             return coefficients.mm(basis).squeeze()
 
         return policy_generator
-
 
 
 class Trainer:
@@ -140,7 +139,7 @@ class Trainer:
                 def_policy = self.defender(oa)
 
         t = 0
-        loss = 0
+        # loss = 0
         for i in range(time_horizon):
 
             if FIXED_POLICY is False:
@@ -158,15 +157,15 @@ class Trainer:
             # attacker do not vary policy over time
             atk_input = atk_policy(0 if atk_static else t)
             def_input = def_policy(t)
+
             self.model.step(atk_input, def_input, dt)
             t += dt
 
             rho = self.robustness_computer.compute(self.model)
-            loss += self.attacker_loss_fn(rho)
+            loss = self.attacker_loss_fn(rho)
 
         loss.backward()
         self.attacker_optimizer.step()  
-
         return loss.detach()
 
     def train_defender_step(self, time_horizon, dt, atk_static):
@@ -184,10 +183,8 @@ class Trainer:
             def_policy = self.defender(oa)
 
         t = 0
-        loss = 0
-
+        # loss = 0
         for i in range(time_horizon):
-
 
             if FIXED_POLICY is False:
                 z = torch.rand(self.attacker.noise_size)
@@ -206,17 +203,14 @@ class Trainer:
             t += dt
         
             rho = self.robustness_computer.compute(self.model)
-            loss += self.defender_loss_fn(rho)
+            loss = self.defender_loss_fn(rho)
 
         loss.backward()
         self.defender_optimizer.step()     
-
         return loss.detach()
 
-    # DEBUG
-    # def initialize_random_batch(self, batch_size=BATCH_SIZE):
-    #     return [next(self.model._param_generator) for _ in range(batch_size)]
-
+    def initialize_random_batch(self, batch_size=BATCH_SIZE):
+        return [next(self.model._param_generator) for _ in range(batch_size)]
 
     def train(self, atk_steps, def_steps, time_horizon, dt, atk_static):
         """ Trains both the attacker and the defender
@@ -226,11 +220,9 @@ class Trainer:
 
             random_batch = self.initialize_random_batch() 
 
-            for random_init in random_batch:
-
+            for random_init in random_batch:                
                 for i in range(atk_steps):
 
-                    print(random_init)
                     self.model.reinitialize(*random_init)
                     atk_loss = self.train_attacker_step(time_horizon, dt, atk_static)
 
@@ -255,6 +247,9 @@ class Trainer:
             for i in range(def_steps):
                 def_loss = self.train_defender_step(time_horizon, dt, atk_static)
                 self.model.initialize_rewind()
+
+                if DEBUG:
+                    print(self.defender.state_dict()["nn.0.bias"])
 
         return (atk_loss, def_loss)
 

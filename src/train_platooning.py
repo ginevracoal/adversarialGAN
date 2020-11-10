@@ -15,8 +15,8 @@ parser.add_argument("--architecture", type=str, default="default", help="archite
 args = parser.parse_args()
 
 agent_position, agent_velocity, leader_position, leader_velocity, \
-            atk_arch, def_arch, train_par, test_par, \
-            robustness_formula = get_settings(args.architecture, mode="train")
+        atk_arch, def_arch, train_par, test_par, \
+        robustness_formula = get_settings(args.architecture, mode="train")
 
 pg = ParametersHyperparallelepiped(agent_position, agent_velocity, 
                                     leader_position, leader_velocity)
