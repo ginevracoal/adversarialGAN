@@ -139,7 +139,7 @@ class Trainer:
                 def_policy = self.defender(oa)
 
         t = 0
-        # loss = 0
+        loss = 0
         for i in range(time_horizon):
 
             if FIXED_POLICY is False:
@@ -183,7 +183,7 @@ class Trainer:
             def_policy = self.defender(oa)
 
         t = 0
-        # loss = 0
+        loss = 0
         for i in range(time_horizon):
 
             if FIXED_POLICY is False:

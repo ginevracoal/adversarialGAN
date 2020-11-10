@@ -4,6 +4,7 @@ import itertools
 import numpy as np
 
 EXP="../experiments/"
+np.random.seed(0)
 
 def get_relpath(main_dir, train_params):
     return main_dir+"_lr="+str(train_params["lr"])+"_dt="+str(train_params["dt"])+\
@@ -26,15 +27,6 @@ def get_sims_filename(repetitions, test_params):
 def save_models(attacker_model, defender_model, path):
     os.makedirs(path, exist_ok=True)
 
-    # atk_name = 'attacker_hidden='+str(attacker_model.hid)+\
-    #            '_size='+str(attacker_model.ls)+\
-    #            '_coef='+str(attacker_model.n_coeff)+\
-    #            '_noise='+str(attacker_model.noise_size)+'.pt'
-
-    # def_name = 'defender_hidden='+str(defender_model.hid)+\
-    #            '_size='+str(defender_model.ls)+\
-    #            '_coef='+str(defender_model.n_coeff)+'.pt'
-
     atk_name, def_name = get_nets_filenames(attacker_model, defender_model)
 
     atk_path = os.path.join(path, atk_name)
@@ -44,15 +36,6 @@ def save_models(attacker_model, defender_model, path):
     torch.save(defender_model.state_dict(), def_path)
 
 def load_models(attacker_model, defender_model, path):
-
-    # atk_name = 'attacker_hidden='+str(attacker_model.hid)+\
-    #            '_size='+str(attacker_model.ls)+\
-    #            '_coef='+str(attacker_model.n_coeff)+\
-    #            '_noise='+str(attacker_model.noise_size)+'.pt'
-
-    # def_name = 'defender_hidden='+str(defender_model.hid)+\
-    #            '_size='+str(defender_model.ls)+\
-    #            '_coef='+str(defender_model.n_coeff)+'.pt'
 
     atk_name, def_name = get_nets_filenames(attacker_model, defender_model)
 
@@ -68,8 +51,6 @@ class ParametersHyperparallelepiped:
         It also adds some gaussian noise to the sampled point in
         order to encourage the exploration of the space.
     """
-
-    np.random.seed(0)
 
     def __init__(self, *ranges):
         self._ranges = ranges

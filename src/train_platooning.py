@@ -1,11 +1,9 @@
 import os
-from misc import *
 import torch
 import torch.nn as nn
 from argparse import ArgumentParser
-# import architecture
-# import model_platooning
-# from settings_platooning import get_settings
+
+from misc import *
 from model.platooning import *
 from settings.platooning import *
 from architecture.default import *
@@ -30,8 +28,6 @@ attacker = Attacker(physical_model, *atk_arch.values())
 defender = Defender(physical_model, *def_arch.values())
 trainer = Trainer(physical_model, robustness_computer, \
                             attacker, defender, train_par["lr"], EXP+relpath)
-tester = Tester(physical_model, robustness_computer, \
-                            attacker, defender, EXP+relpath)
 
 simulation_horizon = int(train_par["horizon"] / train_par["dt"])
 trainer.run(train_par["train_steps"], simulation_horizon, train_par["dt"], 

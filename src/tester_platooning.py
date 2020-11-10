@@ -59,11 +59,11 @@ def run(mode=None):
             oe = torch.tensor(physical_model.environment.status)
             z = torch.rand(attacker.noise_size)
             if mode == 0:
-                atk_policy = lambda x: torch.tensor(2.) if i > 200 and i < 250 else torch.tensor(-2.)
+                atk_policy = lambda x: torch.tensor(1.) if i > 200 and i < 250 else torch.tensor(-1.)
             elif mode == 1:
-                atk_policy = lambda x: torch.tensor(2.) if i > 150 else torch.tensor(-2.)
+                atk_policy = lambda x: torch.tensor(1.) if i > 150 else torch.tensor(-1.)
             elif mode == 2:
-                atk_policy = lambda x: torch.tensor(2.) if i < 150 else torch.tensor(-2.)
+                atk_policy = lambda x: torch.tensor(1.) if i < 150 else torch.tensor(-1.)
             #     atk_policy = lambda x: torch.tensor(2.) if i > int(test_par["test_steps"]/3) \
             #                             and i < int(test_par["test_steps"]/2) \
             #                             else torch.tensor(-2.)

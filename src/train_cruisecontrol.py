@@ -1,56 +1,35 @@
 import os
-
-import misc
-import architecture
-import model_cruisecontrol
-
 import torch
 import torch.nn as nn
-import numpy as np
 from argparse import ArgumentParser
 
+from misc import *
+from model.cruisecontrol import *
+from settings.cruisecontrol import *
+from architecture.default import *
 
-# Specifies the initial conditions of the setup
 parser = ArgumentParser()
-parser.add_argument("--dir", default="../experiments/cruisecontrol", help="model's directory")
-parser.add_argument("--training_steps", type=int, default=10)
-parser.add_argument("--ode_idx", type=int, default=0)
-parser.add_argument("--device", type=str, default="cuda")
+parser.add_argument("--architecture", type=str, default="default", help="architecture's name")
 args = parser.parse_args()
 
-# Sets the device
-if args.device=="cuda":
-    torch.set_default_tensor_type('torch.cuda.FloatTensor')
-else:
-    torch.set_default_tensor_type('torch.FloatTensor')
+agent_position, agent_velocity, atk_arch, def_arch, \
+    train_par, test_par, robustness_formula = get_settings(args.architecture, mode="train")
 
-# Specifies the initial conditions of the setup
-agent_position = np.arange(model_cruisecontrol.ROAD_LENGTH)
-agent_velocity = np.linspace(-12, 12, 25)
-# Initializes the generator of initial states
-pg = misc.ParametersHyperparallelepiped(agent_position, agent_velocity)
+pg = ParametersHyperparallelepiped(agent_position, agent_velocity)
 
-# Instantiates the world's model
-physical_model = model_cruisecontrol.Model(pg.sample(sigma=0.05), device=args.device)
+physical_model = Model(pg.sample(sigma=0.05))
+robustness_computer = RobustnessComputer(robustness_formula)
 
-# Specifies the STL formula to compute the robustness
-robustness_formula = 'G(v >= 4.75 & v <= 5.25)'
-robustness_computer = model_cruisecontrol.RobustnessComputer(robustness_formula)
+relpath = get_relpath(main_dir="cruisecontrol_"+args.architecture, train_params=train_par)
 
-# Instantiates the NN architectures
-attacker = architecture.Attacker(physical_model, 1, 10, 5, n_coeff=1)
-defender = architecture.Defender(physical_model, 2, 10)
+attacker = Attacker(physical_model, *atk_arch.values())
+defender = Defender(physical_model, *def_arch.values())
+trainer = Trainer(physical_model, robustness_computer, \
+                 attacker, defender, train_par["lr"], EXP+relpath)
 
-# Instantiates the traning environment
-trainer = architecture.Trainer(physical_model, robustness_computer, \
-                            attacker, defender, args.dir)
+simulation_horizon = int(train_par["horizon"] / train_par["dt"])
+trainer.run(train_par["train_steps"], simulation_horizon, train_par["dt"], 
+            atk_steps=train_par["atk_steps"], def_steps=train_par["def_steps"],
+            atk_static=True)
 
-dt = 0.05 # timestep
-training_steps = 300000 # number of episodes for training
-simulation_horizon = int(0.5 / dt) # 0.5 second
-
-# Starts the training
-trainer.run(training_steps, tester, simulation_horizon, dt, atk_steps=1, def_steps=10, atk_static=True)
-
-# Saves the trained models
-misc.save_models(attacker, defender, args.dir)
+save_models(attacker, defender, EXP+relpath)
