@@ -1,23 +1,22 @@
 import os
-from misc import *
 import torch
 import torch.nn as nn
 from argparse import ArgumentParser
-# import architecture_dqn_cartpole as architecture
-# import model_dqn_cartpole
-# from settings_cartpole import get_settings
-from model.dqn_cartpole import *
-from settings.dqn_cartpole import *
-from architecture.dqn_cartpole import *
+import random
+
+from misc import *
+from model.cartpole import *
+from settings.cartpole import *
+from architecture.cartpole import *
+
 
 parser = ArgumentParser()
 parser.add_argument("--architecture", type=str, default="default", help="architecture's name")
 args = parser.parse_args()
 
-
 cart_position, cart_velocity, pole_angle, pole_ang_velocity, \
     arch, train_par, test_par, robustness_formula = get_settings(args.architecture, mode="train")
-relpath = get_relpath(main_dir="cartpole_dqn_"+args.architecture, train_params=train_par)
+relpath = get_relpath(main_dir="cartpole_"+args.architecture, train_params=train_par)
 net_filename = get_net_filename(arch["hidden"], arch["size"])
 
 pg = ParametersHyperparallelepiped(cart_position, cart_velocity, pole_angle, pole_ang_velocity)

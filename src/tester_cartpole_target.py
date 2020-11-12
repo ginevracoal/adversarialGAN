@@ -1,33 +1,33 @@
 import os
-import pickle
-import model_cartpole_target
-from misc import *
-import architecture
 import torch
-import torch.nn as nn
+import pickle
 import numpy as np
-from argparse import ArgumentParser
+import torch.nn as nn
 from tqdm import tqdm
-from settings_cartpole_target import get_settings
+from argparse import ArgumentParser
+
+from misc import *
+from architecture.default import *
+from model.cartpole_target import *
+from settings.cartpole_target import *
 
 parser = ArgumentParser()
-parser.add_argument("-r", "--repetitions", type=int, default=1, help="simulation repetions")
+parser.add_argument("-r", "--repetitions", type=int, default=10, help="simulation repetions")
 parser.add_argument("--architecture", type=str, default="default", help="architecture's name")
 args = parser.parse_args()
 
 cart_position, cart_velocity, pole_angle, pole_ang_velocity, x_target, \
         atk_arch, def_arch, train_par, test_par, \
-        robustness_formula = get_settings(args.architecture, mode="test")
+        robustness_theta, robustness_dist = get_settings(args.architecture, mode="test")
+relpath = get_relpath(main_dir="cartpole_target_"+args.architecture, train_params=train_par)
+sims_filename = get_sims_filename(args.repetitions, test_par)
 
 pg = ParametersHyperparallelepiped(cart_position, cart_velocity, 
                                         pole_angle, pole_ang_velocity, x_target)
 
-physical_model = model_cartpole_target.Model(pg.sample(sigma=0.05))
-
-attacker = architecture.Attacker(physical_model, *atk_arch.values())
-defender = architecture.Defender(physical_model, *def_arch.values())
-
-relpath = get_relpath(main_dir="cartpole_target_"+args.architecture, train_params=train_par)
+physical_model = Model(pg.sample(sigma=0.05))
+attacker = Attacker(physical_model, *atk_arch.values())
+defender = Defender(physical_model, *def_arch.values())
 
 load_models(attacker, defender, EXP+relpath)
 
@@ -49,7 +49,6 @@ def run(mode=None):
     sim_dot_theta = []
     sim_x_target = []
     sim_attack_mu = []
-    sim_attack_nu = []
     sim_def_acc = []
     sim_dist = []
 
@@ -63,21 +62,14 @@ def run(mode=None):
             z = torch.rand(attacker.noise_size)
             
             if mode == 0:
-                atk_policy = lambda x: (torch.tensor(0.0), torch.tensor(0.0), torch.tensor(0.0))
+                atk_policy = lambda x: (torch.tensor(0.0), torch.tensor(0.0))
 
+            elif mode == 1:
+                atk_policy = lambda x: (-torch.tensor(0.5), -torch.tensor(0.5)) \
+                            if i > test_par["test_steps"]*1/3 and i < test_par["test_steps"]*2/3 \
+                            else (torch.tensor(0.5), torch.tensor(0.5))
             else:
-
-                # atk_policy = attacker(torch.cat((z, oe)))
-
-                def atk_policy(x):
-                    dot_eps, mu, nu = attacker(torch.cat((z, oe)))(x)
-                    
-                    update_mu = 1 if i==0 else np.random.binomial(n=1, p=0.2)
-
-                    if update_mu==1:
-                        return dot_eps, mu, nu
-                    else:
-                        return dot_eps, torch.tensor(sim_attack_mu[i-1]), nu
+                atk_policy = attacker(torch.cat((z, oe)))
 
             def_policy = defender(oa)
 
@@ -95,7 +87,6 @@ def run(mode=None):
         sim_x_target.append(physical_model.agent.x_target.item())
         sim_dist.append(physical_model.agent.dist.item())
         sim_attack_mu.append(atk_input[1].item())
-        sim_attack_nu.append(atk_input[2].item())
         sim_def_acc.append(def_input.item())
 
         t += dt
@@ -110,7 +101,6 @@ def run(mode=None):
             'sim_x_target': np.array(sim_x_target),
             'sim_dist': np.array(sim_dist),
             'sim_attack_mu': np.array(sim_attack_mu),
-            'sim_attack_nu': np.array(sim_attack_nu),
             'sim_def_acc': np.array(sim_def_acc),
     }
 
@@ -121,8 +111,6 @@ for i in tqdm(range(args.repetitions)):
     sim['pulse'] = run(1)
     sim['atk'] = run()
     records.append(sim)
-    
-filename = get_sims_filename(repetitions=args.repetitions, test_params=test_par)
-           
-with open(os.path.join(EXP+relpath, filename), 'wb') as f:
+               
+with open(os.path.join(EXP+relpath, sims_filename), 'wb') as f:
     pickle.dump(records, f)

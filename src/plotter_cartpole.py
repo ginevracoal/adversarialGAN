@@ -2,15 +2,14 @@ import os
 import random
 import pickle
 import torch
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-import numpy as np
 from argparse import ArgumentParser
+
 from misc import *
-# import model_cartpole
-# from settings_cartpole import get_settings
-from model.dqn_cartpole import *
-from settings.dqn_cartpole import *
+from model.cartpole import *
+from settings.cartpole import *
 
 parser = ArgumentParser()
 parser.add_argument("-r", "--repetitions", type=int, default=10, help="simulation repetions")
@@ -23,7 +22,7 @@ args = parser.parse_args()
 
 cart_position, cart_velocity, pole_angle, pole_ang_velocity, \
     arch, train_par, test_par, robustness_formula = get_settings(args.architecture, mode="test")
-relpath = get_relpath(main_dir="cartpole_dqn_"+args.architecture, train_params=train_par)
+relpath = get_relpath(main_dir="cartpole_"+args.architecture, train_params=train_par)
 net_filename = get_net_filename(arch["hidden"], arch["size"])
 sims_filename = get_sims_filename(args.repetitions, test_par["dt"], test_par["test_steps"])
 

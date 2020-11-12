@@ -26,19 +26,7 @@ def get_settings(name, mode):
 
         net_arch = {'hidden':3, 'size':10}
         train_par = {'train_steps':100, 'horizon':2., 'dt': 0.05, 'lr':.001}
-        test_par = {'test_steps':100, 'dt':0.05}    
-
-    elif name=="fast":
-
-        net_arch = {'hidden':2, 'size':10}
-        train_par = {'train_steps':10, 'horizon':5., 'dt': 0.05, 'lr':.001}
-        test_par = {'test_steps':100, 'dt':0.05}
-
-    elif name=="long":
-
-        net_arch = {'hidden':2, 'size':10}
-        train_par = {'train_steps':500, 'horizon':5., 'dt': 0.05, 'lr':.01}
-        test_par = {'test_steps':100, 'dt':0.05}
+        test_par = {'test_steps':300, 'dt':0.05}    
 
     else:
         raise NotImplementedError

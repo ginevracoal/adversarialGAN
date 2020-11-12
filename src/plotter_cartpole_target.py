@@ -1,17 +1,19 @@
 import os
 import random
 import pickle
-import model_cartpole_target
 import torch
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-import numpy as np
 from argparse import ArgumentParser
+
 from misc import *
-from settings_cartpole_target import get_settings
+from architecture.default import *
+from model.cartpole_target import *
+from settings.cartpole_target import *
+
 
 parser = ArgumentParser()
-parser.add_argument("-r", "--repetitions", type=int, default=1, help="simulation repetions")
+parser.add_argument("-r", "--repetitions", type=int, default=10, help="simulation repetions")
 parser.add_argument("--architecture", type=str, default="default", help="architecture's name")
 parser.add_argument("--plot_evolution", default=True, type=eval)
 parser.add_argument("--scatter", default=True, type=eval, help="Generate scatterplot")
@@ -21,15 +23,15 @@ args = parser.parse_args()
 
 cart_position, cart_velocity, pole_angle, pole_ang_velocity, x_target, \
         atk_arch, def_arch, train_par, test_par, \
-        robustness_formula = get_settings(args.architecture, mode="test")
+        robustness_theta, robustness_dist = get_settings(args.architecture, mode="test")
+relpath = get_relpath(main_dir="cartpole_target_"+args.architecture, train_params=train_par)
+sims_filename = get_sims_filename(args.repetitions, test_par)
 
-safe_theta = 0.2 #392
+safe_theta = 0.2
 safe_dist = 0.5
 mc = 1.
 mp = .1
 
-relpath = get_relpath(main_dir="cartpole_target_"+args.architecture, train_params=train_par)
-sims_filename = get_sims_filename(repetitions=args.repetitions, test_params=test_par)
 
 if args.dark:
     plt.style.use('./qb-common_dark.mplstyle')
@@ -78,7 +80,7 @@ def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, po
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
 def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_theta, 
-         sim_x_target, sim_def_acc, sim_dist, sim_attack_mu, sim_attack_nu, filename):
+         sim_x_target, sim_def_acc, sim_dist, sim_attack_mu, filename):
     fig, ax = plt.subplots(3, 2, figsize=(10, 6))
 
     ax[0,0].axhline(-safe_dist, ls='--', color='tab:orange', label="safe distance")
@@ -114,7 +116,6 @@ def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_theta,
     print(sim_attack_mu)
 
     ax[1,1].plot(sim_time, sim_attack_mu, label='cart friction', color='tab:red')
-    # ax[1,1].plot(sim_time, sim_attack_nu, label='air friction', color='tab:red', linestyle='--')
     ax[1,1].set(xlabel='time (s)', ylabel='friction coefficients')
     ax[1,1].legend()
 
@@ -125,8 +126,7 @@ if args.scatter is True:
 
     size = len(records)
 
-    robustness_formula = f'G(theta >= -{safe_theta} & theta <= {safe_theta} & dist <= {safe_dist})'
-    robustness_computer = model_cartpole_target.RobustnessComputer(robustness_formula)
+    robustness_computer = RobustnessComputer(robustness_theta, robustness_dist)
 
     robustness_array = np.zeros(size)
     cart_pos_array = np.zeros(size)
@@ -139,7 +139,10 @@ if args.scatter is True:
 
             trace_theta = torch.tensor(records[i][mode]['sim_theta'])
             trace_dist = torch.tensor(records[i][mode]['sim_dist'])
-            robustness = float(robustness_computer.dqs.compute(dist=trace_dist, theta=trace_theta))
+            rob_theta = robustness_computer.dqs_theta.compute(theta=trace_theta)
+            rob_dist = robustness_computer.dqs_dist.compute(dist=trace_dist)
+            robustness = 0.1*rob_dist+0.9*rob_theta
+
             cart_pos = records[i][mode]['init']['x'] 
             pole_ang = records[i][mode]['init']['theta'] 
             cart_vel = records[i][mode]['init']['dot_x'] 
@@ -163,7 +166,7 @@ if args.plot_evolution is True:
              records[n][mode]['sim_x'], records[n][mode]['sim_theta'], 
              records[n][mode]['sim_dot_x'], records[n][mode]['sim_ddot_x'], records[n][mode]['sim_dot_theta'],
              records[n][mode]['sim_x_target'], records[n][mode]['sim_def_acc'], 
-             records[n][mode]['sim_dist'], records[n][mode]['sim_attack_mu'], records[n][mode]['sim_attack_nu'], 
+             records[n][mode]['sim_dist'], records[n][mode]['sim_attack_mu'], 
              'evolution_'+mode+'.png')
 
 if args.hist is True:
@@ -173,25 +176,24 @@ if args.hist is True:
     pulse_pct = np.zeros_like(records[0]['pulse']['sim_theta'])
     atk_pct = np.zeros_like(records[0]['atk']['sim_theta'])
 
+    robustness = lambda dist,t: 0.1*(dist < safe_dist)+0.9*np.logical_and(t > -safe_theta, t < safe_theta)
+
     for i in range(size):
 
         x = records[i]['const']['sim_x']
         t = records[i]['const']['sim_theta']
         dist = records[i]['const']['sim_dist']
-        const_pct = const_pct +  np.logical_and(t > -safe_theta, t < safe_theta)
-        # const_pct = const_pct +  np.logical_and(np.logical_and(t > -safe_theta, t < safe_theta), dist < safe_dist)
+        const_pct = const_pct + robustness(dist, t)
         
         x = records[i]['pulse']['sim_x']
         t = records[i]['pulse']['sim_theta']
         dist = records[i]['pulse']['sim_dist']
-        pulse_pct = pulse_pct +  np.logical_and(t > -safe_theta, t < safe_theta)
-        # pulse_pct = pulse_pct +  np.logical_and(np.logical_and(t > -safe_theta, t < safe_theta), dist < safe_dist)
+        pulse_pct = pulse_pct + robustness(dist, t)
 
         x = records[i]['atk']['sim_x']
         t = records[i]['atk']['sim_theta']
         dist = records[i]['atk']['sim_dist']
-        atk_pct = atk_pct +  np.logical_and(t > -safe_theta, t < safe_theta)
-        # atk_pct = atk_pct + np.logical_and(np.logical_and(t > -safe_theta, t < safe_theta), dist < safe_dist)
+        atk_pct = atk_pct + robustness(dist, t)
 
     time = records[0]['const']['sim_t']
     const_pct = const_pct / size

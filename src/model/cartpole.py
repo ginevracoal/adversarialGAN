@@ -1,11 +1,8 @@
 import json
 import torch
-import random
 from diffquantitative import DiffQuantitativeSemantic
 
 DEBUG=False
-DIFF_EQ="gym" #gym, enrico
-
 
 class CartPole():
 
@@ -19,15 +16,11 @@ class CartPole():
         self.x, self.theta = (torch.tensor(0.0), torch.tensor(0.0))
         self.dot_theta, self.dot_x = (torch.tensor(0.0), torch.tensor(0.0))
         self.ddot_x, self.ddot_theta = (torch.tensor(0.0), torch.tensor(0.))
-        self.f = torch.tensor(0.0)
 
-        self._max_x = 1000 
-        self._max_theta = 1000
-        self._max_dot_x = 1000
-        self._max_dot_theta =  1000
-        self._max_ddot_x = 1000
-        self._max_ddot_theta = 1000
-        self._max_f = 1000
+        self._max_x = 5. 
+        self._max_theta = 1.5 
+        self._max_dot_x = 10
+        self._max_dot_theta = 10
 
         self.actuators = 1
         self.sensors = len(self.status)
@@ -40,30 +33,17 @@ class CartPole():
         mp = self.mpole
         mc = self.mcart
         l = self.lpole/2 
-        self.f = torch.clamp(action, -self._max_f, self._max_f)
+        f = action
 
-        if DIFF_EQ=="gym":
+        temp = (f+mp*l*self.dot_theta**2*torch.sin(self.theta))/(mp+mc)
+        denom = l*(4/3-(mp*torch.cos(self.theta)**2)/(mp+mc))
+        ddot_theta = (g*torch.sin(self.theta)-torch.cos(self.theta)*temp)/denom
+        ddot_x = temp - (mp*l*ddot_theta*torch.cos(self.theta))/(mp+mc)
 
-            temp = (self.f+mp*l*self.dot_theta**2*torch.sin(self.theta))/(mp+mc)
-            denom = l*(4/3-(mp*torch.cos(self.theta)**2)/(mp+mc))
-            ddot_theta = (g*torch.sin(self.theta)-torch.cos(self.theta)*temp)/denom
-            ddot_x = temp - (mp*l*ddot_theta*torch.cos(self.theta))/(mp+mc)
-
-        elif DIFF_EQ=="enrico":
-
-            self.mu=0
-
-            ddot_x = self.f - self.mu*self.dot_x  \
-                       + mp*l*self.dot_theta**2* torch.sin(self.theta) \
-                       - mp*g*torch.cos(self.theta) * torch.sin(self.theta)
-            ddot_x = ddot_x / ( mc+mp-mp* torch.cos(self.theta)**2 )
-        
-            ddot_theta = (g*torch.sin(self.theta) - torch.cos(self.theta)*ddot_x ) / l
-
-        x = self.x + dt * self.dot_x
-        theta = self.theta + dt * self.dot_theta
         dot_x = self.dot_x + dt * ddot_x
         dot_theta = self.dot_theta + dt * ddot_theta
+        x = self.x + dt * dot_x
+        theta = self.theta + dt * dot_theta
 
         self.x = torch.clamp(x, -self._max_x, self._max_x).reshape(1)
         self.theta = torch.clamp(theta, -self._max_theta, self._max_theta).reshape(1)
@@ -71,17 +51,14 @@ class CartPole():
         self.dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
 
         if DEBUG:
-            print(f"x={self.x.item():.4f}\
-                    theta={self.theta.item():.4f}\
-                    f={self.f.item()}")
+            print(f"x={self.x.item():.4f}  theta={self.theta.item():.4f}  f={f.item()}")
 
     @property
     def status(self):
         return (self.x,
-                self.theta,
                 self.dot_x,
+                self.theta,
                 self.dot_theta)
-
 
 
 class Model:
@@ -121,7 +98,7 @@ class RobustnessComputer:
         self.dqs = DiffQuantitativeSemantic(formula)
 
     def compute(self, model):
-        theta = model.traces['theta']
-        rho = self.dqs.compute(theta=torch.cat(theta[-10:]))
+        theta = model.traces['theta'][-10:]
+        rho = self.dqs.compute(theta=torch.cat(theta))
         return rho
         

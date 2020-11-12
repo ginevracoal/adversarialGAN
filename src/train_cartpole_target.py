@@ -1,11 +1,7 @@
 import os
-from misc import *
 from argparse import ArgumentParser
-# import torch
-# import torch.nn as nn
-# import architecture
-# import model_cartpole_target
-# from settings_cartpole_target import get_settings
+
+from misc import *
 from model.cartpole_target import *
 from settings.cartpole_target import *
 from architecture.default import *
@@ -16,18 +12,17 @@ args = parser.parse_args()
 
 cart_position, cart_velocity, pole_angle, pole_ang_velocity, x_target, \
         atk_arch, def_arch, train_par, test_par, \
-        robustness_formula = get_settings(args.architecture, mode="train")
+        robustness_theta, robustness_dist = get_settings(args.architecture, mode="train")
 relpath = get_relpath(main_dir="cartpole_target_"+args.architecture, train_params=train_par)
 
 pg = ParametersHyperparallelepiped(cart_position, cart_velocity, pole_angle, 
                                         pole_ang_velocity, x_target)
 physical_model = Model(pg.sample(sigma=0.05))
-robustness_computer = RobustnessComputer(robustness_formula)
+robustness_computer = RobustnessComputer(robustness_theta, robustness_dist)
 
 attacker = Attacker(physical_model, *atk_arch.values())
 defender = Defender(physical_model, *def_arch.values())
-trainer = Trainer(physical_model, robustness_computer, \
-                            attacker, defender, train_par["lr"], EXP+relpath)
+trainer = Trainer(physical_model, robustness_computer, attacker, defender, train_par["lr"], EXP+relpath)
 
 simulation_horizon = int(train_par["horizon"] / train_par["dt"])
 trainer.run(train_par["train_steps"], simulation_horizon, train_par["dt"], 
