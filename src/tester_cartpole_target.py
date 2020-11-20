@@ -38,7 +38,7 @@ def run(mode=None):
         'dot_x': physical_model.agent.dot_x,
         'theta': physical_model.agent.theta,                     
         'dot_theta': physical_model.agent.dot_theta,
-        'dist': physical_model.agent.dist
+        'dist': physical_model.environment.dist
     }
 
     sim_t = []
@@ -62,10 +62,10 @@ def run(mode=None):
             z = torch.rand(attacker.noise_size)
             
             if mode == 0:
-                atk_policy = lambda x: (torch.tensor(0.0), torch.tensor(0.0))
+                atk_policy = (torch.tensor(0.0), torch.tensor(0.0))
 
             elif mode == 1:
-                atk_policy = lambda x: (-torch.tensor(0.5), -torch.tensor(0.5)) \
+                atk_policy = (-torch.tensor(0.5), -torch.tensor(0.5)) \
                             if i > test_par["test_steps"]*1/3 and i < test_par["test_steps"]*2/3 \
                             else (torch.tensor(0.5), torch.tensor(0.5))
             else:
@@ -73,8 +73,8 @@ def run(mode=None):
 
             def_policy = defender(oa)
 
-        atk_input = atk_policy(dt)
-        def_input = def_policy(dt)
+        atk_input = atk_policy#(dt)
+        def_input = def_policy#(dt)
 
         physical_model.step(env_input=atk_input, agent_input=def_input, dt=dt)
 
@@ -85,7 +85,7 @@ def run(mode=None):
         sim_ddot_x.append(physical_model.agent.ddot_x.item())
         sim_dot_theta.append(physical_model.agent.dot_theta.item())
         sim_x_target.append(physical_model.agent.x_target.item())
-        sim_dist.append(physical_model.agent.dist.item())
+        sim_dist.append(physical_model.environment.dist.item())
         sim_attack_mu.append(atk_input[1].item())
         sim_def_acc.append(def_input.item())
 

@@ -47,22 +47,22 @@ class Attacker(nn.Module):
 
     def forward(self, x):
         """ Uses the NN's output to compute the coefficients of the policy function """
-        if POLYNOMIAL:
-            coefficients = self.nn(x)
-            coefficients = torch.reshape(coefficients, (-1, self.n_coeff))
+        # if POLYNOMIAL:
+        #     coefficients = self.nn(x)
+        #     coefficients = torch.reshape(coefficients, (-1, self.n_coeff))
 
-            def policy_generator(t):
-                """ The policy function is defined as polynomial """
-                basis = [t**i for i in range(self.n_coeff)]
-                basis = torch.tensor(basis, dtype=torch.get_default_dtype())
-                basis = torch.reshape(basis, (self.n_coeff, -1))
-                return coefficients.mm(basis).squeeze()
+        #     def policy_generator(t):
+        #         """ The policy function is defined as polynomial """
+        #         basis = [t**i for i in range(self.n_coeff)]
+        #         basis = torch.tensor(basis, dtype=torch.get_default_dtype())
+        #         basis = torch.reshape(basis, (self.n_coeff, -1))
+        #         return coefficients.mm(basis).squeeze()
 
-            return policy_generator
+        #     return policy_generator
 
-        else:
-            output = self.nn(x)
-            return output
+        # else:
+        output = self.nn(x)
+        return output
 
 class Defender(nn.Module):
     """ NN architecture for the defender """
@@ -96,22 +96,22 @@ class Defender(nn.Module):
 
     def forward(self, x):
         """ Uses the NN's output to compute the coefficients of the policy function """
-        if POLYNOMIAL:
-            coefficients = self.nn(x)
-            coefficients = torch.reshape(coefficients, (-1, self.n_coeff))
+        # if POLYNOMIAL:
+        #     coefficients = self.nn(x)
+        #     coefficients = torch.reshape(coefficients, (-1, self.n_coeff))
 
-            def policy_generator(t):
-                """ The policy function is defined as polynomial """
-                basis = [t**i for i in range(self.n_coeff)]
-                basis = torch.tensor(basis, dtype=torch.get_default_dtype())
-                basis = torch.reshape(basis, (self.n_coeff, -1))
-                return coefficients.mm(basis).squeeze()
+        #     def policy_generator(t):
+        #         """ The policy function is defined as polynomial """
+        #         basis = [t**i for i in range(self.n_coeff)]
+        #         basis = torch.tensor(basis, dtype=torch.get_default_dtype())
+        #         basis = torch.reshape(basis, (self.n_coeff, -1))
+        #         return coefficients.mm(basis).squeeze()
 
-            return policy_generator
+        #     return policy_generator
 
-        else:
-            output = self.nn(x)
-            return output
+        # else:
+        output = self.nn(x)
+        return output
 
 class Trainer:
     """ The class contains the training logic """
