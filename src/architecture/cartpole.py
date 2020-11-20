@@ -58,6 +58,7 @@ class Trainer:
         self.robustness_computer = robustness_computer
 
         self.policy_network = policy_network
+        
         self.loss_fn = lambda x: -x
         self.optimizer = optim.Adam(policy_network.parameters(), lr=lr)
 
@@ -112,7 +113,7 @@ class Trainer:
 
         for i in tqdm(range(n_steps)):
             loss = self.train(time_horizon, dt)
-            print(f"loss = {-loss:.4f}")
+            print(f"rob = {-loss:.4f}")
 
             if self.logging:
                 loss_vals[i] = loss

@@ -2,9 +2,9 @@ import os
 import torch
 import itertools
 import numpy as np
+import random
 
 EXP="../experiments/"
-np.random.seed(0)
 
 def get_relpath(main_dir, train_params):
     return main_dir+"_lr="+str(train_params["lr"])+"_dt="+str(train_params["dt"])+\
@@ -56,6 +56,8 @@ class ParametersHyperparallelepiped:
         self._ranges = ranges
 
     def sample(self, mu=0, sigma=1.):
+        np.random.seed(0)
+        random.seed(0)
         while True:
             yield [np.random.choice(r) + np.random.normal(mu, sigma)
                     if isinstance(r, np.ndarray) else float(r) for r in self._ranges]

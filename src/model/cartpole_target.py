@@ -1,10 +1,10 @@
 import json
 import torch
-# import numpy as np
 from diffquantitative import DiffQuantitativeSemantic
 
 DEBUG=False
-ATTACK=False
+ATTACK=True
+FRICTION=True
 
 class CartPole():
 
@@ -20,61 +20,67 @@ class CartPole():
         self.ddot_x, self.ddot_theta = (torch.tensor(0.0), torch.tensor(0.))
         self.x_target = torch.tensor(0.0)
         self.dist = torch.tensor(0.0)
+        self.mu = torch.tensor(0.0)
 
         self._max_x = 5.
         self._max_theta = 1.5
         self._max_dot_x = 10
         self._max_dot_theta = 10
+        self._max_dot_eps=0.2
+        self._max_mu=1.
 
-    def update(self, dt, dot_eps, mu, inp_acc):    
+    def update(self, dt, action, mu, dot_eps):    
 
         g = self.gravity
         mp = self.mpole
         mc = self.mcart
         l = self.lpole/2
+            
+        f = action
+        dot_eps = torch.clamp(dot_eps, -self._max_dot_eps, self._max_dot_eps)
+        # update_mu = np.random.binomial(n=1, p=0.1)
+        mu = torch.clamp(mu, -self._max_mu, self._max_mu) #if update_mu==1 else None
 
-        if ATTACK:
-            eps = dot_eps * dt
-            x_target = self.x_target+eps
-            self.x_target = torch.clamp(x_target, -self._max_x, self._max_x)
-
-        else:
-            self.x_target = self.x
-            mu = torch.tensor(0)
-
+        eps = dot_eps * dt
+        x_target = self.x_target + eps
+        self.x_target = torch.clamp(x_target, -self._max_x, self._max_x)
         self.dist = torch.abs(self.x-self.x_target)
-        f = inp_acc
 
-        temp = (f+mp*l*self.dot_theta**2*torch.sin(self.theta))/(mp+mc)
-        denom = l*(4/3-(mp*torch.cos(self.theta)**2)/(mp+mc))
-        ddot_theta = (g*torch.sin(self.theta)-torch.cos(self.theta)*temp)/denom
-        ddot_x = temp - (mp*l*ddot_theta*torch.cos(self.theta))/(mp+mc)
-
-        # ddot_x = f - mu*self.dot_x  \
-        #            + mp*l*self.dot_theta**2* torch.sin(self.theta) \
-        #            - mp*g*torch.cos(self.theta) * torch.sin(self.theta)
-        # ddot_x = ddot_x / ( mc+mp-mp* torch.cos(self.theta)**2 )
-        # ddot_theta = (g*torch.sin(self.theta) - torch.cos(self.theta)*ddot_x ) / l
+        if FRICTION:
+            ddot_x = f - mu*self.dot_x  \
+                       + mp*l*self.dot_theta**2* torch.sin(self.theta) \
+                       - mp*g*torch.cos(self.theta) * torch.sin(self.theta)
+            ddot_x = ddot_x / ( mc+mp-mp* torch.cos(self.theta)**2 )
+            ddot_theta = (g*torch.sin(self.theta) - torch.cos(self.theta)*ddot_x ) / l
+        
+        else:
+            temp = (f+mp*l*self.dot_theta**2*torch.sin(self.theta))/(mp+mc)
+            denom = l*(4/3-(mp*torch.cos(self.theta)**2)/(mp+mc))
+            ddot_theta = (g*torch.sin(self.theta)-torch.cos(self.theta)*temp)/denom
+            ddot_x = temp - (mp*l*ddot_theta*torch.cos(self.theta))/(mp+mc)
         
         dot_x = self.dot_x + dt * ddot_x
         dot_theta = self.dot_theta + dt * ddot_theta
         x = self.x + dt * dot_x
         theta = self.theta + dt * dot_theta
+        
+        ## print(f"\neq diff out:\t {ddot_x.item():.4f} {ddot_theta.item():.4f}")
+        # print(f"x update:\t{self.x.item():.4f} -> {x.item():.4f}")
+        # print(f"theta update:\t{self.theta.item():.4f} -> {theta.item():.4f}\n")
 
-        self.x = torch.clamp(x, -self._max_x, self._max_x).reshape(1)
-        self.theta = torch.clamp(theta, -self._max_theta, self._max_theta).reshape(1)
-        self.dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x).reshape(1)
-        self.dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta).reshape(1)
+        self.x = torch.clamp(x, -self._max_x, self._max_x)
+        self.theta = torch.clamp(theta, -self._max_theta, self._max_theta)
+        self.dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x)
+        self.dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta)
 
         if DEBUG:
             print(f"dist={self.dist.item():.4f}  mu={mu.item():.4f}", end="\t")
+            print(f"x={self.x.item():4f}, theta={self.theta.item():4}")
 
 
 class Environment:
     def __init__(self, cartpole):
         self._cartpole = cartpole
-        self._max_dot_eps=0.2
-        self._max_mu=1.
 
     def set_agent(self, agent):
         self._agent = agent
@@ -83,11 +89,6 @@ class Environment:
     def initialized(self):
         self.actuators = 2
         self.sensors = len(self.status)
-
-    @property
-    def status(self):
-        return (self._agent.x,
-                self._agent.theta)
 
     @property
     def x(self):
@@ -105,22 +106,30 @@ class Environment:
     def theta(self, value):
         self._cartpole.theta = value
 
-    def update(self, env_params, agent_params, dt):
+    @property
+    def x_target(self):
+        return self._cartpole.x_target.clone()
 
-        cart_acceleration = agent_params.clone().detach()
-        dot_eps, mu = env_params
+    @x_target.setter
+    def x_target(self, value):
+        self._cartpole.x_target = value
 
-        dot_eps = torch.clamp(dot_eps, -self._max_dot_eps, self._max_dot_eps)
-        # update_mu = np.random.binomial(n=1, p=0.1)
-        mu = torch.clamp(mu, -self._max_mu, self._max_mu) #if update_mu==1 else None
+    @property
+    def dist(self):
+        return self._cartpole.dist.clone()
 
-        self._cartpole.update(inp_acc=cart_acceleration, dot_eps=dot_eps, mu=mu, dt=dt)
+    @dist.setter
+    def dist(self, value):
+        self._cartpole.dist = value
+
+    @property
+    def status(self):
+        return (self._agent.x, self._agent.theta, self._cartpole.dist)
 
 
 class Agent:
     def __init__(self, cartpole):
         self._cartpole = cartpole
-        self.f = torch.tensor(0.0)
 
     def set_environment(self, environment):
         self._environment = environment
@@ -179,42 +188,18 @@ class Agent:
         self._cartpole.x_target = value
 
     @property
-    def dist(self):
-        return self._cartpole.dist.clone()
-
-    @dist.setter
-    def dist(self, value):
-        self._cartpole.dist = value
-
-    @property
     def status(self):
-        return (self.x,
-                self.dot_x,
-                self.theta,
-                self.dot_theta,
-                self.x_target)
-
-    def update(self, env_params, agent_params, dt):
-        """ Updates the physical state with the parameters
-            generated by the NN.
-        """
-        cart_acceleration = agent_params
-        dot_eps, mu = env_params
-
-        dot_eps = dot_eps.clone().detach()
-        mu = mu.clone().detach()
-
-        self._cartpole.update(inp_acc=cart_acceleration, dot_eps=dot_eps, mu=mu, dt=dt)
+        return (self.x, self.dot_x, self.theta, self.dot_theta, self.x_target)
 
 
 class Model:
     
     def __init__(self, param_generator):
         # setting of the initial conditions
-        cartpole = CartPole()
+        self.cartpole = CartPole()
 
-        self.agent = Agent(cartpole)
-        self.environment = Environment(cartpole)
+        self.agent = Agent(self.cartpole)
+        self.environment = Environment(self.cartpole)
 
         self.agent.set_environment(self.environment)
         self.environment.set_agent(self.agent)
@@ -223,11 +208,12 @@ class Model:
         self.traces = None
 
     def step(self, env_input, agent_input, dt):
+        dot_eps, mu = env_input
+        action = agent_input
 
-        self.environment.update(env_input, agent_input, dt)
-        self.agent.update(env_input, agent_input, dt)
+        self.cartpole.update(dt=dt, action=action, mu=mu, dot_eps=dot_eps)
 
-        self.traces['dist'].append(self.agent.dist)
+        self.traces['dist'].append(self.environment.dist)
         self.traces['theta'].append(self.agent.theta)
 
     def initialize_random(self):
@@ -248,7 +234,7 @@ class Model:
         self.agent.dot_theta = torch.tensor(pole_ang_velocity).reshape(1)
         self.agent.x_target = torch.tensor(x_target).reshape(1)
 
-        self.traces = {'dist':[], 'theta': []}
+        self.traces = {'theta': [], 'dist':[]}
 
 class RobustnessComputer:
     def __init__(self, formula_theta, formula_dist):
@@ -256,8 +242,8 @@ class RobustnessComputer:
         self.dqs_dist = DiffQuantitativeSemantic(formula_dist)
 
     def compute(self, model):
-        dist = model.traces['dist'][-10:]
         theta = model.traces['theta'][-10:]
+        dist = model.traces['dist'][-10:]
         rob_theta = self.dqs_theta.compute(theta=torch.cat(theta))
         rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))
 

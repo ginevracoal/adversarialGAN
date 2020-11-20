@@ -6,12 +6,11 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from print_pytorch_autograd import make_dot
+from torch.distributions.multivariate_normal import MultivariateNormal
 
 DEBUG=False
-BATCH_SIZE=32
-FIXED_POLICY=False
+BATCH_SIZE=16
 NORMALIZE=False
-POLYNOMIAL=False
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
@@ -42,32 +41,18 @@ class Attacker(nn.Module):
             layers.append(nn.LeakyReLU())
 
         layers.append(nn.Linear(layer_size, output_layer_size))
-
         self.nn = nn.Sequential(*layers)
 
     def forward(self, x):
         """ Uses the NN's output to compute the coefficients of the policy function """
-        if POLYNOMIAL:
-            coefficients = self.nn(x)
-            coefficients = torch.reshape(coefficients, (-1, self.n_coeff))
+        output = self.nn(x)
+        return output
 
-            def policy_generator(t):
-                """ The policy function is defined as polynomial """
-                basis = [t**i for i in range(self.n_coeff)]
-                basis = torch.tensor(basis, dtype=torch.get_default_dtype())
-                basis = torch.reshape(basis, (self.n_coeff, -1))
-                return coefficients.mm(basis).squeeze()
-
-            return policy_generator
-
-        else:
-            output = self.nn(x)
-            return output
 
 class Defender(nn.Module):
     """ NN architecture for the defender """
 
-    def __init__(self, model, n_hidden_layers, layer_size, n_coeff):
+    def __init__(self, model, n_hidden_layers, layer_size, n_coeff, noise_size):
         super().__init__()
 
         assert n_hidden_layers > 0
@@ -75,8 +60,9 @@ class Defender(nn.Module):
         self.hid = n_hidden_layers
         self.ls = layer_size
         self.n_coeff = n_coeff
+        self.noise_size = noise_size
 
-        input_layer_size = model.agent.sensors 
+        input_layer_size = model.agent.sensors + noise_size
         output_layer_size = model.agent.actuators * n_coeff
 
         layers = []
@@ -90,28 +76,14 @@ class Defender(nn.Module):
             layers.append(nn.LeakyReLU())
 
         layers.append(nn.Linear(layer_size, output_layer_size))
-
         self.nn = nn.Sequential(*layers)
 
 
     def forward(self, x):
         """ Uses the NN's output to compute the coefficients of the policy function """
-        if POLYNOMIAL:
-            coefficients = self.nn(x)
-            coefficients = torch.reshape(coefficients, (-1, self.n_coeff))
+        output = self.nn(x)
+        return output
 
-            def policy_generator(t):
-                """ The policy function is defined as polynomial """
-                basis = [t**i for i in range(self.n_coeff)]
-                basis = torch.tensor(basis, dtype=torch.get_default_dtype())
-                basis = torch.reshape(basis, (self.n_coeff, -1))
-                return coefficients.mm(basis).squeeze()
-
-            return policy_generator
-
-        else:
-            output = self.nn(x)
-            return output
 
 class Trainer:
     """ The class contains the training logic """
@@ -128,119 +100,87 @@ class Trainer:
         self.attacker_loss_fn = lambda x: x
         self.defender_loss_fn = lambda x: -x
 
-        self.attacker_optimizer = optim.Adam(attacker_nn.parameters(), lr=lr)
-        self.defender_optimizer = optim.Adam(defender_nn.parameters(), lr=lr)
+        self.attacker_optimizer = optim.Adam(self.attacker.parameters(), lr=lr)
+        self.defender_optimizer = optim.Adam(self.defender.parameters(), lr=lr)
 
         self.logging = True if logging_dir else False
         if self.logging:
             self.logging_dir = logging_dir
 
-    def train_attacker_step(self, timesteps, dt, atk_static):
-
+    def train_attacker_step(self, timesteps, dt):
+        
         self.attacker_optimizer.zero_grad()
 
-        if FIXED_POLICY is True:
-            z = torch.rand(self.attacker.noise_size)
-            oe = torch.tensor(self.model.environment.status)
-            atk_policy = self.attacker(torch.cat((z, oe)))
-
-            with torch.no_grad():
-                oa = torch.tensor(self.model.agent.status)
-                def_policy = self.defender(oa)
-
-        t = 0
-        cumloss = 0
+        loss = 0
         for _ in range(timesteps):
 
-            if FIXED_POLICY is False:
-                z = torch.rand(self.attacker.noise_size)
-                oe = torch.tensor(self.model.environment.status)
-                oa = torch.tensor(self.model.agent.status)
-                
-                atk_policy = self.attacker(torch.cat((z, oe)))
+            ze = torch.rand(self.attacker.noise_size)
+            oe = torch.tensor(self.model.environment.status)
+            za = torch.rand(self.defender.noise_size)
+            oa = torch.tensor(self.model.agent.status)
 
-                with torch.no_grad():
-                    def_policy = self.defender(oa)
+            atk_policy = self.attacker(torch.cat((ze, oe)))
 
-            if POLYNOMIAL:
-                atk_input = atk_policy(0 if atk_static else t)
-                def_input = def_policy(t)
+            with torch.no_grad():
+                def_policy = self.defender(torch.cat((za, oa)))
 
-            else:
-                atk_input = atk_policy
-                def_input = def_policy
+            # print(f"\noe={oe}, oa={oa}")
+            # print(f"atk_policy={atk_policy}, def_policy={def_policy}")
 
-            self.model.step(atk_input, def_input, dt)
-            t += dt
+            self.model.step(atk_policy, def_policy, dt)
+            # t += dt
+
+            # print(f"\noe={self.model.environment.status}, oa={self.model.agent.status}")
+            # exit()
 
             rho = self.robustness_computer.compute(self.model)
-            cumloss += self.attacker_loss_fn(rho)
+            loss += self.attacker_loss_fn(rho)
 
-        cumloss.backward()
+        loss.backward()
         self.attacker_optimizer.step()  
 
         if DEBUG:
             print(self.attacker.state_dict()["nn.0.bias"])
 
-        return cumloss.detach() / timesteps
+        return loss.detach() / timesteps
 
-    def train_defender_step(self, timesteps, dt, atk_static):
+    def train_defender_step(self, timesteps, dt, iter_idx):
 
         self.defender_optimizer.zero_grad()
-        self.attacker_optimizer.zero_grad()
 
-        if FIXED_POLICY is True:
-
-            with torch.no_grad():
-                z = torch.rand(self.attacker.noise_size)
-                oe = torch.tensor(self.model.environment.status)
-                atk_policy = self.attacker(torch.cat((z, oe)))
-
-            oa = torch.tensor(self.model.agent.status)
-            def_policy = self.defender(oa)
-
-        t = 0
-        cumloss = 0
+        loss = 0.
         for _ in range(timesteps):
 
-            if FIXED_POLICY is False:
+            ze = torch.rand(self.attacker.noise_size)
+            oe = torch.tensor(self.model.environment.status)
+            distr = MultivariateNormal(torch.zeros(self.defender.noise_size),
+                                       torch.eye(self.defender.noise_size)/(iter_idx+1))
+            za = distr.sample()
+            oa = torch.tensor(self.model.agent.status)
 
-                z = torch.rand(self.attacker.noise_size)
-                oe = torch.tensor(self.model.environment.status)
-                oa = torch.tensor(self.model.agent.status)
+            with torch.no_grad():
+                atk_policy = self.attacker(torch.cat((ze, oe)))
 
-                with torch.no_grad():
-                    atk_policy = self.attacker(torch.cat((z, oe)))
+            def_policy = self.defender(torch.cat((za, oa)))
 
-                def_policy = self.defender(oa)
-
-            if POLYNOMIAL:
-                atk_input = atk_policy(0 if atk_static else t)
-                def_input = def_policy(t)
-
-            else:
-                atk_input = atk_policy
-                def_input = def_policy
-
-            self.model.step(atk_input, def_input, dt)
-            t += dt
+            self.model.step(atk_policy, def_policy, dt)
         
             rho = self.robustness_computer.compute(self.model)
-            cumloss += self.defender_loss_fn(rho)
+            loss += self.defender_loss_fn(rho)
 
-        cumloss.backward()
+        loss.backward()
         self.defender_optimizer.step()  
 
         if DEBUG:
             print(self.defender.state_dict()["nn.0.bias"])
-            make_dot(def_input, self.defender.named_parameters(), path=self.logging_dir)
+            # make_dot(def_policy, self.defender.named_parameters(), path=self.logging_dir)
 
-        return cumloss.detach() / timesteps
+        return loss.detach() / timesteps
 
     def initialize_random_batch(self, batch_size=BATCH_SIZE):
         return [next(self.model._param_generator) for _ in range(batch_size)]
 
-    def train(self, atk_steps, def_steps, time_horizon, dt, atk_static):
+    def train(self, atk_steps, def_steps, timesteps, dt):
         """ Trains both the attacker and the defender
         """
         random_batch = self.initialize_random_batch() 
@@ -248,13 +188,12 @@ class Trainer:
         for init_state in random_batch:      
 
             for _ in range(atk_steps):
-
                 self.model.reinitialize(*init_state)
-                atk_loss = self.train_attacker_step(time_horizon, dt, atk_static)
+                atk_loss = self.train_attacker_step(timesteps, dt)
             
-            for _ in range(def_steps):
+            for i in range(def_steps):
                 self.model.reinitialize(*init_state)
-                def_loss = self.train_defender_step(time_horizon, dt, atk_static)
+                def_loss = self.train_defender_step(timesteps, dt, i)
 
         return (atk_loss, def_loss)
 
@@ -269,7 +208,7 @@ class Trainer:
             def_loss_vals = torch.zeros(n_steps)
 
         for i in tqdm(range(n_steps)):
-            atk_loss, def_loss = self.train(atk_steps, def_steps, time_horizon, dt, atk_static)
+            atk_loss, def_loss = self.train(atk_steps, def_steps, time_horizon, dt)
             print(f"def_rob = {-def_loss:.4f}\tatk_rob = {atk_loss:.4f}")
 
             if self.logging:
