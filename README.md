@@ -6,11 +6,6 @@ Code for paper "Adversarial Learning of Robust and Safe Controllers for Cyber-Ph
 We introduce a novel learning-based approach to synthesize safe and robust con- trollers for autonomous Cyber-Physical Systems and, at the same time, to generate challenging tests. This procedure combines formal methods for model verification with Generative Adversarial Networks. The method learns two Neural Networks: the first one aims at generating troubling scenarios for the controller, while the second one aims at enforcing the safety constraints. We test the proposed method on a variety of case studies.
 
 ## Project structure
-The project has been developed in PyTorch and still needs to undergo a heavy refactoring.
-The main directories are:
-- `doc`, contains the Latex source code of the whole thesis
-- `misc`, contains the thesis and the presentation slides in PDF
-- `src`, the actual source code of the architecture developed
 
 ### Source code
 The project provides 3 main modules to create the desired experimental setup.
@@ -39,9 +34,6 @@ cd src
 python train_platooning.py
 ```
 
-
-## Disclaimer
-The code, despite its robustness, is far from being production-ready: it needs to be refactored and, in some parts, it requires a redesign to allow a faster prototypation of experimental models and setups. Therefore it should be considered as a Proof Of Concept.
 
 ## Licence
 Creative Commons 4.0 CC-BY
