@@ -14,14 +14,14 @@ def get_settings(name, mode):
         cart_velocity = np.linspace(-1., 1., 100)
         pole_angle = np.linspace(-0., 0., 1)
         pole_ang_velocity = np.linspace(-1., 1., 100)
-        x_target = np.linspace(-0., 0., 100)
+        x_target = np.linspace(-0.1, 0.1, 100)
 
     elif mode=="test":
         cart_position = np.linspace(0., 0., 1)
         cart_velocity = np.linspace(-.5, .5, 50)
         pole_angle = np.linspace(0., 0., 1)
         pole_ang_velocity = np.linspace(-.5, .5, 50)
-        x_target = np.linspace(-.5, .5, 50)
+        x_target = np.linspace(-0., 0., 50)
 
     # ARCHITECTURE
 
@@ -29,7 +29,7 @@ def get_settings(name, mode):
 
         atk_arch = {'hidden':1, 'size':10, 'coef':1, 'noise':3}
         def_arch = {'hidden':3, 'size':10, 'coef':1}
-        train_par = {'train_steps':100, 'atk_steps':1, 'def_steps':3, 'horizon':2., 'dt': 0.05, 'lr':.001}
+        train_par = {'train_steps':500, 'atk_steps':1, 'def_steps':3, 'horizon':2., 'dt': 0.05, 'lr':.001}
         test_par = {'test_steps':100, 'dt':0.05}
         
     else:

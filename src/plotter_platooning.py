@@ -120,17 +120,12 @@ if args.scatter:
 
 if args.plot_evolution:
     n = random.randrange(len(records))
-    print('pulse:', records[n]['pulse']['init'])
-    plot(records[n]['pulse']['sim_t'], records[n]['pulse']['sim_ag_pos'], records[n]['pulse']['sim_ag_dist'], records[n]['pulse']['sim_ag_acc'], records[n]['pulse']['sim_env_pos'], records[n]['pulse']['sim_env_acc'], 'triplot_pulse.png')
 
-    print('step_up:', records[n]['step_up']['init'])
-    plot(records[n]['step_up']['sim_t'], records[n]['step_up']['sim_ag_pos'], records[n]['step_up']['sim_ag_dist'], records[n]['step_up']['sim_ag_acc'], records[n]['step_up']['sim_env_pos'], records[n]['step_up']['sim_env_acc'], 'triplot_step_up.png')
-
-    print('step_down:', records[n]['step_down']['init'])
-    plot(records[n]['step_down']['sim_t'], records[n]['step_down']['sim_ag_pos'], records[n]['step_down']['sim_ag_dist'], records[n]['step_down']['sim_ag_acc'], records[n]['step_down']['sim_env_pos'], records[n]['step_down']['sim_env_acc'], 'triplot_step_down.png')
-
-    print('attacker:', records[n]['atk']['init'])
-    plot(records[n]['atk']['sim_t'], records[n]['atk']['sim_ag_pos'], records[n]['atk']['sim_ag_dist'], records[n]['atk']['sim_ag_acc'], records[n]['atk']['sim_env_pos'], records[n]['atk']['sim_env_acc'], 'triplot_attacker.png')
+    for case in ['pulse', 'step_up', 'step_down', 'atk']:
+        print(case, records[n][case]['init'])
+        plot(records[n][case]['sim_t'], records[n][case]['sim_ag_pos'], records[n][case]['sim_ag_dist'], 
+             records[n][case]['sim_ag_acc'], records[n][case]['sim_env_pos'], 
+             records[n][case]['sim_env_acc'], 'triplot_'+case+'.png')
 
 if args.hist:
     size = len(records)

@@ -47,15 +47,15 @@ def hist(time, const, pulse, atk, filename):
     ax[0].set(xlabel='time (s)', ylabel='% correct')
     ax[0].title.set_text('Acceleration const')
 
-    ax[0].plot(time, pulse *100)
-    ax[0].fill_between(time, pulse *100, alpha=0.5)
-    ax[0].set(xlabel='time (s)', ylabel='% correct')
-    ax[0].title.set_text('Acceleration pulse')
-
-    ax[1].plot(time, atk *100)
-    ax[1].fill_between(time, atk *100, alpha=0.5)
+    ax[1].plot(time, pulse *100)
+    ax[1].fill_between(time, pulse *100, alpha=0.5)
     ax[1].set(xlabel='time (s)', ylabel='% correct')
-    ax[1].title.set_text('Against attacker')
+    ax[1].title.set_text('Acceleration pulse')
+
+    ax[2].plot(time, atk *100)
+    ax[2].fill_between(time, atk *100, alpha=0.5)
+    ax[2].set(xlabel='time (s)', ylabel='% correct')
+    ax[2].title.set_text('Against attacker')
 
     fig.tight_layout()
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)

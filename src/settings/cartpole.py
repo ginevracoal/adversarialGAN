@@ -16,16 +16,16 @@ def get_settings(name, mode):
 
     elif mode=="test":
         cart_position = np.linspace(-0.1, 0.1, 10)
-        cart_velocity = np.linspace(-1.5, 1.5, 50)
+        cart_velocity = np.linspace(-1., 1., 50)
         pole_angle = np.linspace(-0.1, 0.1, 10)
-        pole_ang_velocity = np.linspace(-1.5, 1.5, 50)
+        pole_ang_velocity = np.linspace(-1., 1., 50)
 
     # ARCHITECTURE
 
     if name=="default":
 
         net_arch = {'hidden':3, 'size':10}
-        train_par = {'train_steps':100, 'horizon':2., 'dt': 0.05, 'lr':.001}
+        train_par = {'train_steps':300, 'horizon':2., 'dt': 0.05, 'lr':.001}
         test_par = {'test_steps':300, 'dt':0.05}    
 
     else:

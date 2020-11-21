@@ -247,7 +247,4 @@ class RobustnessComputer:
         rob_theta = self.dqs_theta.compute(theta=torch.cat(theta))
         rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))
 
-        if ATTACK:
-            return 0.1*rob_dist+0.9*rob_theta
-        else:
-            return rob_theta
+        return 0.4*rob_dist+0.6*rob_theta

@@ -1,18 +1,15 @@
 import os
-import pickle
-from misc import *
 import torch
-import torch.nn as nn
+import pickle
 import numpy as np
-from argparse import ArgumentParser
+import torch.nn as nn
 from tqdm import tqdm
-# import architecture
-# import model_platooning
-# from settings_platooning import get_settings
+from argparse import ArgumentParser
+
+from misc import *
 from model.platooning import *
 from settings.platooning import *
 from architecture.default import *
-
 
 parser = ArgumentParser()
 parser.add_argument("-r", "--repetitions", type=int, default=10, help="simulation repetions")
@@ -58,27 +55,21 @@ def run(mode=None):
             oa = torch.tensor(physical_model.agent.status)
             oe = torch.tensor(physical_model.environment.status)
             z = torch.rand(attacker.noise_size)
+
             if mode == 0:
-                atk_policy = lambda x: torch.tensor(1.) if i > 200 and i < 250 else torch.tensor(-1.)
+                atk_policy = torch.tensor(1.) if i > int(test_par["test_steps"]*1/3) \
+                             and i < int(test_par["test_steps"]*2/3) else torch.tensor(-1.)
             elif mode == 1:
-                atk_policy = lambda x: torch.tensor(1.) if i > 150 else torch.tensor(-1.)
+                atk_policy = torch.tensor(1.) if i > int(test_par["test_steps"]/2) else torch.tensor(-1.)
             elif mode == 2:
-                atk_policy = lambda x: torch.tensor(1.) if i < 150 else torch.tensor(-1.)
-            #     atk_policy = lambda x: torch.tensor(2.) if i > int(test_par["test_steps"]/3) \
-            #                             and i < int(test_par["test_steps"]/2) \
-            #                             else torch.tensor(-2.)
-            # elif mode == 1:
-            #     atk_policy = lambda x: torch.tensor(2.) if i > int(test_par["test_steps"]/3) \
-            #                             else torch.tensor(-2.)
-            # elif mode == 2:
-            #     atk_policy = lambda x: torch.tensor(2.) if i < int(test_par["test_steps"]/3) \
-            #                             else torch.tensor(-2.)
+                atk_policy = torch.tensor(1.) if i < int(test_par["test_steps"]/2) else torch.tensor(-1.)
             else:
                 atk_policy = attacker(torch.cat((z, oe)))
+                
             def_policy = defender(oa)
 
-        atk_input = atk_policy(dt)
-        def_input = def_policy(dt)
+        atk_input = atk_policy
+        def_input = def_policy
 
         physical_model.step(atk_input, def_input, dt)
         sim_ag_acc.append(def_input)
@@ -100,7 +91,7 @@ def run(mode=None):
     }
 
 records = []
-for i in range(args.repetitions):
+for i in tqdm(range(args.repetitions)):
     sim = {}
     sim['pulse'] = run(0)
     sim['step_up'] = run(1)
