@@ -5,9 +5,9 @@ Code for paper "Adversarial Learning of Robust and Safe Controllers for Cyber-Ph
 ## Abstract
 We introduce a novel learning-based approach to synthesize safe and robust con- trollers for autonomous Cyber-Physical Systems and, at the same time, to generate challenging tests. This procedure combines formal methods for model verification with Generative Adversarial Networks. The method learns two Neural Networks: the first one aims at generating troubling scenarios for the controller, while the second one aims at enforcing the safety constraints. We test the proposed method on a variety of case studies.
 
-## Project structure
+## Reproducibility
 
-### Source code overview
+### Source code structure
 
 - `architecture/` contains the general GAN architecture and training / testing procedures
 - `utils/diffquantitative.py` provides the logic to write, parse and check STL requirements
@@ -16,15 +16,27 @@ We introduce a novel learning-based approach to synthesize safe and robust con- 
 - `settings/` contains the initial configuration for each case study
 - `train_*`, `tester_*` and `plotter_*` scripts execute, store and plot the simulations
 
-Check readme.md in `src/` for sample code executions. 
-
-## Quick start
-Once the repository has been cloned, create a python3 _virtual environment_ and install the specified requirements.
+### Quick start
+Once the repository has been cloned, create a python3 virtual environment and install the specified requirements.
 ```
 virtualenv -p python3 venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
+
+### Example
+
+Choose model settings in `src/settings/*`.
+
+```
+source venv/bin/activate
+cd src/
+python train_*.py 
+python tester_*.py -r=N_SIMULATIONS
+python plotter_*.py -r=N_SIMULATIONS
+```
+
+Models and plots are saved in `experiments/`.
 
 ## Licence
 Creative Commons 4.0 CC-BY
