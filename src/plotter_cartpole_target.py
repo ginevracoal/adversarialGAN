@@ -34,7 +34,7 @@ mp = .1
 
 
 if args.dark:
-    plt.style.use('./qb-common_dark.mplstyle')
+    plt.style.use('utils/qb-common_dark.mplstyle')
     
 with open(os.path.join(EXP+relpath, sims_filename), 'rb') as f:
     records = pickle.load(f)

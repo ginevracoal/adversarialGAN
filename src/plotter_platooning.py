@@ -29,7 +29,7 @@ relpath = get_relpath(main_dir="platooning_"+args.architecture, train_params=tra
 sims_filename = get_sims_filename(args.repetitions, test_par)
 
 if args.dark:
-    plt.style.use('./qb-common_dark.mplstyle')
+    plt.style.use('utils/qb-common_dark.mplstyle')
     
 with open(os.path.join(EXP+relpath, sims_filename), 'rb') as f:
     records = pickle.load(f)

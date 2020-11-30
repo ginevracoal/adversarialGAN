@@ -57,7 +57,7 @@ parser.add_argument("--dark", default=False, action="store_true" , help="Use dar
 args = parser.parse_args()
 
 if args.dark:
-    plt.style.use('./qb-common_dark.mplstyle')
+    plt.style.use('utils/qb-common_dark.mplstyle')
 
 physical_model = model_platooning.Model(None)
 attacker = architecture.Attacker(physical_model, 2, 10, 2)
