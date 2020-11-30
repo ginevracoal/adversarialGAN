@@ -21,7 +21,7 @@ def get_settings(name, mode):
         cart_velocity = np.linspace(-.5, .5, 50)
         pole_angle = np.linspace(0., 0., 1)
         pole_ang_velocity = np.linspace(-.5, .5, 50)
-        x_target = np.linspace(-0., 0., 50)
+        x_target = np.linspace(-0.1, 0.1, 50)
 
     # ARCHITECTURE
 
