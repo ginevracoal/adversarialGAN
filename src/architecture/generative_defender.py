@@ -5,8 +5,8 @@ import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from print_pytorch_autograd import make_dot
 from torch.distributions.multivariate_normal import MultivariateNormal
+from utils.print_pytorch_autograd import make_dot
 
 DEBUG=False
 BATCH_SIZE=16
@@ -124,15 +124,7 @@ class Trainer:
             with torch.no_grad():
                 def_policy = self.defender(torch.cat((za, oa)))
 
-            # print(f"\noe={oe}, oa={oa}")
-            # print(f"atk_policy={atk_policy}, def_policy={def_policy}")
-
             self.model.step(atk_policy, def_policy, dt)
-            # t += dt
-
-            # print(f"\noe={self.model.environment.status}, oa={self.model.agent.status}")
-            # exit()
-
             rho = self.robustness_computer.compute(self.model)
             loss += self.attacker_loss_fn(rho)
 

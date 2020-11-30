@@ -1,14 +1,13 @@
 import os
+import torch
 import random
 import pickle
-import torch
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-import numpy as np
 from argparse import ArgumentParser
-from misc import *
-# import model_platooning
-# from settings_platooning import get_settings
+
+from utils.misc import *
 from model.platooning import *
 from settings.platooning import *
 from architecture.default import *
@@ -74,25 +73,49 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
     fig.suptitle('Initial conditions vs robustness $\\rho$')
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
-def plot(sim_time, sim_agent_pos, sim_agent_dist, sim_agent_acc, sim_env_pos, sim_env_acc, filename):
+
+def plot_evolution(sim_time, sim_agent_pos, sim_agent_dist, sim_agent_acc, sim_env_pos, sim_env_acc, filename):
     fig, ax = plt.subplots(1, 3, figsize=(12, 3))
 
     ax[0].plot(sim_time, sim_agent_pos, label='follower')
-    ax[0].plot(sim_time, sim_env_pos, label='leader')
-    ax[0].set(xlabel='time (s)', ylabel='position (m)')
+    ax[0].plot(sim_time, sim_env_pos, label='leader', color='tab:red')
+    ax[0].set(xlabel=r'time ($s$)', ylabel=r'car position $x$ (m)')
     ax[0].legend()
 
     ax[1].plot(sim_time, sim_agent_dist)
-    ax[1].set(xlabel='time (s)', ylabel='distance (m)')
-    ax[1].axhline(2, ls='--', color='r')
-    ax[1].axhline(10, ls='--', color='r')
+    ax[1].set(xlabel=r'time ($s$)', ylabel=r'distance between cars $\|x_l-x_f\|$ (m)')
+    ax[1].axhline(2, ls='--', label='safe distance', color='tab:orange')
+    ax[1].axhline(10, ls='--', color='tab:orange')
+    ax[1].legend()
 
     ax[2].plot(sim_time, sim_agent_acc, label='follower')
-    ax[2].plot(sim_time, sim_env_acc, label='leader')
-    # ax[2].plot(sim_time, np.clip(sim_agent_acc, -3, 3), label='follower')
-    # ax[2].plot(sim_time, np.clip(sim_env_acc, -3, 3), label='leader')
-    ax[2].set(xlabel='time (s)', ylabel='acceleration ($m/s^2$)')
+    ax[2].plot(sim_time, sim_env_acc, label='leader', color='tab:red')
+    ax[2].set(xlabel=r'time ($s$)', ylabel=r'cart acceleration $\ddot x$ ($ms^{-2}$)')
     ax[2].legend()
+
+    fig.tight_layout()
+    fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
+
+
+def plot_evolution_small(sim_time, sim_agent_pos, sim_agent_dist, sim_agent_acc, sim_env_pos, sim_env_acc, filename):
+    fig, ax = plt.subplots(2, 1, figsize=(5, 4.5), sharex=True)
+
+    # ax[0].plot(sim_time, sim_agent_pos, label='follower')
+    # ax[0].plot(sim_time, sim_env_pos, label='leader', color='tab:red')
+    # ax[0].set(xlabel=r'time ($s$)', ylabel=r'car position $x$ (m)')
+    # ax[0].legend()
+
+    ax[0].plot(sim_time, sim_agent_dist, color='tab:blue')
+    # ax[0].set(xlabel=r'time ($s$)', ylabel=r'distance between cars (m)')
+    ax[0].set(ylabel=r'distance between cars (m)')
+    ax[0].axhline(2, ls='--', label='safe distance', color='tab:orange')
+    ax[0].axhline(10, ls='--', color='tab:orange')
+    ax[0].legend()
+
+    ax[1].plot(sim_time, sim_agent_acc, label='follower', color='tab:blue')
+    ax[1].plot(sim_time, sim_env_acc, label='leader', color='tab:red')
+    ax[1].set(xlabel=r'time ($s$)', ylabel=r'cart acceleration ($ms^{-2}$)')
+    ax[1].legend()
 
     fig.tight_layout()
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
@@ -119,13 +142,15 @@ if args.scatter:
     scatter(robustness_array, delta_pos_array, delta_vel_array, 'atk_scatterplot.png')
 
 if args.plot_evolution:
-    n = random.randrange(len(records))
 
+    n = random.randrange(len(records))
+    # for n in range(len(records)):
     for case in ['pulse', 'step_up', 'step_down', 'atk']:
         print(case, records[n][case]['init'])
-        plot(records[n][case]['sim_t'], records[n][case]['sim_ag_pos'], records[n][case]['sim_ag_dist'], 
+        plot_evolution_small(records[n][case]['sim_t'], records[n][case]['sim_ag_pos'], 
+             records[n][case]['sim_ag_dist'], 
              records[n][case]['sim_ag_acc'], records[n][case]['sim_env_pos'], 
-             records[n][case]['sim_env_acc'], 'triplot_'+case+'.png')
+             records[n][case]['sim_env_acc'], 'triplot_'+case+'_'+str(n)+'.png')
 
 if args.hist:
     size = len(records)

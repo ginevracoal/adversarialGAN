@@ -6,7 +6,7 @@ import torch.nn as nn
 from tqdm import tqdm
 from argparse import ArgumentParser
 
-from misc import *
+from utils.misc import *
 from model.platooning import *
 from settings.platooning import *
 from architecture.default import *

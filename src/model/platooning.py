@@ -1,6 +1,6 @@
 import json
 import torch
-from diffquantitative import DiffQuantitativeSemantic
+from utils.diffquantitative import DiffQuantitativeSemantic
 
 class Car:
     """ Describes the physical behaviour of the vehicle """

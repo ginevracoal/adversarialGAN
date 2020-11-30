@@ -6,7 +6,7 @@ import torch.nn as nn
 from tqdm import tqdm
 from argparse import ArgumentParser
 
-from misc import *
+from utils.misc import *
 from architecture.default import *
 from model.cartpole_target import *
 from settings.cartpole_target import *
@@ -49,7 +49,7 @@ def run(mode=None):
     sim_dot_theta = []
     sim_x_target = []
     sim_attack_mu = []
-    sim_def_acc = []
+    sim_action = []
     sim_dist = []
 
     t = 0
@@ -73,10 +73,7 @@ def run(mode=None):
 
             def_policy = defender(oa)
 
-        atk_input = atk_policy#(dt)
-        def_input = def_policy#(dt)
-
-        physical_model.step(env_input=atk_input, agent_input=def_input, dt=dt)
+        physical_model.step(env_input=atk_policy, agent_input=def_policy, dt=dt)
 
         sim_t.append(t)
         sim_x.append(physical_model.agent.x.item())
@@ -86,8 +83,8 @@ def run(mode=None):
         sim_dot_theta.append(physical_model.agent.dot_theta.item())
         sim_x_target.append(physical_model.agent.x_target.item())
         sim_dist.append(physical_model.environment.dist.item())
-        sim_attack_mu.append(atk_input[1].item())
-        sim_def_acc.append(def_input.item())
+        sim_attack_mu.append(atk_policy[1].item())
+        sim_action.append(def_policy.item())
 
         t += dt
         
@@ -101,7 +98,7 @@ def run(mode=None):
             'sim_x_target': np.array(sim_x_target),
             'sim_dist': np.array(sim_dist),
             'sim_attack_mu': np.array(sim_attack_mu),
-            'sim_def_acc': np.array(sim_def_acc),
+            'sim_action': np.array(sim_action),
     }
 
 records = []

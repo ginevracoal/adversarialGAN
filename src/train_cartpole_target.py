@@ -1,7 +1,7 @@
 import os
 from argparse import ArgumentParser
 
-from misc import *
+from utils.misc import *
 from model.cartpole_target import *
 from settings.cartpole_target import *
 from architecture.default import *

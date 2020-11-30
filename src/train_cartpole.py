@@ -4,7 +4,7 @@ import torch.nn as nn
 from argparse import ArgumentParser
 import random
 
-from misc import *
+from utils.misc import *
 from model.cartpole import *
 from settings.cartpole import *
 from architecture.cartpole import *

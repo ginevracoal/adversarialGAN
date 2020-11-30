@@ -5,13 +5,13 @@ import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from print_pytorch_autograd import make_dot
+# from utils.print_pytorch_autograd import make_dot
 
 DEBUG=False
 BATCH_SIZE=32
 FIXED_POLICY=False
 NORMALIZE=False
-POLYNOMIAL=False
+K=10
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
@@ -46,21 +46,6 @@ class Attacker(nn.Module):
         self.nn = nn.Sequential(*layers)
 
     def forward(self, x):
-        """ Uses the NN's output to compute the coefficients of the policy function """
-        # if POLYNOMIAL:
-        #     coefficients = self.nn(x)
-        #     coefficients = torch.reshape(coefficients, (-1, self.n_coeff))
-
-        #     def policy_generator(t):
-        #         """ The policy function is defined as polynomial """
-        #         basis = [t**i for i in range(self.n_coeff)]
-        #         basis = torch.tensor(basis, dtype=torch.get_default_dtype())
-        #         basis = torch.reshape(basis, (self.n_coeff, -1))
-        #         return coefficients.mm(basis).squeeze()
-
-        #     return policy_generator
-
-        # else:
         output = self.nn(x)
         return output
 
@@ -95,21 +80,6 @@ class Defender(nn.Module):
 
 
     def forward(self, x):
-        """ Uses the NN's output to compute the coefficients of the policy function """
-        # if POLYNOMIAL:
-        #     coefficients = self.nn(x)
-        #     coefficients = torch.reshape(coefficients, (-1, self.n_coeff))
-
-        #     def policy_generator(t):
-        #         """ The policy function is defined as polynomial """
-        #         basis = [t**i for i in range(self.n_coeff)]
-        #         basis = torch.tensor(basis, dtype=torch.get_default_dtype())
-        #         basis = torch.reshape(basis, (self.n_coeff, -1))
-        #         return coefficients.mm(basis).squeeze()
-
-        #     return policy_generator
-
-        # else:
         output = self.nn(x)
         return output
 
@@ -142,15 +112,15 @@ class Trainer:
         if FIXED_POLICY is True:
             z = torch.rand(self.attacker.noise_size)
             oe = torch.tensor(self.model.environment.status)
+            oa = torch.tensor(self.model.agent.status)
+
             atk_policy = self.attacker(torch.cat((z, oe)))
 
             with torch.no_grad():
-                oa = torch.tensor(self.model.agent.status)
                 def_policy = self.defender(oa)
 
-        t = 0
         cumloss = 0
-        for _ in range(timesteps):
+        for t in range(timesteps):
 
             if FIXED_POLICY is False:
                 z = torch.rand(self.attacker.noise_size)
@@ -162,19 +132,14 @@ class Trainer:
                 with torch.no_grad():
                     def_policy = self.defender(oa)
 
-            if POLYNOMIAL:
-                atk_input = atk_policy(0 if atk_static else t)
-                def_input = def_policy(t)
-
-            else:
-                atk_input = atk_policy
-                def_input = def_policy
+            atk_input = atk_policy
+            def_input = def_policy
 
             self.model.step(atk_input, def_input, dt)
-            t += dt
 
-            rho = self.robustness_computer.compute(self.model)
-            cumloss += self.attacker_loss_fn(rho)
+            if t>K:
+                rho = self.robustness_computer.compute(self.model)
+                cumloss += self.attacker_loss_fn(rho)
 
         cumloss.backward()
         self.attacker_optimizer.step()  
@@ -187,21 +152,20 @@ class Trainer:
     def train_defender_step(self, timesteps, dt, atk_static):
 
         self.defender_optimizer.zero_grad()
-        self.attacker_optimizer.zero_grad()
 
         if FIXED_POLICY is True:
 
+            z = torch.rand(self.attacker.noise_size)
+            oe = torch.tensor(self.model.environment.status)
+            oa = torch.tensor(self.model.agent.status)
+
             with torch.no_grad():
-                z = torch.rand(self.attacker.noise_size)
-                oe = torch.tensor(self.model.environment.status)
                 atk_policy = self.attacker(torch.cat((z, oe)))
 
-            oa = torch.tensor(self.model.agent.status)
             def_policy = self.defender(oa)
 
-        t = 0
         cumloss = 0
-        for _ in range(timesteps):
+        for t in range(timesteps):
 
             if FIXED_POLICY is False:
 
@@ -214,26 +178,21 @@ class Trainer:
 
                 def_policy = self.defender(oa)
 
-            if POLYNOMIAL:
-                atk_input = atk_policy(0 if atk_static else t)
-                def_input = def_policy(t)
-
-            else:
-                atk_input = atk_policy
-                def_input = def_policy
+            atk_input = atk_policy
+            def_input = def_policy
 
             self.model.step(atk_input, def_input, dt)
-            t += dt
         
-            rho = self.robustness_computer.compute(self.model)
-            cumloss += self.defender_loss_fn(rho)
+            if t>K:
+                rho = self.robustness_computer.compute(self.model)
+                cumloss += self.defender_loss_fn(rho)
 
         cumloss.backward()
         self.defender_optimizer.step()  
 
         if DEBUG:
             print(self.defender.state_dict()["nn.0.bias"])
-            make_dot(def_input, self.defender.named_parameters(), path=self.logging_dir)
+            # make_dot(def_input, self.defender.named_parameters(), path=self.logging_dir)
 
         return cumloss.detach() / timesteps
 

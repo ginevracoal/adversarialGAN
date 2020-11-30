@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from argparse import ArgumentParser
 
-from misc import *
+from utils.misc import *
 from model.platooning import *
 from settings.platooning import *
 from architecture.default import *

@@ -6,10 +6,12 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
-from print_pytorch_autograd import make_dot
+# from utils.print_pytorch_autograd import make_dot
 
 DEBUG=False
 BATCH_SIZE=32
+NORMALIZE=False
+K=10
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
@@ -29,7 +31,8 @@ class PolicyNetwork(nn.Module):
         output_layer_size = model.cartpole.actuators
 
         layers = []
-        # layers.append(nn.LayerNorm(input_layer_size))
+        if NORMALIZE:
+            layers.append(nn.LayerNorm(input_layer_size))
         layers.append(nn.Linear(input_layer_size, layer_size))
         layers.append(nn.LeakyReLU())
 
@@ -40,7 +43,6 @@ class PolicyNetwork(nn.Module):
         layers.append(nn.Linear(layer_size, output_layer_size))
 
         self.nn = nn.Sequential(*layers)
-
 
     def forward(self, x):
         """ Uses the NN's output to compute the coefficients of the policy function """
@@ -71,20 +73,21 @@ class Trainer:
         self.optimizer.zero_grad()
         cumloss = 0            
 
-        for _ in range(timesteps):
+        for t in range(timesteps):
             status = torch.tensor(self.model.cartpole.status)
             action = self.policy_network(status)
             self.model.step(action, dt)
 
-            rho = self.robustness_computer.compute(self.model)
-            cumloss += self.loss_fn(rho)
+            if t>K:
+                rho = self.robustness_computer.compute(self.model)
+                cumloss += self.loss_fn(rho)
 
         cumloss.backward()
         self.optimizer.step()
         
         if DEBUG:
             print(self.policy_network.state_dict()['nn.0.bias'])
-            make_dot(action, self.policy_network.named_parameters(), path=self.logging_dir)
+            # make_dot(action, self.policy_network.named_parameters(), path=self.logging_dir)
             
         return cumloss.detach() / timesteps
 

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from argparse import ArgumentParser
 
-from misc import *
+from utils.misc import *
 from model.cartpole import *
 from settings.cartpole import *
 
@@ -50,19 +50,21 @@ def hist(time, const, filename):
 
 def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array, filename):
     fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+    fig.tight_layout(pad=4.0)
 
     print(cart_pos_array, "\n", pole_ang_array, "\n", cart_vel_array, "\n", pole_ang_vel_array)
 
     customnorm = mcolors.TwoSlopeNorm(0)
-    sp0 = ax[0].scatter(cart_pos_array, cart_vel_array, c=robustness_array, cmap='RdYlGn', norm=customnorm)
-    ax[0].set(xlabel='cart position', ylabel='cart velocity')
-    # cb = fig.colorbar(sp0)
-    # cb.ax[0].set_label('$\\rho$')
 
-    sp1 = ax[1].scatter(pole_ang_array, pole_ang_vel_array, c=robustness_array, cmap='RdYlGn', norm=customnorm)
+    im = ax[0].scatter(cart_pos_array, cart_vel_array, c=robustness_array, cmap='RdYlGn', norm=customnorm)
+    ax[0].set(xlabel='cart position', ylabel='cart velocity')
+
+    im = ax[1].scatter(pole_ang_array, pole_ang_vel_array, c=robustness_array, cmap='RdYlGn', norm=customnorm)
     ax[1].set(xlabel='pole angle', ylabel='pole angular frequency')
-    # cb = fig.colorbar(sp1)
-    # cb.ax[1].set_label('$\\rho$')
+    
+    fig.subplots_adjust(right=0.85)
+    cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
+    fig.colorbar(im, cax=cbar_ax)
 
     fig.suptitle('Initial conditions vs robustness $\\rho$')
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
@@ -72,20 +74,20 @@ def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_theta,
     fig, ax = plt.subplots(2, 2, figsize=(10, 6))
 
     ax[0,0].plot(sim_time, sim_x, label='')    
-    ax[0,0].set(xlabel='time (s)', ylabel='cart position')# (m)')
-    ax[0,0].legend()
+    ax[0,0].set(xlabel=r'time ($s$)', ylabel=r'cart position $x$ (m)')
+    # ax[0,0].legend()
 
     ax[1,0].plot(sim_time, sim_ddot_x, label='true acceleration')
-    ax[1,0].set(xlabel='time (s)', ylabel= f'cart acceleration')# (m/s^2)')
+    ax[1,0].set(xlabel=r'time ($s$)', ylabel= r'cart acceleration $\ddot x$ ($ms^{-2}$)')
 
     ax[0,1].axhline(-safe_theta, ls='--', color='tab:orange', label="safe theta")
     ax[0,1].axhline(safe_theta, ls='--', color='tab:orange')
     ax[0,1].plot(sim_time, sim_theta, label='')
-    ax[0,1].set(xlabel='time (s)', ylabel='pole angle')# (rad)')
+    ax[0,1].set(xlabel=r'time ($s$)', ylabel=r'pole angle $\theta$ (rad)')
     ax[0,1].legend()
 
-    ax[1,1].plot(sim_time, (mp + mc) * sim_action, label='', color='tab:green')
-    ax[1,1].set(xlabel='time (s)', ylabel= f'cart control')# (N)')
+    ax[1,1].plot(sim_time, sim_action, label='', color='tab:green')
+    ax[1,1].set(xlabel=r'time ($s$)', ylabel= r'cart control $f$ (N)')
 
     fig.tight_layout()
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
@@ -121,8 +123,11 @@ if args.scatter is True:
         scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array, 'atk_scatterplot.png')
 
 if args.plot_evolution is True:
-    n = random.randrange(len(records))
 
+    n = random.randrange(len(records))
+    print(n)
+
+    # for n in range(len(records)):
     for mode in ["const"]:
 
         print(mode+":", records[n][mode]['init'])
@@ -130,7 +135,7 @@ if args.plot_evolution is True:
              records[n][mode]['sim_x'], records[n][mode]['sim_theta'], 
              records[n][mode]['sim_dot_x'], records[n][mode]['sim_ddot_x'], 
              records[n][mode]['sim_dot_theta'], records[n][mode]['sim_action'], 
-             'evolution_'+mode+'.png')
+             'evolution_'+mode+'_'+str(n)+'.png')
 
 if args.hist is True:
 
