@@ -139,9 +139,9 @@ if args.scatter:
 if args.plot_evolution:
 
     n = random.randrange(len(records))
-    print(n)
-    # n=73
+    # n=372
 
+    print(n)
     for case in ['pulse', 'step_up', 'step_down', 'atk']:
         print(case, records[n][case]['init'])
         plot_evolution_small(records[n][case]['sim_t'], records[n][case]['sim_ag_pos'], 

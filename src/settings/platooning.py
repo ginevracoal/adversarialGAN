@@ -14,24 +14,24 @@ def get_settings(name, mode):
 
     elif mode=="test":
         agent_position = 0
-        agent_velocity = np.linspace(0, 8, 50) 
-        leader_position = np.linspace(4, 6, 20)
-        leader_velocity = np.linspace(0, 8, 50)
+        agent_velocity = np.linspace(0, 10, 50) 
+        leader_position = np.linspace(4, 8, 20)
+        leader_velocity = np.linspace(0, 10, 50)
 
     # ARCHITECTURE
 
     if name=="default":
 
         atk_arch = {'hidden':1, 'size':10, 'coef':1, 'noise':2}
-        def_arch = {'hidden':3, 'size':10, 'coef':1}
-        train_par = {'train_steps':200, 'atk_steps':1, 'def_steps':3, 'horizon':2., 'dt': 0.05, 'lr':.001}
+        def_arch = {'hidden':2, 'size':10, 'coef':1}
+        train_par = {'train_steps':500, 'atk_steps':1, 'def_steps':3, 'horizon':2., 'dt': 0.05, 'lr':.001}
         test_par = {'test_steps':200, 'dt':0.05}
 
     elif name=="energy":
 
         atk_arch = {'hidden':1, 'size':10, 'coef':1, 'noise':2}
-        def_arch = {'hidden':3, 'size':10, 'coef':1}
-        train_par = {'train_steps':300, 'atk_steps':1, 'def_steps':2, 'horizon':2., 'dt': 0.05, 'lr':.001}
+        def_arch = {'hidden':2, 'size':10, 'coef':1}
+        train_par = {'train_steps':300, 'atk_steps':1, 'def_steps':5, 'horizon':2., 'dt': 0.05, 'lr':.001}
         test_par = {'test_steps':200, 'dt':0.05}
 
     else:

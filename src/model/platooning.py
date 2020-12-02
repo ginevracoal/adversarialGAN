@@ -102,6 +102,10 @@ class Agent:
     def distance(self):
         return self._environment.l_position - self._car.position
 
+    @distance.setter
+    def distance(self, value):
+        self._car.distance = value
+
     @property
     def status(self):
         """ Representation of the state """

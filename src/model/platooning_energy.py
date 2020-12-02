@@ -8,7 +8,8 @@ from utils.diffquantitative import DiffQuantitativeSemantic
 
 
 DEBUG=True
-
+K=10
+ALPHA=0.8
 
 class ElMotor:
     def __init__(self):
@@ -74,7 +75,7 @@ class Car:
         self.position = torch.tensor(0.0)
         self.velocity = torch.tensor(0.0)
         self.acceleration = torch.tensor(0.0)
-        self.friction_coefficient = 0.01 # will be ignored
+        # self.friction_coefficient = 0.01 # will be ignored
 
         self.mass = 800      #kg
         self.rho =  1.22          #the air density, 
@@ -284,9 +285,9 @@ class RobustnessComputer:
 
     def compute(self, model):
         """ Computes rho for the given trace """
-        dist = model.traces['dist'][-10:]
+        dist = model.traces['dist'][-K:]
         rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))
 
         e_power = model.traces['e_power'][-1].item()
 
-        return 0.8*rob_dist-0.2*e_power 
+        return ALPHA*rob_dist-(1-ALPHA)*e_power 
