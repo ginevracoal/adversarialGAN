@@ -61,16 +61,17 @@ def hist(time, pulse, step_up, step_down, atk, filename):
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
 def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(6, 4))
 
     customnorm = mcolors.TwoSlopeNorm(0)
-    sp = ax.scatter(delta_vel_array, delta_pos_array, c=robustness_array, cmap='RdYlGn', norm=customnorm)
+    im = ax.scatter(delta_vel_array, delta_pos_array, c=robustness_array, cmap='RdBu', norm=customnorm)
     ax.set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
 
-    cb = fig.colorbar(sp)
-    cb.ax.set_xlabel('$\\rho$')
+    fig.subplots_adjust(right=0.83)
+    cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
+    cbar = fig.colorbar(im, cax=cbar_ax)
+    cbar_ax.set_ylabel('robustness', rotation=90, labelpad=-50)
 
-    fig.suptitle('Initial conditions vs robustness $\\rho$')
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
 
@@ -100,13 +101,7 @@ def plot_evolution(sim_time, sim_agent_pos, sim_agent_dist, sim_agent_acc, sim_e
 def plot_evolution_small(sim_time, sim_agent_pos, sim_agent_dist, sim_agent_acc, sim_env_pos, sim_env_acc, filename):
     fig, ax = plt.subplots(2, 1, figsize=(5, 4.5), sharex=True)
 
-    # ax[0].plot(sim_time, sim_agent_pos, label='follower')
-    # ax[0].plot(sim_time, sim_env_pos, label='leader', color='tab:red')
-    # ax[0].set(xlabel=r'time ($s$)', ylabel=r'car position $x$ (m)')
-    # ax[0].legend()
-
     ax[0].plot(sim_time, sim_agent_dist, color='tab:blue')
-    # ax[0].set(xlabel=r'time ($s$)', ylabel=r'distance between cars (m)')
     ax[0].set(ylabel=r'distance between cars (m)')
     ax[0].axhline(2, ls='--', label='safe distance', color='tab:orange')
     ax[0].axhline(10, ls='--', color='tab:orange')
@@ -130,7 +125,7 @@ if args.scatter:
     delta_vel_array = np.zeros(size)
 
     for i in range(size):
-        sample_trace = torch.tensor(records[i]['atk']['sim_ag_dist'][-150:])
+        sample_trace = torch.tensor(records[i]['atk']['sim_ag_dist'])#[10:])
         robustness = float(robustness_computer.dqs.compute(dist=sample_trace))
         delta_pos = records[i]['atk']['init']['env_pos'] - records[i]['atk']['init']['ag_pos']
         delta_vel = records[i]['atk']['init']['env_vel'] - records[i]['atk']['init']['ag_vel']
@@ -144,13 +139,15 @@ if args.scatter:
 if args.plot_evolution:
 
     n = random.randrange(len(records))
-    # for n in range(len(records)):
+    print(n)
+    # n=73
+
     for case in ['pulse', 'step_up', 'step_down', 'atk']:
         print(case, records[n][case]['init'])
         plot_evolution_small(records[n][case]['sim_t'], records[n][case]['sim_ag_pos'], 
              records[n][case]['sim_ag_dist'], 
              records[n][case]['sim_ag_acc'], records[n][case]['sim_env_pos'], 
-             records[n][case]['sim_env_acc'], 'triplot_'+case+'_'+str(n)+'.png')
+             records[n][case]['sim_env_acc'], 'triplot_'+case+'.png')
 
 if args.hist:
     size = len(records)

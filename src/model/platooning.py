@@ -2,10 +2,12 @@ import json
 import torch
 from utils.diffquantitative import DiffQuantitativeSemantic
 
+K=10
+
 class Car:
     """ Describes the physical behaviour of the vehicle """
     def __init__(self):
-        self._max_acceleration = 10.0
+        self._max_acceleration = 20.0
         self._min_acceleration = -self._max_acceleration
         self._max_velocity = 20.0
         self._min_velocity = 0.0
@@ -169,5 +171,5 @@ class RobustnessComputer:
 
     def compute(self, model):
         """ Computes rho for the given trace """
-        d = model.traces['dist']
+        d = model.traces['dist'][-K:]
         return self.dqs.compute(dist=torch.cat(d))

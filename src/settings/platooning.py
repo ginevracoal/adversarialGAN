@@ -9,14 +9,14 @@ def get_settings(name, mode):
     if mode=="train":
         agent_position = 0
         agent_velocity = np.linspace(0, 20, 100) 
-        leader_position = np.linspace(2, 10, 100)
+        leader_position = np.linspace(4, 8, 100)
         leader_velocity = np.linspace(0, 20, 100)
 
     elif mode=="test":
         agent_position = 0
-        agent_velocity = np.linspace(0, 3, 40) 
-        leader_position = np.linspace(2, 10, 25)
-        leader_velocity = np.linspace(0, 3, 40)
+        agent_velocity = np.linspace(0, 8, 50) 
+        leader_position = np.linspace(4, 6, 20)
+        leader_velocity = np.linspace(0, 8, 50)
 
     # ARCHITECTURE
 
@@ -24,17 +24,15 @@ def get_settings(name, mode):
 
         atk_arch = {'hidden':1, 'size':10, 'coef':1, 'noise':2}
         def_arch = {'hidden':3, 'size':10, 'coef':1}
-        train_par = {'train_steps':200, 'atk_steps':1, 'def_steps':3, 'horizon':2., \
-                     'dt': 0.05, 'lr':0.001}
-        test_par = {'test_steps':300, 'dt':0.05}
+        train_par = {'train_steps':200, 'atk_steps':1, 'def_steps':3, 'horizon':2., 'dt': 0.05, 'lr':.001}
+        test_par = {'test_steps':200, 'dt':0.05}
 
     elif name=="energy":
 
         atk_arch = {'hidden':1, 'size':10, 'coef':1, 'noise':2}
         def_arch = {'hidden':3, 'size':10, 'coef':1}
-        train_par = {'train_steps':3, 'atk_steps':1, 'def_steps':3, 'horizon':2., \
-                     'dt': 0.05, 'lr':0.001}
-        test_par = {'test_steps':300, 'dt':0.05}
+        train_par = {'train_steps':300, 'atk_steps':1, 'def_steps':2, 'horizon':2., 'dt': 0.05, 'lr':.001}
+        test_par = {'test_steps':200, 'dt':0.05}
 
     else:
         raise NotImplementedError

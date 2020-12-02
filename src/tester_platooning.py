@@ -68,12 +68,9 @@ def run(mode=None):
                 
             def_policy = defender(oa)
 
-        atk_input = atk_policy
-        def_input = def_policy
-
-        physical_model.step(atk_input, def_input, dt)
-        sim_ag_acc.append(def_input)
-        sim_env_acc.append(atk_input)
+        physical_model.step(atk_policy, def_policy, dt)
+        sim_ag_acc.append(def_policy)
+        sim_env_acc.append(atk_policy)
         sim_t.append(t)
         sim_ag_pos.append(physical_model.agent.position)
         sim_env_pos.append(physical_model.environment.l_position)

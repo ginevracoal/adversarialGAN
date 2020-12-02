@@ -4,6 +4,8 @@ from utils.diffquantitative import DiffQuantitativeSemantic
 
 DEBUG=False
 FRICTION=True
+ALPHA=0.4
+K=10
 
 class CartPole():
 
@@ -241,9 +243,9 @@ class RobustnessComputer:
         self.dqs_dist = DiffQuantitativeSemantic(formula_dist)
 
     def compute(self, model):
-        theta = model.traces['theta'][-10:]
-        dist = model.traces['dist'][-10:]
+        theta = model.traces['theta'][-K:]
+        dist = model.traces['dist'][-K:]
         rob_theta = self.dqs_theta.compute(theta=torch.cat(theta))
         rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))
 
-        return 0.4*rob_dist+0.6*rob_theta
+        return ALPHA*rob_dist+(1-ALPHA)*rob_theta

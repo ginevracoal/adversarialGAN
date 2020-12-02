@@ -11,7 +11,6 @@ from architecture.default import *
 from model.cartpole_target import *
 from settings.cartpole_target import *
 
-
 parser = ArgumentParser()
 parser.add_argument("-r", "--repetitions", type=int, default=10, help="simulation repetions")
 parser.add_argument("--architecture", type=str, default="default", help="architecture's name")
@@ -31,6 +30,7 @@ safe_theta = 0.2
 safe_dist = 0.5
 mc = 1.
 mp = .1
+alpha = 0.4
 
 
 if args.dark:
@@ -61,23 +61,24 @@ def hist(time, const, pulse, atk, filename):
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
 def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array, filename):
-    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+    fig, ax = plt.subplots(1, 2, figsize=(6, 4))
     fig.tight_layout(pad=4.0)
 
     print(cart_pos_array, "\n", pole_ang_array, "\n", cart_vel_array, "\n", pole_ang_vel_array)
 
     customnorm = mcolors.TwoSlopeNorm(0)
-    im = ax[0].scatter(cart_pos_array, cart_vel_array, c=robustness_array, cmap='RdYlGn', norm=customnorm)
+    im = ax[0].scatter(cart_pos_array, cart_vel_array, c=robustness_array, cmap='RdBu', norm=customnorm)
     ax[0].set(xlabel='cart position', ylabel='cart velocity')
 
-    im = ax[1].scatter(pole_ang_array, pole_ang_vel_array, c=robustness_array, cmap='RdYlGn', norm=customnorm)
+    im = ax[1].scatter(pole_ang_array, pole_ang_vel_array, c=robustness_array, cmap='RdBu', norm=customnorm)
     ax[1].set(xlabel='pole angle', ylabel='pole angular frequency')
     
-    fig.subplots_adjust(right=0.85)
-    cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
-    fig.colorbar(im, cax=cbar_ax)
+    fig.subplots_adjust(right=0.82)
+    cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
+    cbar = fig.colorbar(im, cax=cbar_ax)
+    cbar_ax.set_ylabel('robustness', rotation=90, labelpad=15)
 
-    fig.suptitle('Initial conditions vs robustness $\\rho$')
+    # fig.suptitle('Initial conditions vs robustness $\\rho$')
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
 def plot_evolution(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_theta, 
@@ -86,11 +87,11 @@ def plot_evolution(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_th
 
     ax[0,0].axhline(-safe_dist, ls='--', color='tab:orange', label="safe distance")
     ax[0,0].axhline(safe_dist, ls='--', color='tab:orange')
-    ax[0,0].plot(sim_time, sim_x-sim_x_target, label='')    
+    ax[0,0].plot(sim_time, sim_x-sim_x_target, label='', color='tab:blue')    
     ax[0,0].set(xlabel=r'time ($s$)', ylabel=r'distance from target $x-x_t}$ (m)')
     ax[0,0].legend()
 
-    ax[1,0].plot(sim_time, sim_x, label='true x')
+    ax[1,0].plot(sim_time, sim_x, label='true x',  color='tab:blue')
     ax[1,0].plot(sim_time, sim_x_target, label='target x', color='tab:red')
     ax[1,0].set(xlabel=r'time ($s$)', ylabel=r'cart position $x$ (m)')
     ax[1,0].legend()
@@ -103,14 +104,14 @@ def plot_evolution(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_th
 
     ax[0,1].axhline(-safe_theta, ls='--', color='tab:orange', label="safe theta")
     ax[0,1].axhline(safe_theta, ls='--', color='tab:orange')
-    ax[0,1].plot(sim_time, sim_theta, label='')
+    ax[0,1].plot(sim_time, sim_theta, label='',  color='tab:blue')
     ax[0,1].set(xlabel=r'time ($s$)', ylabel=r'pole angle $\theta$ (rad)')
     ax[0,1].legend()
 
     # ax[1,1].plot(sim_time, sim_dot_theta)
     # ax[1,1].set(xlabel='time (s)', ylabel='pole angular frequency (rad/s)')
     
-    ax[2,0].plot(sim_time, sim_ddot_x, label='true acceleration')
+    ax[2,0].plot(sim_time, sim_ddot_x, label='true acceleration',  color='tab:blue')
     ax[2,0].set(xlabel=r'time ($s$)', ylabel= r'cart acceleration $\ddot x$ ($ms^{-2}$)')
 
     print(sim_attack_mu)
@@ -124,7 +125,7 @@ def plot_evolution(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_th
 
 def plot_evolution_small(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_theta, 
          sim_x_target, sim_action, sim_dist, sim_attack_mu, filename):
-    fig, ax = plt.subplots(4, 1, figsize=(6, 7), sharex=True)
+    fig, ax = plt.subplots(4, 1, figsize=(6, 7.2), sharex=True)
 
     ax[0].axhline(-safe_dist, ls='--', color='tab:orange', label="safe distance")
     ax[0].axhline(safe_dist, ls='--', color='tab:orange')
@@ -132,8 +133,6 @@ def plot_evolution_small(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_
     ax[0].set(ylabel=r'distance from target (m)')
     ax[0].legend()
 
-    ax[2].plot(sim_time, sim_action, label='', color='tab:blue')
-    ax[2].set(ylabel= r'cart control (N)')
 
     ax[1].axhline(-safe_theta, ls='--', color='tab:orange', label="safe angle")
     ax[1].axhline(safe_theta, ls='--', color='tab:orange')
@@ -141,9 +140,12 @@ def plot_evolution_small(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_
     ax[1].set(ylabel=r'pole angle (rad)')
     ax[1].legend()
 
-    ax[3].plot(sim_time, sim_attack_mu, color='tab:red')
-    ax[3].set(xlabel=r'time ($s$)', ylabel='friction coefficient')
-    # ax[1,1].legend()
+    ax[2].plot(sim_time, sim_attack_mu, color='tab:red')
+    ax[2].set(ylabel=r'friction coefficient')
+
+    ax[3].plot(sim_time, sim_action, label='', color='tab:blue')
+    ax[3].set(xlabel=r'time ($s$)')
+    ax[3].set(ylabel= r'cart control (N)')
 
     fig.tight_layout()
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
@@ -167,7 +169,7 @@ if args.scatter is True:
             trace_dist = torch.tensor(records[i][mode]['sim_dist'])
             rob_theta = robustness_computer.dqs_theta.compute(theta=trace_theta)
             rob_dist = robustness_computer.dqs_dist.compute(dist=trace_dist)
-            robustness = 0.1*rob_dist+0.9*rob_theta
+            robustness = alpha*rob_dist+(1-alpha)*rob_theta
 
             cart_pos = records[i][mode]['init']['x'] 
             pole_ang = records[i][mode]['init']['theta'] 
@@ -183,8 +185,9 @@ if args.scatter is True:
         scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array, 'atk_scatterplot.png')
 
 if args.plot_evolution is True:
-    n = random.randrange(len(records))
-    print(n)
+    # n = random.randrange(len(records))
+    # print(n)
+    n = 957 
 
     for mode in ["const","pulse","atk"]:
 
@@ -203,7 +206,7 @@ if args.hist is True:
     pulse_pct = np.zeros_like(records[0]['pulse']['sim_theta'])
     atk_pct = np.zeros_like(records[0]['atk']['sim_theta'])
 
-    robustness = lambda dist,t: 0.1*(dist < safe_dist)+0.9*np.logical_and(t > -safe_theta, t < safe_theta)
+    robustness = lambda dist,t: alpha*(dist < safe_dist)+(1-alpha)*np.logical_and(t > -safe_theta, t < safe_theta)
 
     for i in range(size):
 
