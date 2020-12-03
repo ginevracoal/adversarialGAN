@@ -73,10 +73,10 @@ def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, po
     im = ax[1].scatter(pole_ang_array, pole_ang_vel_array, c=robustness_array, cmap='RdBu', norm=customnorm)
     ax[1].set(xlabel='pole angle', ylabel='pole angular frequency')
     
-    fig.subplots_adjust(right=0.82)
-    cbar_ax = fig.add_axes([0.85, 0.15, 0.02, 0.7])
+    fig.subplots_adjust(right=0.83)
+    cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
     cbar = fig.colorbar(im, cax=cbar_ax)
-    cbar_ax.set_ylabel('robustness', rotation=90, labelpad=15)
+    cbar_ax.set_ylabel('robustness', rotation=90, labelpad=-58)
 
     # fig.suptitle('Initial conditions vs robustness $\\rho$')
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
@@ -186,9 +186,9 @@ if args.scatter is True:
 
 if args.plot_evolution is True:
     # n = random.randrange(len(records))
-    # print(n)
-    n = 957 
+    n = 432
 
+    print(n)
     for mode in ["const","pulse","atk"]:
 
         print(mode+":", records[n][mode]['init'])
