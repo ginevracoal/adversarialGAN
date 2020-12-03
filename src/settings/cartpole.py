@@ -17,7 +17,7 @@ def get_settings(name, mode):
     elif mode=="test":
         cart_position = np.linspace(-0.1, 0.1, 10)
         cart_velocity = np.linspace(-1., 1., 50)
-        pole_angle = np.linspace(-0.1, 0.1, 10)
+        pole_angle = np.linspace(-0., 0., 10)
         pole_ang_velocity = np.linspace(-1., 1., 50)
 
     # ARCHITECTURE

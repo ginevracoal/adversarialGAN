@@ -14,9 +14,9 @@ def get_settings(name, mode):
 
     elif mode=="test":
         agent_position = 0
-        agent_velocity = np.linspace(0, 10, 50) 
+        agent_velocity = np.linspace(0, 5, 50) 
         leader_position = np.linspace(4, 8, 20)
-        leader_velocity = np.linspace(0, 10, 50)
+        leader_velocity = np.linspace(0, 5, 50)
 
     # ARCHITECTURE
 

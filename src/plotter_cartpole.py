@@ -49,45 +49,43 @@ def hist(time, const, filename):
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
 def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array, filename):
-    fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+    fig, ax = plt.subplots(1, 2, figsize=(6.5, 3))
     fig.tight_layout(pad=4.0)
 
     print(cart_pos_array, "\n", pole_ang_array, "\n", cart_vel_array, "\n", pole_ang_vel_array)
 
     customnorm = mcolors.TwoSlopeNorm(0)
+    im = ax[0].scatter(cart_pos_array, cart_vel_array, c=robustness_array, cmap='RdBu', norm=customnorm, s=10)
+    ax[0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
 
-    im = ax[0].scatter(cart_pos_array, cart_vel_array, c=robustness_array, cmap='RdYlGn', norm=customnorm)
-    ax[0].set(xlabel='cart position', ylabel='cart velocity')
-
-    im = ax[1].scatter(pole_ang_array, pole_ang_vel_array, c=robustness_array, cmap='RdYlGn', norm=customnorm)
-    ax[1].set(xlabel='pole angle', ylabel='pole angular frequency')
+    im = ax[1].scatter(pole_ang_array, pole_ang_vel_array, c=robustness_array, cmap='RdBu', norm=customnorm, s=10)
+    ax[1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole angular frequency ($rad/s$)')
     
-    fig.subplots_adjust(right=0.85)
+    fig.subplots_adjust(right=0.83)
     cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
-    fig.colorbar(im, cax=cbar_ax)
+    cbar = fig.colorbar(im, cax=cbar_ax)
+    cbar_ax.set_ylabel('robustness', rotation=90, labelpad=-60)
 
-    fig.suptitle('Initial conditions vs robustness $\\rho$')
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
 def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_theta, 
          sim_action, filename):
-    fig, ax = plt.subplots(2, 2, figsize=(10, 6))
+    fig, ax = plt.subplots(4, 1, figsize=(10, 6))
 
-    ax[0,0].plot(sim_time, sim_x, label='')    
-    ax[0,0].set(xlabel=r'time ($s$)', ylabel=r'cart position $x$ (m)')
-    # ax[0,0].legend()
+    ax[0].plot(sim_time, sim_x, label='')    
+    ax[0].set(ylabel=r'cart position ($m$)')
 
-    ax[1,0].plot(sim_time, sim_ddot_x, label='true acceleration')
-    ax[1,0].set(xlabel=r'time ($s$)', ylabel= r'cart acceleration $\ddot x$ ($ms^{-2}$)')
+    ax[1].plot(sim_time, sim_ddot_x, label='true acceleration')
+    ax[1].set(ylabel= r'cart acceleration ($ms^{-2}$)')
 
-    ax[0,1].axhline(-safe_theta, ls='--', color='tab:orange', label="safe theta")
-    ax[0,1].axhline(safe_theta, ls='--', color='tab:orange')
-    ax[0,1].plot(sim_time, sim_theta, label='')
-    ax[0,1].set(xlabel=r'time ($s$)', ylabel=r'pole angle $\theta$ (rad)')
-    ax[0,1].legend()
+    ax[2].axhline(-safe_theta, ls='--', color='tab:orange', label="safe theta")
+    ax[2].axhline(safe_theta, ls='--', color='tab:orange')
+    ax[2].plot(sim_time, sim_theta, label='')
+    ax[2].set(ylabel=r'pole angle ($rad$)')
+    ax[2].legend()
 
-    ax[1,1].plot(sim_time, sim_action, label='', color='tab:green')
-    ax[1,1].set(xlabel=r'time ($s$)', ylabel= r'cart control $f$ (N)')
+    ax[3].plot(sim_time, sim_action, label='', color='tab:green')
+    ax[3].set(xlabel=r'time ($s$)', ylabel= r'cart control ($N$)')
 
     fig.tight_layout()
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
