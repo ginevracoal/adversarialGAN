@@ -12,7 +12,7 @@ BATCH_SIZE=32
 FIXED_POLICY=False
 NORMALIZE=False
 K=10
-PENALTY=True
+PENALTY=False
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
@@ -145,7 +145,7 @@ class Trainer:
                 
                 if PENALTY:
                     diff_def_policy = torch.sum(torch.abs(previous_def_policy-def_policy))
-                    cumloss -= diff_def_policy/timesteps
+                    cumloss += torch.sigmoid(diff_def_policy)
                     previous_def_policy = def_policy
 
         cumloss.backward()
@@ -219,7 +219,6 @@ class Trainer:
         for init_state in random_batch:      
 
             for _ in range(atk_steps):
-
                 self.model.reinitialize(*init_state)
                 atk_loss = self.train_attacker_step(time_horizon, dt, atk_static)
             

@@ -2,7 +2,8 @@ import numpy as np
 
 def get_settings(name, mode):
 
-    robustness_formula = 'G(dist <= 10 & dist >= 2)'
+    robustness_dist = 'G(dist <= 10 & dist >= 2)'
+    robustness_power = 'G(power <= 5)'
 
     # PARAMS GRID
     
@@ -38,4 +39,4 @@ def get_settings(name, mode):
         raise NotImplementedError
 
     return agent_position, agent_velocity, leader_position, leader_velocity, \
-            atk_arch, def_arch, train_par, test_par, robustness_formula
+            atk_arch, def_arch, train_par, test_par, robustness_dist, robustness_power

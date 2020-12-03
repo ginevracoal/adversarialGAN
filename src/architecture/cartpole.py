@@ -12,7 +12,7 @@ DEBUG=False
 BATCH_SIZE=32
 NORMALIZE=False
 K=10
-PENALTY=True
+PENALTY=False
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
@@ -87,7 +87,7 @@ class Trainer:
 
                 if PENALTY:
                     policy_rate = torch.sum(torch.abs(action-previous_policy))
-                    cumloss -= policy_rate/timesteps
+                    cumloss -= torch.sigmoid(policy_rate)
                     previous_policy = action
 
         cumloss.backward()

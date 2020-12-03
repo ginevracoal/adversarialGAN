@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 
 from utils.misc import *
 from model.platooning_energy import *
-from settings.platooning import *
+from settings.platooning_energy import *
 from architecture.default import *
 
 parser = ArgumentParser()
@@ -15,13 +15,13 @@ args = parser.parse_args()
 
 agent_position, agent_velocity, leader_position, leader_velocity, \
             atk_arch, def_arch, train_par, test_par, \
-            robustness_formula = get_settings(args.architecture, mode="train")
+            robustness_dist, robustness_power = get_settings(args.architecture, mode="train")
 
 pg = ParametersHyperparallelepiped(agent_position, agent_velocity, 
                                     leader_position, leader_velocity)
 
 physical_model = Model(pg.sample(sigma=0.05))
-robustness_computer = RobustnessComputer(robustness_formula)
+robustness_computer = RobustnessComputer(robustness_dist, robustness_power)
 
 relpath = get_relpath(main_dir="platooning_energy_"+args.architecture, train_params=train_par)
 
