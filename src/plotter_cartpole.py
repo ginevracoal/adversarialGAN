@@ -68,24 +68,21 @@ def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, po
 
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
-def plot(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_theta, 
+def plot_evolution(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_theta, 
          sim_action, filename):
-    fig, ax = plt.subplots(4, 1, figsize=(10, 6))
+    fig, ax = plt.subplots(3, 1, figsize=(6, 6), sharex=True)
 
-    ax[0].plot(sim_time, sim_x, label='')    
-    ax[0].set(ylabel=r'cart position ($m$)')
+    ax[0].plot(sim_time, sim_ddot_x, label='true acceleration')
+    ax[0].set(ylabel= r'cart acceleration ($ms^{-2}$)')
 
-    ax[1].plot(sim_time, sim_ddot_x, label='true acceleration')
-    ax[1].set(ylabel= r'cart acceleration ($ms^{-2}$)')
+    ax[1].axhline(-safe_theta, ls='--', color='tab:orange', label="safe theta")
+    ax[1].axhline(safe_theta, ls='--', color='tab:orange')
+    ax[1].plot(sim_time, sim_theta, label='')
+    ax[1].set(ylabel=r'pole angle ($rad$)')
+    ax[1].legend()
 
-    ax[2].axhline(-safe_theta, ls='--', color='tab:orange', label="safe theta")
-    ax[2].axhline(safe_theta, ls='--', color='tab:orange')
-    ax[2].plot(sim_time, sim_theta, label='')
-    ax[2].set(ylabel=r'pole angle ($rad$)')
-    ax[2].legend()
-
-    ax[3].plot(sim_time, sim_action, label='', color='tab:green')
-    ax[3].set(xlabel=r'time ($s$)', ylabel= r'cart control ($N$)')
+    ax[2].plot(sim_time, sim_action, label='', color='tab:blue')
+    ax[2].set(xlabel=r'time ($s$)', ylabel= r'cart control ($N$)')
 
     fig.tight_layout()
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
@@ -122,18 +119,18 @@ if args.scatter is True:
 
 if args.plot_evolution is True:
 
-    n = random.randrange(len(records))
-    print(n)
+    # n = random.randrange(len(records))
+    n=721
 
-    # for n in range(len(records)):
+    print(n)
     for mode in ["const"]:
 
         print(mode+":", records[n][mode]['init'])
-        plot(records[n][mode]['sim_t'], 
+        plot_evolution(records[n][mode]['sim_t'], 
              records[n][mode]['sim_x'], records[n][mode]['sim_theta'], 
              records[n][mode]['sim_dot_x'], records[n][mode]['sim_ddot_x'], 
              records[n][mode]['sim_dot_theta'], records[n][mode]['sim_action'], 
-             'evolution_'+mode+'_'+str(n)+'.png')
+             'evolution_'+mode+'.png')
 
 if args.hist is True:
 
