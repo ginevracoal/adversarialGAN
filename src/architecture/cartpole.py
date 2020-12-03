@@ -12,6 +12,7 @@ DEBUG=False
 BATCH_SIZE=32
 NORMALIZE=False
 K=10
+PENALTY=True
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
@@ -71,7 +72,9 @@ class Trainer:
     def train_step(self, timesteps, dt):
         """ Training step for the attacker. The defender's passive. """
         self.optimizer.zero_grad()
-        cumloss = 0            
+        cumloss = 0        
+        if PENALTY:    
+            previous_policy = torch.zeros_like(self.policy_network(torch.tensor(self.model.cartpole.status)))
 
         for t in range(timesteps):
             status = torch.tensor(self.model.cartpole.status)
@@ -81,6 +84,11 @@ class Trainer:
             if t>K:
                 rho = self.robustness_computer.compute(self.model)
                 cumloss += self.loss_fn(rho)
+
+                if PENALTY:
+                    policy_rate = torch.sum(torch.abs(action-previous_policy))
+                    cumloss -= policy_rate/timesteps
+                    previous_policy = action
 
         cumloss.backward()
         self.optimizer.step()

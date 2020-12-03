@@ -32,6 +32,13 @@ def get_settings(name, mode):
         train_par = {'train_steps':300, 'atk_steps':1, 'def_steps':3, 'horizon':2., 'dt': 0.05, 'lr':.001}
         test_par = {'test_steps':200, 'dt':0.05}
 
+    elif name=="penalty":
+
+        atk_arch = {'hidden':1, 'size':10, 'coef':1, 'noise':3}
+        def_arch = {'hidden':3, 'size':10, 'coef':1}
+        train_par = {'train_steps':300, 'atk_steps':1, 'def_steps':3, 'horizon':2., 'dt': 0.05, 'lr':.001}
+        test_par = {'test_steps':200, 'dt':0.1}
+
     else:
         raise NotImplementedError
 

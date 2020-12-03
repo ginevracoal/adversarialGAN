@@ -12,6 +12,7 @@ BATCH_SIZE=32
 FIXED_POLICY=False
 NORMALIZE=False
 K=10
+PENALTY=True
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
@@ -120,6 +121,10 @@ class Trainer:
                 def_policy = self.defender(oa)
 
         cumloss = 0
+
+        if PENALTY:
+            previous_def_policy = torch.zeros_like(self.defender(torch.tensor(self.model.agent.status)))
+
         for t in range(timesteps):
 
             if FIXED_POLICY is False:
@@ -132,14 +137,16 @@ class Trainer:
                 with torch.no_grad():
                     def_policy = self.defender(oa)
 
-            atk_input = atk_policy
-            def_input = def_policy
-
-            self.model.step(atk_input, def_input, dt)
+            self.model.step(atk_policy, def_policy, dt)
 
             if t>K:
                 rho = self.robustness_computer.compute(self.model)
-                cumloss += self.attacker_loss_fn(rho)
+                cumloss += self.attacker_loss_fn(rho) 
+                
+                if PENALTY:
+                    diff_def_policy = torch.sum(torch.abs(previous_def_policy-def_policy))
+                    cumloss -= diff_def_policy/timesteps
+                    previous_def_policy = def_policy
 
         cumloss.backward()
         self.attacker_optimizer.step()  
@@ -165,6 +172,9 @@ class Trainer:
             def_policy = self.defender(oa)
 
         cumloss = 0
+        if PENALTY:
+            previous_def_policy = torch.zeros_like(self.defender(torch.tensor(self.model.agent.status)))
+
         for t in range(timesteps):
 
             if FIXED_POLICY is False:
@@ -178,14 +188,16 @@ class Trainer:
 
                 def_policy = self.defender(oa)
 
-            atk_input = atk_policy
-            def_input = def_policy
-
-            self.model.step(atk_input, def_input, dt)
+            self.model.step(atk_policy, def_policy, dt)
         
             if t>K:
                 rho = self.robustness_computer.compute(self.model)
                 cumloss += self.defender_loss_fn(rho)
+
+                if PENALTY:
+                    diff_def_policy = torch.sum(torch.abs(previous_def_policy-def_policy))
+                    cumloss -= diff_def_policy/timesteps
+                    previous_def_policy = def_policy
 
         cumloss.backward()
         self.defender_optimizer.step()  

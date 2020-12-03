@@ -120,9 +120,11 @@ if args.scatter:
 
 if args.plot_evolution:
 
-    # n = random.randrange(len(records))
-    n=551
-
+    if len(records)>=1000:
+        n=551
+    else:
+        n = random.randrange(len(records))
+        
     print(n)
     for case in ['pulse', 'step_up', 'step_down', 'atk']:
         print(case, records[n][case]['init'])

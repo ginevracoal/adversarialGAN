@@ -149,8 +149,11 @@ if args.scatter is True:
         scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array, 'atk_scatterplot.png')
 
 if args.plot_evolution is True:
-    # n = random.randrange(len(records))
-    n = 432
+
+    if len(records)>=1000:
+        n=432
+    else:
+        n = random.randrange(len(records))
 
     print(n)
     for mode in ["const","pulse","atk"]:
