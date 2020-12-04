@@ -11,7 +11,7 @@ import os
 
 DEBUG=True
 K=10
-ALPHA=0.6
+ALPHA=0.8
 USE_TORCH_EFF_MAP = True
 
 #%%
@@ -409,7 +409,7 @@ class Model:
         It includes both the attacker and the defender.
     """
 
-    def __init__(self, param_generator, device="cuda"):
+    def __init__(self, param_generator, device="cpu"):
         self.agent = Agent(device)
         self.environment = Environment(device)
 

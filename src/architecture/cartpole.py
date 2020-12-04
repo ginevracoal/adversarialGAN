@@ -12,7 +12,8 @@ DEBUG=False
 BATCH_SIZE=32
 NORMALIZE=False
 K=10
-PENALTY=False
+PENALTY=True
+GAMMA=0.5
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
@@ -83,12 +84,13 @@ class Trainer:
 
             if t>K:
                 rho = self.robustness_computer.compute(self.model)
-                cumloss += self.loss_fn(rho)
 
                 if PENALTY:
-                    policy_rate = torch.sum(torch.abs(action-previous_policy))
-                    cumloss -= torch.sigmoid(policy_rate)
+                    diff_policy = torch.sum(torch.abs(action-previous_policy))
+                    rho += GAMMA*diff_policy
                     previous_policy = action
+
+                cumloss += self.loss_fn(rho)
 
         cumloss.backward()
         self.optimizer.step()

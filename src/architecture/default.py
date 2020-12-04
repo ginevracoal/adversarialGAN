@@ -13,6 +13,7 @@ FIXED_POLICY=False
 NORMALIZE=False
 K=10
 PENALTY=False
+GAMMA=0.5
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
@@ -141,12 +142,14 @@ class Trainer:
 
             if t>K:
                 rho = self.robustness_computer.compute(self.model)
-                cumloss += self.attacker_loss_fn(rho) 
-                
+
                 if PENALTY:
                     diff_def_policy = torch.sum(torch.abs(previous_def_policy-def_policy))
-                    cumloss += torch.sigmoid(diff_def_policy)
+                    rho += GAMMA*diff_def_policy
                     previous_def_policy = def_policy
+                
+                cumloss += self.attacker_loss_fn(rho) 
+                
 
         cumloss.backward()
         self.attacker_optimizer.step()  
@@ -192,12 +195,13 @@ class Trainer:
         
             if t>K:
                 rho = self.robustness_computer.compute(self.model)
-                cumloss += self.defender_loss_fn(rho)
 
                 if PENALTY:
                     diff_def_policy = torch.sum(torch.abs(previous_def_policy-def_policy))
-                    cumloss -= diff_def_policy/timesteps
+                    rho += GAMMA*diff_def_policy
                     previous_def_policy = def_policy
+
+                cumloss += self.defender_loss_fn(rho)
 
         cumloss.backward()
         self.defender_optimizer.step()  
