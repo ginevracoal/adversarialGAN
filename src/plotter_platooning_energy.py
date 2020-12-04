@@ -27,8 +27,8 @@ agent_position, agent_velocity, leader_position, leader_velocity, \
 
 safe_dist1 = 2
 safe_dist2 = 10
-safe_power = 5
-alpha = 0.8
+safe_power = 100
+alpha = 0.9
 
 relpath = get_relpath(main_dir="platooning_energy_"+args.architecture, train_params=train_par)
 sims_filename = get_sims_filename(args.repetitions, test_par)

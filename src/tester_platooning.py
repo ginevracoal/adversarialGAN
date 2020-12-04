@@ -76,6 +76,7 @@ def run(mode=None):
         sim_env_pos.append(physical_model.environment.l_position)
         sim_ag_dist.append(physical_model.agent.distance)
 
+
         t += dt
         
     return {'init': conf_init,
@@ -91,8 +92,6 @@ records = []
 for i in tqdm(range(args.repetitions)):
     sim = {}
     sim['pulse'] = run(0)
-    sim['step_up'] = run(1)
-    sim['step_down'] = run(2)
     sim['atk'] = run()
     records.append(sim)
                

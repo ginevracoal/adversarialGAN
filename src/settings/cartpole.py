@@ -26,14 +26,14 @@ def get_settings(name, mode):
     if name=="default":
 
         net_arch = {'hidden':3, 'size':10}
-        train_par = {'train_steps':300, 'horizon':2., 'dt': 0.05, 'lr':.001}
-        test_par = {'test_steps':2000, 'dt':0.05}    
+        train_par = {'train_steps':200, 'horizon':2., 'dt': 0.05, 'lr':.001}
+        test_par = {'test_steps':500, 'dt':0.05}    
 
     elif name=="penalty":
 
         net_arch = {'hidden':3, 'size':10}
-        train_par = {'train_steps':300, 'horizon':2., 'dt': 0.05, 'lr':.001}
-        test_par = {'test_steps':2000, 'dt':0.05}    
+        train_par = {'train_steps':200, 'horizon':2., 'dt': 0.05, 'lr':.001}
+        test_par = {'test_steps':500, 'dt':0.05}    
 
     else:
         raise NotImplementedError

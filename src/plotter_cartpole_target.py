@@ -64,8 +64,6 @@ def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, po
     fig, ax = plt.subplots(1, 2, figsize=(6, 3.5))
     fig.tight_layout(pad=4.0)
 
-    print(cart_pos_array, "\n", pole_ang_array, "\n", cart_vel_array, "\n", pole_ang_vel_array)
-
     customnorm = mcolors.TwoSlopeNorm(0)
     im = ax[0].scatter(cart_pos_array, cart_vel_array, c=robustness_array, cmap='BrBG', norm=customnorm, s=10)
     ax[0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
@@ -93,10 +91,9 @@ def plot_evolution(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_th
 
     ax[1].axhline(-safe_dist, ls='--', color='red', label="safe distance")
     ax[1].axhline(safe_dist, ls='--', color='red')
-    ax[1].plot(sim_time, sim_x-sim_x_target, color='darkblue', label='')    
+    ax[1].plot(sim_time, sim_dist, color='darkblue', label='')    
     ax[1].set(ylabel=r'distance from target ($m$)')
     ax[1].legend()
-
 
     ax[2].axhline(-safe_theta, ls='--', color='red', label="safe angle")
     ax[2].axhline(safe_theta, ls='--', color='red')

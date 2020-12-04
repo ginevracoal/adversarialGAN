@@ -13,7 +13,7 @@ FIXED_POLICY=False
 NORMALIZE=False
 K=10
 PENALTY=False
-GAMMA=0.5
+GAMMA=0.2
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
@@ -147,9 +147,8 @@ class Trainer:
                     diff_def_policy = torch.sum(torch.abs(previous_def_policy-def_policy))
                     rho += GAMMA*diff_def_policy
                     previous_def_policy = def_policy
-                
+
                 cumloss += self.attacker_loss_fn(rho) 
-                
 
         cumloss.backward()
         self.attacker_optimizer.step()  

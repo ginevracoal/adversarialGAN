@@ -12,8 +12,8 @@ DEBUG=False
 BATCH_SIZE=32
 NORMALIZE=False
 K=10
-PENALTY=True
-GAMMA=0.5
+PENALTY=False
+GAMMA=0.2
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 

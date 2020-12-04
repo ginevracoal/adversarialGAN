@@ -38,7 +38,7 @@ with open(os.path.join(EXP+relpath, sims_filename), 'rb') as f:
     records = pickle.load(f)
 
 def hist(time, const, filename):
-    fig, ax = plt.subplots(1, 1, figsize=(12, 3), sharex=True)
+    fig, ax = plt.subplots(1, 1, figsize=(4, 3), sharex=True)
 
     ax.plot(time, const *100)
     ax.fill_between(time, const *100, alpha=0.5)
@@ -55,10 +55,10 @@ def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, po
     print(cart_pos_array, "\n", pole_ang_array, "\n", cart_vel_array, "\n", pole_ang_vel_array)
 
     customnorm = mcolors.TwoSlopeNorm(0)
-    im = ax[0].scatter(cart_pos_array, cart_vel_array, c=robustness_array, cmap='RdBu', norm=customnorm, s=10)
+    im = ax[0].scatter(cart_pos_array, cart_vel_array, c=robustness_array, cmap='BrBG', norm=customnorm, s=10)
     ax[0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
 
-    im = ax[1].scatter(pole_ang_array, pole_ang_vel_array, c=robustness_array, cmap='RdBu', norm=customnorm, s=10)
+    im = ax[1].scatter(pole_ang_array, pole_ang_vel_array, c=robustness_array, cmap='BrBG', norm=customnorm, s=10)
     ax[1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole angular frequency ($rad/s$)')
     
     fig.subplots_adjust(right=0.83)
@@ -72,16 +72,16 @@ def plot_evolution(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_th
          sim_action, filename):
     fig, ax = plt.subplots(3, 1, figsize=(6, 6), sharex=True)
 
-    ax[0].plot(sim_time, sim_ddot_x, label='true acceleration')
+    ax[0].plot(sim_time, sim_ddot_x, label='true acceleration', color='darkblue')
     ax[0].set(ylabel= r'cart acceleration ($ms^{-2}$)')
 
-    ax[1].axhline(-safe_theta, ls='--', color='tab:orange', label="safe theta")
-    ax[1].axhline(safe_theta, ls='--', color='tab:orange')
-    ax[1].plot(sim_time, sim_theta, label='')
+    ax[1].axhline(-safe_theta, ls='--', color='red', label="safe theta")
+    ax[1].axhline(safe_theta, ls='--', color='red')
+    ax[1].plot(sim_time, sim_theta, label='', color='darkblue')
     ax[1].set(ylabel=r'pole angle ($rad$)')
     ax[1].legend()
 
-    ax[2].plot(sim_time, sim_action, label='', color='tab:blue')
+    ax[2].plot(sim_time, sim_action, label='', color='darkblue')
     ax[2].set(xlabel=r'time ($s$)', ylabel= r'cart control ($N$)')
 
     fig.tight_layout()
