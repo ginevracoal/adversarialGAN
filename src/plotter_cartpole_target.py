@@ -67,10 +67,10 @@ def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, po
     print(cart_pos_array, "\n", pole_ang_array, "\n", cart_vel_array, "\n", pole_ang_vel_array)
 
     customnorm = mcolors.TwoSlopeNorm(0)
-    im = ax[0].scatter(cart_pos_array, cart_vel_array, c=robustness_array, cmap='RdBu', norm=customnorm, s=10)
+    im = ax[0].scatter(cart_pos_array, cart_vel_array, c=robustness_array, cmap='BrBG', norm=customnorm, s=10)
     ax[0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
 
-    im = ax[1].scatter(pole_ang_array, pole_ang_vel_array, c=robustness_array, cmap='RdBu', norm=customnorm, s=10)
+    im = ax[1].scatter(pole_ang_array, pole_ang_vel_array, c=robustness_array, cmap='BrBG', norm=customnorm, s=10)
     ax[1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole angular frequency ($rad/s$)')
     
     fig.subplots_adjust(right=0.83)
@@ -86,28 +86,28 @@ def plot_evolution(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_th
          sim_x_target, sim_action, sim_dist, sim_attack_mu, filename):
     fig, ax = plt.subplots(5, 1, figsize=(6, 8), sharex=True)
 
-    ax[0].plot(sim_time, sim_x, label='true position',  color='tab:blue')
-    ax[0].plot(sim_time, sim_x_target, label='target position', color='tab:red')
+    ax[0].plot(sim_time, sim_x, label='true position',  color='darkblue')
+    ax[0].plot(sim_time, sim_x_target, label='target position', color='darkorange')
     ax[0].set(ylabel=r'cart position ($m$)')
     ax[0].legend()
 
-    ax[1].axhline(-safe_dist, ls='--', color='tab:orange', label="safe distance")
-    ax[1].axhline(safe_dist, ls='--', color='tab:orange')
-    ax[1].plot(sim_time, sim_x-sim_x_target, color='tab:blue', label='')    
+    ax[1].axhline(-safe_dist, ls='--', color='red', label="safe distance")
+    ax[1].axhline(safe_dist, ls='--', color='red')
+    ax[1].plot(sim_time, sim_x-sim_x_target, color='darkblue', label='')    
     ax[1].set(ylabel=r'distance from target ($m$)')
     ax[1].legend()
 
 
-    ax[2].axhline(-safe_theta, ls='--', color='tab:orange', label="safe angle")
-    ax[2].axhline(safe_theta, ls='--', color='tab:orange')
-    ax[2].plot(sim_time, sim_theta, color='tab:blue',  label='')
+    ax[2].axhline(-safe_theta, ls='--', color='red', label="safe angle")
+    ax[2].axhline(safe_theta, ls='--', color='red')
+    ax[2].plot(sim_time, sim_theta, color='darkblue',  label='')
     ax[2].set(ylabel=r'pole angle ($rad$)')
     ax[2].legend()
 
-    ax[3].plot(sim_time, sim_attack_mu, color='tab:red')
+    ax[3].plot(sim_time, sim_attack_mu, color='darkorange')
     ax[3].set(ylabel=r'friction coefficient')
 
-    ax[4].plot(sim_time, sim_action, label='', color='tab:blue')
+    ax[4].plot(sim_time, sim_action, label='', color='darkblue')
     ax[4].set(xlabel=r'time ($s$)')
     ax[4].set(ylabel= r'cart control ($N$)')
 

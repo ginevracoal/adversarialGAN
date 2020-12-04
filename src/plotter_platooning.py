@@ -64,7 +64,7 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
     fig, ax = plt.subplots(figsize=(5, 4))
 
     customnorm = mcolors.TwoSlopeNorm(0)
-    im = ax.scatter(delta_vel_array, delta_pos_array, c=robustness_array, cmap='RdBu', norm=customnorm, s=10)
+    im = ax.scatter(delta_vel_array, delta_pos_array, c=robustness_array, cmap='BrBG', norm=customnorm, s=10)
     ax.set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
 
     fig.subplots_adjust(right=0.83)
@@ -78,19 +78,19 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
 def plot_evolution(sim_time, sim_agent_pos, sim_agent_dist, sim_agent_acc, sim_env_pos, sim_env_acc, filename):
     fig, ax = plt.subplots(3, 1, figsize=(6, 5))
 
-    ax[0].plot(sim_time, sim_agent_pos, label='follower')
-    ax[0].plot(sim_time, sim_env_pos, label='leader', color='tab:red')
+    ax[0].plot(sim_time, sim_agent_pos, label='follower', color='darkblue')
+    ax[0].plot(sim_time, sim_env_pos, label='leader', color='darkorange')
     ax[0].set(ylabel=r'car position ($m$)')
     ax[0].legend()
 
-    ax[1].plot(sim_time, sim_agent_dist)
+    ax[1].plot(sim_time, sim_agent_dist, color='darkblue')
     ax[1].set(ylabel=r'distance ($m$)')
-    ax[1].axhline(2, ls='--', label='safe distance', color='tab:orange')
-    ax[1].axhline(10, ls='--', color='tab:orange')
+    ax[1].axhline(2, ls='--', label='safe distance', color='red')
+    ax[1].axhline(10, ls='--', color='red')
     ax[1].legend()
 
-    ax[2].plot(sim_time, sim_agent_acc, label='follower')
-    ax[2].plot(sim_time, sim_env_acc, label='leader', color='tab:red')
+    ax[2].plot(sim_time, sim_agent_acc, label='follower', color='darkblue')
+    ax[2].plot(sim_time, sim_env_acc, label='leader', color='darkorange')
     ax[2].set(xlabel=r'time ($s$)', ylabel=r'cart acceleration ($ms^{-2}$)')
     ax[2].legend()
 

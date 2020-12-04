@@ -8,18 +8,18 @@ from argparse import ArgumentParser
 
 from utils.misc import *
 from model.platooning_energy import *
-from settings.platooning import *
+from settings.platooning_energy import *
 from architecture.default import *
 
 parser = ArgumentParser()
 parser.add_argument("-r", "--repetitions", type=int, default=10, help="simulation repetions")
-parser.add_argument("--architecture", type=str, default="energy", help="architecture's name")
+parser.add_argument("--architecture", type=str, default="default", help="architecture's name")
 args = parser.parse_args()
 
 agent_position, agent_velocity, leader_position, leader_velocity, \
         atk_arch, def_arch, train_par, test_par, \
-        robustness_formula = get_settings(args.architecture, mode="test")
-relpath = get_relpath(main_dir="platooning_"+args.architecture, train_params=train_par)
+        robustness_dist, robustness_power = get_settings(args.architecture, mode="test")
+relpath = get_relpath(main_dir="platooning_energy_"+args.architecture, train_params=train_par)
 sims_filename = get_sims_filename(args.repetitions, test_par)
 
 pg = ParametersHyperparallelepiped(agent_position, agent_velocity, 
@@ -42,11 +42,14 @@ def run(mode=None):
     }
 
     sim_t = []
+    sim_ag_power = []
     sim_ag_pos = []
     sim_ag_dist = []
-    sim_ag_acc = []
     sim_env_pos = []
-    sim_env_acc = []
+    sim_ag_e_torque = []
+    sim_ag_br_torque = []
+    sim_env_e_torque = []
+    sim_env_br_torque = []
 
     t = 0
     dt = test_par["dt"]
@@ -68,16 +71,17 @@ def run(mode=None):
                 
             def_policy = defender(oa)
 
-        atk_input = atk_policy
-        def_input = def_policy
-
-        physical_model.step(atk_input, def_input, dt)
-        sim_ag_acc.append(def_input)
-        sim_env_acc.append(atk_input)
+        physical_model.step(atk_policy, def_policy, dt)
         sim_t.append(t)
         sim_ag_pos.append(physical_model.agent.position)
         sim_env_pos.append(physical_model.environment.l_position)
         sim_ag_dist.append(physical_model.agent.distance)
+        sim_ag_power.append(physical_model.agent.e_power)
+
+        sim_ag_e_torque.append(def_policy[0])
+        sim_ag_br_torque.append(def_policy[1])
+        sim_env_e_torque.append(atk_policy[0])
+        sim_env_br_torque.append(atk_policy[1])
 
         t += dt
         
@@ -85,17 +89,20 @@ def run(mode=None):
             'sim_t': np.array(sim_t),
             'sim_ag_pos': np.array(sim_ag_pos),
             'sim_ag_dist': np.array(sim_ag_dist),
-            'sim_ag_acc': np.array(sim_ag_acc),
+            'sim_ag_power': np.array(sim_ag_power),
             'sim_env_pos': np.array(sim_env_pos),
-            'sim_env_acc': np.array(sim_env_acc),
+            'sim_ag_e_torque': np.array(sim_ag_e_torque),
+            'sim_ag_br_torque': np.array(sim_ag_br_torque),
+            'sim_env_e_torque': np.array(sim_env_e_torque),
+            'sim_env_br_torque': np.array(sim_env_br_torque),
     }
 
 records = []
 for i in tqdm(range(args.repetitions)):
     sim = {}
-    sim['pulse'] = run(0)
-    sim['step_up'] = run(1)
-    sim['step_down'] = run(2)
+    # sim['pulse'] = run(0)
+    # sim['step_up'] = run(1)
+    # sim['step_down'] = run(2)
     sim['atk'] = run()
     records.append(sim)
                
