@@ -12,7 +12,7 @@ from model.cartpole_target import *
 from settings.cartpole_target import *
 
 parser = ArgumentParser()
-parser.add_argument("-r", "--repetitions", type=int, default=10, help="simulation repetions")
+parser.add_argument("-r", "--repetitions", type=int, default=1000, help="simulation repetions")
 parser.add_argument("--architecture", type=str, default="default", help="architecture's name")
 parser.add_argument("--plot_evolution", default=True, type=eval)
 parser.add_argument("--scatter", default=True, type=eval, help="Generate scatterplot")
@@ -148,7 +148,7 @@ if args.scatter is True:
 if args.plot_evolution is True:
 
     if len(records)>=1000:
-        n=432
+        n=654
     else:
         n = random.randrange(len(records))
 

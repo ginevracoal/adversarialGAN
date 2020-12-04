@@ -13,7 +13,7 @@ from settings.platooning import *
 from architecture.default import *
 
 parser = ArgumentParser()
-parser.add_argument("-r", "--repetitions", type=int, default=10, help="simulation repetions")
+parser.add_argument("-r", "--repetitions", type=int, default=1000, help="simulation repetions")
 parser.add_argument("--architecture", type=str, default="default", help="architecture's name")
 parser.add_argument("--plot_evolution", default=True, type=eval)
 parser.add_argument("--scatter", default=True, type=eval, help="Generate scatterplot")
@@ -111,7 +111,7 @@ if args.scatter:
 if args.plot_evolution:
 
     if len(records)>=1000:
-        n=551
+        n=799
     else:
         n = random.randrange(len(records))
         

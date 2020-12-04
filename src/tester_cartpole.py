@@ -11,7 +11,7 @@ from settings.cartpole import *
 from architecture.cartpole import *
 
 parser = ArgumentParser()
-parser.add_argument("-r", "--repetitions", type=int, default=10, help="simulation repetions")
+parser.add_argument("-r", "--repetitions", type=int, default=1000, help="simulation repetions")
 parser.add_argument("--architecture", type=str, default="default", help="architecture's name")
 args = parser.parse_args()
 

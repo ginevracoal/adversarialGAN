@@ -12,7 +12,7 @@ from model.cartpole import *
 from settings.cartpole import *
 
 parser = ArgumentParser()
-parser.add_argument("-r", "--repetitions", type=int, default=10, help="simulation repetions")
+parser.add_argument("-r", "--repetitions", type=int, default=1000, help="simulation repetions")
 parser.add_argument("--architecture", type=str, default="default", help="architecture's name")
 parser.add_argument("--plot_evolution", default=True, type=eval)
 parser.add_argument("--scatter", default=True, type=eval, help="Generate scatterplot")
