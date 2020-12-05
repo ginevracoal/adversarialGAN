@@ -209,7 +209,7 @@ class Car():
         count = 0
         n_tentatives = 20
         while np.isnan(self.eff.item()) and count < n_tentatives:
-            self.e_torque = 0.95*self.e_torque*torch.sign(self.e_torque)
+            self.e_torque = 0.95*self.e_torque
             self.motor_efficiency()
             count +=1
 
