@@ -60,12 +60,12 @@ def run(mode=None):
             z = torch.rand(attacker.noise_size)
 
             if mode == 0:
-                atk_policy = torch.tensor(1.) if i > int(test_par["test_steps"]*1/3) \
-                             and i < int(test_par["test_steps"]*2/3) else torch.tensor(-1.)
+                atk_policy = torch.tensor(.5) if i > int(test_par["test_steps"]*1/3) \
+                             and i < int(test_par["test_steps"]*2/3) else torch.tensor(-.5)
             elif mode == 1:
-                atk_policy = torch.tensor(1.) if i > int(test_par["test_steps"]/2) else torch.tensor(-1.)
+                atk_policy = torch.tensor(.5) if i > int(test_par["test_steps"]/2) else torch.tensor(-.5)
             elif mode == 2:
-                atk_policy = torch.tensor(1.) if i < int(test_par["test_steps"]/2) else torch.tensor(-1.)
+                atk_policy = torch.tensor(.5) if i < int(test_par["test_steps"]/2) else torch.tensor(-.5)
             else:
                 atk_policy = attacker(torch.cat((z, oe)))
                 

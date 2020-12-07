@@ -11,7 +11,7 @@ import os
 
 DEBUG=True
 K=10
-ALPHA=0.9
+ALPHA=0.8
 USE_TORCH_EFF_MAP = True
 
 #%%
@@ -127,7 +127,6 @@ class Car():
     def __init__(self, device, initial_speed = 0.0):
         self.device=device
 
-
         self.gravity = 9.81 #m/s^2
         self.position = torch.tensor(0.0)
         self.velocity = torch.tensor(initial_speed)
@@ -160,6 +159,7 @@ class Car():
         self.e_torque= torch.tensor(0.0)
         self.br_torque= torch.tensor(0.0)
         self.e_power = torch.tensor(0.0)
+        self.timestep_power = torch.tensor(0.0)
         self.eff = torch.tensor(0.0)
 
     def motor_efficiency(self):
@@ -185,9 +185,8 @@ class Car():
         return F_loss
 
     def update(self, dt, norm_e_torque, norm_br_torque, dist_force=0):
-        #Differential equation for updating the state of the car
-        norm_e_torque = torch.tanh(norm_e_torque)
-        norm_br_torque = torch.sigmoid(norm_br_torque)
+        """ Differential equations for updating the state of the car
+        """
 
         in_wheels_torque = self.calculate_wheels_torque(torch.clamp(norm_e_torque, torch.tensor(-1),\
                 torch.tensor(1))*self.max_e_tq, torch.clamp(norm_br_torque, torch.tensor(0),torch.tensor(1))*self.max_br_torque)
@@ -221,9 +220,12 @@ class Car():
             print(f'shrink factor required = {0.95**count}')
             #print(self.e_torque.item())
         
-        effective_efficiency = self.eff**(-torch.sign(self.e_torque)).to(self.device)
-        self.e_power = ((self.e_motor_speed*self.e_torque).to(self.device)*effective_efficiency)[0]
         self.position += self.velocity * dt
+        effective_efficiency = self.eff**(-torch.sign(self.e_torque)).to(self.device)
+
+        e_power = ((self.e_motor_speed*self.e_torque).to(self.device)*effective_efficiency)[0]
+        self.timestep_power = e_power-self.e_power
+        self.e_power = e_power
 
         #update min/max e-torque based on new motor speed
         self.max_e_tq = self.e_motor.getMaxTorque(self.e_motor_speed)
@@ -371,12 +373,12 @@ class Agent:
         self._car.velocity = value
 
     @property
-    def e_power(self):
-        return self._car.e_power.clone()
+    def timestep_power(self):
+        return self._car.timestep_power.clone()
 
-    @e_power.setter
-    def e_power(self, value):
-        self._car.e_power = value
+    @timestep_power.setter
+    def timestep_power(self, value):
+        self._car.timestep_power = value
 
     @property
     def distance(self):
@@ -420,7 +422,7 @@ class Model:
         self.agent.update(agent_input, dt)
 
         self.traces['dist'].append(self.agent.distance)
-        self.traces['power'].append(self.agent.e_power)
+        self.traces['power'].append(self.agent.timestep_power)
 
     def initialize_random(self):
         """ Sample a random initial state """
