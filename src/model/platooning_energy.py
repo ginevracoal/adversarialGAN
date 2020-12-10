@@ -14,7 +14,7 @@ K=10
 ALPHA=0.9
 USE_TORCH_EFF_MAP = True
 
-#%%
+torch.autograd.set_detect_anomaly(True)
 
 class ElMotor():
     
@@ -120,8 +120,6 @@ class ElMotor():
         torch.save(torque_limit, file_name)
 
 
-
-#%%
 class Car():
     """ Describes the physical behaviour of the vehicle """
     def __init__(self, device, initial_speed = 0.0):
@@ -168,35 +166,31 @@ class Car():
             eff = self.e_motor.getEfficiency(e_motor_speed, e_torque.unsqueeze(0))
         else:
             eff = self.e_motor.getEfficiency(e_motor_speed, e_torque)
-
         if not torch.is_tensor(eff):
             #print('eff not tensor')
             eff = torch.tensor(eff).to(self.device)
         # self.eff = eff
         # print(self.eff)
-        return eff
+        return eff.squeeze(0)
     
     def calculate_wheels_torque(self, e_torque, br_torque):
-        self.br_torque = torch.clamp(br_torque, 0, self._max_whl_brk_torque)
         self.e_torque = torch.clamp(e_torque, self.min_e_tq, self.max_e_tq)
+        self.br_torque = torch.clamp(br_torque, 0, self._max_whl_brk_torque)
         return self.e_torque*self.gear_ratio - self.br_torque
 
-    def resistance_force(self):
-        F_loss = 0.5*self.rho*self.veh_surface*self.aer_coeff*(self.velocity**2) + \
-            self.rr_coeff*self.mass*self.gravity*self.velocity
+    def resistance_force(self, old_velocity):
+        F_loss = 0.5*self.rho*self.veh_surface*self.aer_coeff*(old_velocity**2) + \
+                    self.rr_coeff*self.mass*self.gravity*old_velocity
         return F_loss
 
     def update(self, dt, norm_e_torque, norm_br_torque, dist_force=0):
         """ Differential equations for updating the state of the car
         """
 
-        self.e_torque = norm_e_torque
-        self.br_torque = norm_br_torque
         in_wheels_torque = self.calculate_wheels_torque(norm_e_torque, norm_br_torque)
-        # in_wheels_torque = self.calculate_wheels_torque(torch.clamp(norm_e_torque, torch.tensor(-1),\
-        #         torch.tensor(1))*self.max_e_tq, torch.clamp(norm_br_torque, torch.tensor(0),torch.tensor(1))*self.max_br_torque)
 
-        acceleration = (in_wheels_torque/self.wheel_radius - self.resistance_force() + dist_force) / self.mass
+        resistance_force = self.resistance_force(self.velocity.clone())
+        acceleration = (in_wheels_torque/self.wheel_radius - resistance_force + dist_force) / self.mass
            
         self.acceleration = acceleration #torch.clamp(acceleration, self._min_acceleration, self._max_acceleration)
         # self.velocity = torch.clamp(self.velocity + self.acceleration * dt, 0, self._max_velocity)
@@ -205,43 +199,20 @@ class Car():
         
         e_motor_speed = (self.velocity*self.gear_ratio/self.wheel_radius)
         
-        # update power consumed
-        eff = self.motor_efficiency(e_motor_speed, e_torque)
+        eff = self.motor_efficiency(e_motor_speed, self.e_torque)
+        effective_efficiency = eff**(-torch.sign(self.e_torque)).to(self.device)
+        e_power = e_motor_speed*self.e_torque*effective_efficiency
 
-        # check for NaN problem
-        count = 0
-        n_tentatives = 20
-        while np.isnan(eff.item()) and count < n_tentatives:
-            self.e_torque = 0.95*self.e_torque
-            self.motor_efficiency()
-            count +=1
-
-        if count >= n_tentatives:
-            self.eff = torch.tensor(0.8)
-            print('no solution found to NaN')
-
-        elif count >round(n_tentatives/2):
-            print(f'shrink factor required = {0.95**count}')
-            #print(self.e_torque.item())
-        
-        effective_efficiency = self.eff**(-torch.sign(self.e_torque)).to(self.device)
-
-        e_power = ((self.e_motor_speed*self.e_torque).to(self.device)*effective_efficiency)[0]
-        self.timestep_power = (e_power-self.e_power)
+        self.eff = eff
+        self.timestep_power = e_power-self.e_power
         self.e_power = e_power
-        # print(e_power)
 
         #update min/max e-torque based on new motor speed
-        # self.max_e_tq = self.e_motor.getMaxTorque(self.e_motor_speed)
-        # self.min_e_tq = -self.max_e_tq
-
-        if DEBUG:
-            if np.isnan(self.eff.item()):
-                print('NaN issue instance:')
-                print(f'speed = {round(self.e_motor_speed.item())}, torque = {round(self.e_torque.item())}, efficiency = {round(self.eff.item(),3)}')
-        
+        self.max_e_tq = self.e_motor.getMaxTorque(self.e_motor_speed)
+        self.min_e_tq = -self.max_e_tq
         # print(f"pos={self.position.item()}\tpower={self.e_power.item()}")
         # print(self.timestep_power.item())
+
 
 class ElMotor_torch():
     
@@ -257,7 +228,7 @@ class ElMotor_torch():
         self.max_torque = 180
 
     def getEfficiency(self, speed, torque):
-        data = torch.stack(( speed/self.max_speed , torque/self.max_torque ) , dim = 1).to(self.device) #.float()
+        data = torch.stack(( speed/self.max_speed , torque/self.max_torque ) , dim = 1).to(self.device)
         with torch.no_grad():
             eff = self.net(data)
         
@@ -299,11 +270,6 @@ class ElMotor_torch():
         
         return fig1
 
-
-
-#%%
-            
-            
 
 class Environment:
     def __init__(self, device):
