@@ -150,7 +150,7 @@ class Car():
         self._max_velocity =  0.95 * self.e_motor.max_speed / self.gear_ratio * self.wheel_radius
         self._min_velocity = 0.0
 
-        self.max_br_torque = 2000
+        self.max_br_tq = 2000
         self.max_e_tq = torch.max(torch.tensor(self.e_motor.max_torque))
         self.min_e_tq = - self.max_e_tq
         self.e_motor_speed = torch.tensor(0.0)
@@ -174,8 +174,8 @@ class Car():
         return eff.squeeze(0)
     
     def calculate_wheels_torque(self, e_torque, br_torque):
-        self.e_torque = torch.clamp(e_torque, self.min_e_tq, self.max_e_tq)
-        self.br_torque = torch.clamp(br_torque, 0, self._max_whl_brk_torque)
+        self.e_torque = torch.clamp(e_torque*self.max_e_tq, self.min_e_tq, self.max_e_tq)
+        self.br_torque = torch.clamp(br_torque*self.max_br_tq, 0, self._max_whl_brk_torque)
         return self.e_torque*self.gear_ratio - self.br_torque
 
     def resistance_force(self, old_velocity):

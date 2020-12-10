@@ -31,7 +31,6 @@ class Attacker(architecture.default.Attacker):
         br_torque = torch.sigmoid(output[1])
         return e_torque, br_torque
 
-
 class Defender(architecture.default.Defender):
     """ NN architecture for the defender """
     def __init__(self, model, n_hidden_layers, layer_size, n_coeff):
