@@ -80,7 +80,6 @@ class Defender(nn.Module):
 
         self.nn = nn.Sequential(*layers)
 
-
     def forward(self, x):
         output = self.nn(x)
         return output

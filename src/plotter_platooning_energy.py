@@ -10,7 +10,7 @@ from argparse import ArgumentParser
 from utils.misc import *
 from model.platooning_energy import *
 from settings.platooning_energy import *
-from architecture.default import *
+from architecture.platooning_energy import *
 
 parser = ArgumentParser()
 parser.add_argument("-r", "--repetitions", type=int, default=1000, help="simulation repetions")
@@ -27,7 +27,7 @@ agent_position, agent_velocity, leader_position, leader_velocity, \
 
 safe_dist1 = 2
 safe_dist2 = 10
-safe_power = 100
+safe_power = 10
 alpha = 0.8
 
 relpath = get_relpath(main_dir="platooning_energy_"+args.architecture, train_params=train_par)
@@ -66,8 +66,8 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
 
 
 def plot_evolution(sim_time, sim_agent_pos, sim_agent_dist, sim_env_pos, 
-    sim_ag_e_torque, sim_ag_br_torque, sim_env_e_torque, sim_env_br_torque, filename):
-    fig, ax = plt.subplots(4, 1, figsize=(8, 6))
+    sim_ag_e_torque, sim_ag_br_torque, sim_env_e_torque, sim_env_br_torque, sim_ag_power, filename):
+    fig, ax = plt.subplots(5, 1, figsize=(8, 8))
 
     ax[0].plot(sim_time, sim_agent_pos, label='follower', color='darkblue')
     ax[0].plot(sim_time, sim_env_pos, label='leader', color='darkorange')
@@ -87,8 +87,12 @@ def plot_evolution(sim_time, sim_agent_pos, sim_agent_dist, sim_env_pos,
 
     ax[3].plot(sim_time, sim_ag_br_torque, label='follower', color='darkblue')
     ax[3].plot(sim_time, sim_env_br_torque, label='leader', color='darkorange')
-    ax[3].set(xlabel=r'time ($s$)', ylabel=r'br_torque')
+    ax[3].set(ylabel=r'br_torque')
     ax[3].legend()
+
+    ax[4].plot(sim_time, sim_ag_power, label='leader', color='darkorange')
+    ax[4].set(xlabel=r'time ($s$)', ylabel=r'e_power')
+    ax[4].legend()
 
     fig.tight_layout()
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
@@ -111,8 +115,9 @@ if args.scatter:
             trace_power = torch.tensor(records[i][mode]['sim_ag_power'])
 
             rob_dist = robustness_computer.dqs_dist.compute(dist=trace_dist)
-            rob_power = robustness_computer.dqs_power.compute(power=trace_power)
-            robustness = alpha*rob_dist+(1-alpha)*rob_power
+            # rob_power = robustness_computer.dqs_power.compute(power=trace_power)
+            robustness = rob_dist
+            # robustness = alpha*rob_dist+(1-alpha)*rob_power
 
             robustness_array[i] = robustness
             delta_pos_array[i] = delta_pos
@@ -133,19 +138,21 @@ if args.plot_evolution:
         plot_evolution(records[n][case]['sim_t'], records[n][case]['sim_ag_pos'], 
              records[n][case]['sim_ag_dist'], records[n][case]['sim_env_pos'],
              records[n][case]['sim_ag_e_torque'], records[n][case]['sim_ag_br_torque'], 
-             records[n][case]['sim_env_e_torque'], records[n][case]['sim_ag_br_torque'], 'evolution_'+case+'.png')
+             records[n][case]['sim_env_e_torque'], records[n][case]['sim_ag_br_torque'], 
+             records[n][case]['sim_ag_power'], 'evolution_'+case+'.png')
 
 if args.hist:
     size = len(records)
     atk_pct = np.zeros_like(records[0]['atk']['sim_ag_dist'])
 
-    robustness = lambda dist,power: alpha*np.logical_and(dist >= -safe_dist1, dist <= safe_dist2)+\
-                                    (1-alpha)*(power <= safe_power)
+    robustness = lambda dist: np.logical_and(dist >= -safe_dist1, dist <= safe_dist2)
+    # robustness = lambda dist,power: alpha*np.logical_and(dist >= -safe_dist1, dist <= safe_dist2)+\
+    #                                 (1-alpha)*(power <= safe_power)
 
     for i in range(size):
         dist = records[i]['atk']['sim_ag_dist']
-        power = records[i]['atk']['sim_ag_power']
-        atk_pct = atk_pct + robustness(dist, power)
+        # power = records[i]['atk']['sim_ag_power']
+        atk_pct = atk_pct + robustness(dist)
 
     time = records[0]['atk']['sim_t']
     atk_pct = atk_pct / size

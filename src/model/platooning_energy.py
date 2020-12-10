@@ -11,7 +11,7 @@ import os
 
 DEBUG=True
 K=10
-ALPHA=0.8
+ALPHA=0.9
 USE_TORCH_EFF_MAP = True
 
 #%%
@@ -162,17 +162,19 @@ class Car():
         self.timestep_power = torch.tensor(0.0)
         self.eff = torch.tensor(0.0)
 
-    def motor_efficiency(self):
-        if not self.e_torque.shape:
-            eff = self.e_motor.getEfficiency(self.e_motor_speed, self.e_torque.unsqueeze(0))
+    def motor_efficiency(self, e_motor_speed, e_torque):
+
+        if not e_torque.shape:
+            eff = self.e_motor.getEfficiency(e_motor_speed, e_torque.unsqueeze(0))
         else:
-            eff = self.e_motor.getEfficiency(self.e_motor_speed, self.e_torque)
+            eff = self.e_motor.getEfficiency(e_motor_speed, e_torque)
 
         if not torch.is_tensor(eff):
             #print('eff not tensor')
             eff = torch.tensor(eff).to(self.device)
-        self.eff = eff
+        # self.eff = eff
         # print(self.eff)
+        return eff
     
     def calculate_wheels_torque(self, e_torque, br_torque):
         self.br_torque = torch.clamp(br_torque, 0, self._max_whl_brk_torque)
@@ -188,26 +190,28 @@ class Car():
         """ Differential equations for updating the state of the car
         """
 
-        in_wheels_torque = self.calculate_wheels_torque(torch.clamp(norm_e_torque, torch.tensor(-1),\
-                torch.tensor(1))*self.max_e_tq, torch.clamp(norm_br_torque, torch.tensor(0),torch.tensor(1))*self.max_br_torque)
+        self.e_torque = norm_e_torque
+        self.br_torque = norm_br_torque
+        in_wheels_torque = self.calculate_wheels_torque(norm_e_torque, norm_br_torque)
+        # in_wheels_torque = self.calculate_wheels_torque(torch.clamp(norm_e_torque, torch.tensor(-1),\
+        #         torch.tensor(1))*self.max_e_tq, torch.clamp(norm_br_torque, torch.tensor(0),torch.tensor(1))*self.max_br_torque)
 
         acceleration = (in_wheels_torque/self.wheel_radius - self.resistance_force() + dist_force) / self.mass
            
-        self.acceleration = torch.clamp(acceleration, self._min_acceleration, self._max_acceleration)
+        self.acceleration = acceleration #torch.clamp(acceleration, self._min_acceleration, self._max_acceleration)
+        # self.velocity = torch.clamp(self.velocity + self.acceleration * dt, 0, self._max_velocity)
+        self.velocity += self.acceleration * dt
+        self.position += self.velocity * dt
         
-        # self.velocity = torch.clamp(self.velocity + self.acceleration * dt, self._min_velocity, self._max_velocity)
-        velocity = self.velocity + self.acceleration * dt
-        self.velocity = torch.clamp(velocity, torch.tensor(0) ,self._max_velocity )
-        
-        self.e_motor_speed = (self.velocity*self.gear_ratio/self.wheel_radius)
+        e_motor_speed = (self.velocity*self.gear_ratio/self.wheel_radius)
         
         # update power consumed
-        self.motor_efficiency()
+        eff = self.motor_efficiency(e_motor_speed, e_torque)
 
         # check for NaN problem
         count = 0
         n_tentatives = 20
-        while np.isnan(self.eff.item()) and count < n_tentatives:
+        while np.isnan(eff.item()) and count < n_tentatives:
             self.e_torque = 0.95*self.e_torque
             self.motor_efficiency()
             count +=1
@@ -220,24 +224,24 @@ class Car():
             print(f'shrink factor required = {0.95**count}')
             #print(self.e_torque.item())
         
-        self.position += self.velocity * dt
         effective_efficiency = self.eff**(-torch.sign(self.e_torque)).to(self.device)
 
         e_power = ((self.e_motor_speed*self.e_torque).to(self.device)*effective_efficiency)[0]
-        self.timestep_power = e_power-self.e_power
+        self.timestep_power = (e_power-self.e_power)
         self.e_power = e_power
+        # print(e_power)
 
         #update min/max e-torque based on new motor speed
-        self.max_e_tq = self.e_motor.getMaxTorque(self.e_motor_speed)
-        self.min_e_tq = -self.max_e_tq
+        # self.max_e_tq = self.e_motor.getMaxTorque(self.e_motor_speed)
+        # self.min_e_tq = -self.max_e_tq
 
         if DEBUG:
             if np.isnan(self.eff.item()):
                 print('NaN issue instance:')
                 print(f'speed = {round(self.e_motor_speed.item())}, torque = {round(self.e_torque.item())}, efficiency = {round(self.eff.item(),3)}')
         
-        #    print(f"pos={self.position.item()}\tpower={self.e_power.item()}")
-
+        # print(f"pos={self.position.item()}\tpower={self.e_power.item()}")
+        # print(self.timestep_power.item())
 
 class ElMotor_torch():
     
@@ -381,6 +385,14 @@ class Agent:
         self._car.timestep_power = value
 
     @property
+    def e_power(self):
+        return self._car.e_power.clone()
+
+    @timestep_power.setter
+    def e_power(self, value):
+        self._car.e_power = value
+
+    @property
     def distance(self):
         return self._environment.l_position - self._car.position
 
@@ -457,4 +469,4 @@ class RobustnessComputer:
         power = model.traces['power'][-K:]
         rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))
         rob_power = self.dqs_power.compute(power=torch.cat(power))
-        return ALPHA*rob_dist+(1-ALPHA)*rob_power 
+        return ALPHA*rob_dist+(1-ALPHA)*rob_power

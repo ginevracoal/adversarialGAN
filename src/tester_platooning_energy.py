@@ -9,7 +9,7 @@ from argparse import ArgumentParser
 from utils.misc import *
 from model.platooning_energy import *
 from settings.platooning_energy import *
-from architecture.default import *
+from architecture.platooning_energy import *
 
 parser = ArgumentParser()
 parser.add_argument("-r", "--repetitions", type=int, default=1000, help="simulation repetions")
