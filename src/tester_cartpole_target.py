@@ -9,6 +9,7 @@ from argparse import ArgumentParser
 from utils.misc import *
 from architecture.default import *
 from model.cartpole_target import *
+from model.cartpole_target_classic import *
 from settings.cartpole_target import *
 
 parser = ArgumentParser()
@@ -25,13 +26,20 @@ sims_filename = get_sims_filename(args.repetitions, test_par)
 pg = ParametersHyperparallelepiped(cart_position, cart_velocity, 
                                         pole_angle, pole_ang_velocity, x_target)
 
-physical_model = Model(pg.sample(sigma=0.05))
-attacker = Attacker(physical_model, *atk_arch.values())
-defender = Defender(physical_model, *def_arch.values())
+model = Model(pg.sample(sigma=0.05))
+model_classic = Model_classic(pg.sample(sigma=0.05))
 
+attacker = Attacker(model, *atk_arch.values())
+defender = Defender(model, *def_arch.values())
 load_models(attacker, defender, EXP+relpath)
 
-def run(mode=None):
+def run(mode=None, classic_control=False):
+
+    if classic_control is True:
+        physical_model = model_classic
+    else:
+        physical_model = model
+
     physical_model.initialize_random()
     conf_init = {
         'x': physical_model.agent.x,
@@ -71,7 +79,17 @@ def run(mode=None):
             else:
                 atk_policy = attacker(torch.cat((z, oe)))
 
-            def_policy = defender(oa)
+            if classic_control is True:
+                st = oa.cpu().detach().numpy()
+                physical_model.cartpole.computeControlSignals(st[:4], x_target=st[4])
+                def_policy = torch.tensor(physical_model.cartpole.get_ctrl_signal() )
+                # print(def_policy)
+                if physical_model.cartpole.is_unstable():
+                    break
+
+            else:
+                def_policy = defender(oa)
+
 
         physical_model.step(env_input=atk_policy, agent_input=def_policy, dt=dt)
 
@@ -107,6 +125,9 @@ for i in tqdm(range(args.repetitions)):
     sim['const'] = run(0)
     sim['pulse'] = run(1)
     sim['atk'] = run()
+    sim['classic_const'] = run(0, classic_control=True)
+    sim['classic_pulse'] = run(1, classic_control=True)
+    sim['classic_atk'] = run(classic_control=True)
     records.append(sim)
                
 with open(os.path.join(EXP+relpath, sims_filename), 'wb') as f:

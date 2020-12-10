@@ -81,30 +81,35 @@ def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, po
 
 
 def plot_evolution(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_theta, 
-         sim_x_target, sim_action, sim_dist, sim_attack_mu, filename):
+                  sim_x_target, sim_action, sim_dist, sim_attack_mu, 
+                  sim_x_classic, sim_theta_classic, sim_dist_classic, sim_action_classic, filename):
     fig, ax = plt.subplots(5, 1, figsize=(6, 8), sharex=True)
 
-    ax[0].plot(sim_time, sim_x, label='true position',  color='darkblue')
-    ax[0].plot(sim_time, sim_x_target, label='target position', color='darkorange')
+    ax[0].plot(sim_time, sim_x, label='defender',  color='darkblue')
+    ax[0].plot(sim_time, sim_x_classic, label='classic',  color='teal')
+    ax[0].plot(sim_time, sim_x_target, label='target', color='darkorange')
     ax[0].set(ylabel=r'cart position ($m$)')
     ax[0].legend()
 
     ax[1].axhline(-safe_dist, ls='--', color='red', label="safe distance")
     ax[1].axhline(safe_dist, ls='--', color='red')
     ax[1].plot(sim_time, sim_dist, color='darkblue', label='')    
+    ax[1].plot(sim_time, sim_dist_classic, color='teal', label='')    
     ax[1].set(ylabel=r'distance from target ($m$)')
     ax[1].legend()
 
     ax[2].axhline(-safe_theta, ls='--', color='red', label="safe angle")
     ax[2].axhline(safe_theta, ls='--', color='red')
-    ax[2].plot(sim_time, sim_theta, color='darkblue',  label='')
+    ax[2].plot(sim_time, sim_theta, color='darkblue',  label='defender')
+    ax[2].plot(sim_time, sim_theta_classic, color='teal',  label='classic')
     ax[2].set(ylabel=r'pole angle ($rad$)')
     ax[2].legend()
 
     ax[3].plot(sim_time, sim_attack_mu, color='darkorange')
     ax[3].set(ylabel=r'friction coefficient')
 
-    ax[4].plot(sim_time, sim_action, label='', color='darkblue')
+    ax[4].plot(sim_time, sim_action, label='defender', color='darkblue')
+    ax[4].plot(sim_time, sim_action_classic, label='classic', color='teal')
     ax[4].set(xlabel=r'time ($s$)')
     ax[4].set(ylabel= r'cart control ($N$)')
 
@@ -123,7 +128,7 @@ if args.scatter is True:
     cart_vel_array = np.zeros(size)
     pole_ang_vel_array = np.zeros(size)
 
-    for mode in ["const","pulse","atk"]:
+    for mode in ["atk"]:
         for i in range(size):
 
             trace_theta = torch.tensor(records[i][mode]['sim_theta'])
@@ -143,7 +148,31 @@ if args.scatter is True:
             cart_vel_array[i] = cart_vel
             pole_ang_vel_array[i] = pole_ang_vel
 
-        scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array, 'atk_scatterplot.png')
+        scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array, 
+                str(mode)+'_scatterplot.png')
+    
+    for mode in ["classic_atk"]:
+        for i in range(size):
+
+            trace_theta = torch.tensor(records[i][mode]['sim_theta'])
+            trace_dist = torch.tensor(records[i][mode]['sim_dist'])
+            rob_theta = robustness_computer.dqs_theta.compute(theta=trace_theta)
+            rob_dist = robustness_computer.dqs_dist.compute(dist=trace_dist)
+            robustness = alpha*rob_dist+(1-alpha)*rob_theta
+
+            cart_pos = records[i][mode]['init']['x'] 
+            pole_ang = records[i][mode]['init']['theta'] 
+            cart_vel = records[i][mode]['init']['dot_x'] 
+            pole_ang_vel = records[i][mode]['init']['dot_theta'] 
+
+            robustness_array[i] = robustness
+            cart_pos_array[i] = cart_pos
+            pole_ang_array[i] = pole_ang
+            cart_vel_array[i] = cart_vel
+            pole_ang_vel_array[i] = pole_ang_vel
+
+        scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array, 
+                str(mode)+'_classic_scatterplot.png')
 
 if args.plot_evolution is True:
 
@@ -161,6 +190,8 @@ if args.plot_evolution is True:
              records[n][mode]['sim_dot_x'], records[n][mode]['sim_ddot_x'], records[n][mode]['sim_dot_theta'],
              records[n][mode]['sim_x_target'], records[n][mode]['sim_action'], 
              records[n][mode]['sim_dist'], records[n][mode]['sim_attack_mu'], 
+             records[n]["classic_"+mode]['sim_x'], records[n]["classic_"+mode]['sim_theta'],
+             records[n]["classic_"+mode]['sim_dist'], records[n]["classic_"+mode]['sim_action'],
              'evolution_'+mode+'.png')
 
 if args.hist is True:
