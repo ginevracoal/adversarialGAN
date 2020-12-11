@@ -4,8 +4,9 @@ from model.cartpole_target import *
 
 
 class CartPole_classic(CartPole):
-    def __init__(self, Q = np.diag([1,1,1,1]), R = 1, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+
+    def __init__(self, Q = np.diag([1,1,1,1]), R = 1):
+        super(CartPole_classic, self).__init__()
     
         # cartpole params
         self.d1 = 0.0
@@ -48,7 +49,7 @@ class CartPole_classic(CartPole):
         
         #debugging tools
         self.state_archive = None
-    
+
     ############################################################
     def is_unstable(self):
         return self.unstable_system
@@ -90,8 +91,14 @@ class CartPole_classic(CartPole):
         self.SMC_law(state)
         self.LQR_law(state, x_target)
         self.Kp_x_law(state, x0 = x_target)
-        
-    
+
+    def update(self, dt, action, mu, dot_eps):
+
+        state = [self.x.item(), self.dot_x.item(), self.theta.item(), self.dot_theta.item()]
+        self.computeControlSignals(state, x_target=self.x_target)
+        def_policy = torch.tensor(self.get_ctrl_signal())
+        super().update(dt, def_policy, mu, dot_eps)
+
     ############################################################
     # used to saturate any signal
     def saturate(self, signal, max_value):
@@ -164,9 +171,20 @@ class CartPole_classic(CartPole):
 class Model_classic(Model):
 
     def __init__(self, param_generator):
-        super().__init__(param_generator)
-        # setting of the initial conditions
+
         self.cartpole = CartPole_classic()
+
+        self.agent = Agent(self.cartpole)
+        self.environment = Environment(self.cartpole)
+
+        self.agent.set_environment(self.environment)
+        self.environment.set_agent(self.agent)
+
+        self._param_generator = param_generator
+        self.traces = None
+
+    def step(self, env_input, agent_input, dt):
+        super(Model_classic, self).step(env_input, agent_input, dt)
 
 
 def lqr(A,B,Q,R):

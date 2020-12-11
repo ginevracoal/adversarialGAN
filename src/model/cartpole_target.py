@@ -41,7 +41,7 @@ class CartPole():
         f = action
         dot_eps = torch.clamp(dot_eps, -self._max_dot_eps, self._max_dot_eps)
         # update_mu = np.random.binomial(n=1, p=0.1)
-        mu = torch.clamp(mu, -self._max_mu, self._max_mu) #if update_mu==1 else None
+        mu = torch.clamp(mu, 0., self._max_mu) #if update_mu==1 else None
 
         eps = dot_eps * dt
         x_target = self.x + eps
