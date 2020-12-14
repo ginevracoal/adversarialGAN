@@ -28,5 +28,5 @@ class Attacker(architecture.default.Attacker):
     def forward(self, x):
         output = self.nn(x)
         dot_eps = output[0]
-        mu = torch.clamp(output[1], 0, 1000)
+        mu = torch.sigmoid(output[1])
         return dot_eps, mu

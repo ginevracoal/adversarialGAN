@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 from utils.misc import *
 from model.cartpole_target import *
 from settings.cartpole_target import *
-from architecture.default import *
+from architecture.cartpole_target import *
 
 parser = ArgumentParser()
 parser.add_argument("--architecture", type=str, default="default", help="architecture's name")

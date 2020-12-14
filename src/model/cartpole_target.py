@@ -28,7 +28,7 @@ class CartPole():
         self._max_theta = 1.5
         self._max_dot_x = 10
         self._max_dot_theta = 10
-        self._max_dot_eps=1.
+        self._max_dot_eps=5.
         self._max_mu=1.
 
     def update(self, dt, action, mu, dot_eps):    
@@ -39,15 +39,15 @@ class CartPole():
         l = self.lpole/2
             
         f = action
-        dot_eps = torch.clamp(dot_eps, -self._max_dot_eps, self._max_dot_eps)
+
         # update_mu = np.random.binomial(n=1, p=0.1)
         mu = torch.clamp(mu, 0., self._max_mu) #if update_mu==1 else None
 
+        dot_eps = torch.clamp(dot_eps, -self._max_dot_eps, self._max_dot_eps)
         eps = dot_eps * dt
         x_target = self.x + eps
         self.x_target = torch.clamp(x_target, -self._max_x, self._max_x)
-        self.dist = torch.abs(self.x-self.x_target)
-
+        
         if FRICTION:
             ddot_x = f - mu*self.dot_x  \
                        + mp*l*self.dot_theta**2* torch.sin(self.theta) \
@@ -74,6 +74,8 @@ class CartPole():
         self.theta = torch.clamp(theta, -self._max_theta, self._max_theta)
         self.dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x)
         self.dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta)
+        self.dist = torch.abs(self.x-self.x_target)
+        # print(self.dist)
 
         if DEBUG:
             print(f"dist={self.dist.item():.4f}  mu={mu.item():.4f}", end="\t")
@@ -215,7 +217,7 @@ class Model:
 
         self.cartpole.update(dt=dt, action=action, mu=mu, dot_eps=dot_eps)
 
-        self.traces['dist'].append(self.environment.dist)
+        self.traces['dist'].append(self.cartpole.dist)
         self.traces['theta'].append(self.agent.theta)
 
     def initialize_random(self):

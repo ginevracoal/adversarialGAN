@@ -50,11 +50,9 @@ class CartPole_classic(CartPole):
         #debugging tools
         self.state_archive = None
 
-    ############################################################
     def is_unstable(self):
         return self.unstable_system
     
-    ############################################################
     def update_A_B(self):
         _q = (self.mpole+self.mcart) * self.gravity / (self.mcart*self.lpole)
         self.A = np.array([\
@@ -65,7 +63,6 @@ class CartPole_classic(CartPole):
 
         self.B = np.expand_dims( np.array( [0, 1.0/self.mcart, 0., -1/(self.mcart*self.lpole)] ) , 1 ) # 4x1
         
-    ############################################################   
     def get_ctrl_signal(self, split_components = False):
        
         ctrl = self.u_LQR_ctrl
@@ -86,7 +83,6 @@ class CartPole_classic(CartPole):
         else:
             return np.array([np.clip(ctrl_out,-self.force_max ,self.force_max)])
 
-    ############################################################
     def computeControlSignals(self, state, x_target=0):
         self.SMC_law(state)
         self.LQR_law(state, x_target)
@@ -99,12 +95,11 @@ class CartPole_classic(CartPole):
         def_policy = torch.tensor(self.get_ctrl_signal())
         super().update(dt, def_policy, mu, dot_eps)
 
-    ############################################################
-    # used to saturate any signal
     def saturate(self, signal, max_value):
+        """ saturate signals
+        """
         return np.clip(signal, -max_value, max_value)
         
-    ############################################################
     def SMC_law(self, state):
         
         if self.SMC_control:
@@ -125,9 +120,9 @@ class CartPole_classic(CartPole):
         
         return self.u_SMC 
 
-    ############################################################ 
-    # proportional control for x correction
     def Kp_x_law(self, state, x0 = 0):  
+        """ proportional control for x correction
+        """
     
         if self.correct_x:
             err_x = x0 - state[0]
@@ -145,10 +140,9 @@ class CartPole_classic(CartPole):
             
         return self.u_Kp_correction
 
-    ############################################################ 
-    # LQR control law
     def LQR_law(self, state_in, x0):
-
+        """ LQR control law
+        """
         state = state_in.copy()
         if self.K is None:
             # K : State feedback for stavility
@@ -182,9 +176,6 @@ class Model_classic(Model):
 
         self._param_generator = param_generator
         self.traces = None
-
-    def step(self, env_input, agent_input, dt):
-        super(Model_classic, self).step(env_input, agent_input, dt)
 
 
 def lqr(A,B,Q,R):

@@ -7,7 +7,7 @@ import matplotlib.colors as mcolors
 from argparse import ArgumentParser
 
 from utils.misc import *
-from architecture.default import *
+from architecture.cartpole_target import *
 from model.cartpole_target import *
 from settings.cartpole_target import *
 
@@ -27,7 +27,7 @@ relpath = get_relpath(main_dir="cartpole_target_"+args.architecture, train_param
 sims_filename = get_sims_filename(args.repetitions, test_par)
 
 safe_theta = 0.2
-safe_dist = 0.5
+safe_dist = 0.1
 mc = 1.
 mp = .1
 alpha = 0.4
@@ -80,36 +80,38 @@ def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, po
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
 
-def plot_evolution(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_theta, 
-                  sim_x_target, sim_action, sim_dist, sim_attack_mu, 
-                  sim_x_classic, sim_theta_classic, sim_dist_classic, sim_action_classic, filename):
+def plot_evolution(def_records, cl_records, filename):
+
     fig, ax = plt.subplots(5, 1, figsize=(6, 8), sharex=True)
 
-    ax[0].plot(sim_time, sim_x, label='defender',  color='darkblue')
-    ax[0].plot(sim_time, sim_x_classic, label='classic',  color='teal')
-    ax[0].plot(sim_time, sim_x_target, label='target', color='darkorange')
+    ax[0].plot(def_records['sim_t'], def_records['sim_x'], label='defender',  color='darkblue')
+    ax[0].plot(def_records['sim_t'], def_records['sim_x_target'], label='def. target', color='darkorange')
+    ax[0].plot(cl_records['sim_t'], cl_records['sim_x'], label='classic', color='teal', lw=1)
+    ax[0].plot(cl_records['sim_t'], cl_records['sim_x_target'], label='cl. target', color='purple', lw=1)
     ax[0].set(ylabel=r'cart position ($m$)')
     ax[0].legend()
 
-    ax[1].axhline(-safe_dist, ls='--', color='red', label="safe distance")
-    ax[1].axhline(safe_dist, ls='--', color='red')
-    ax[1].plot(sim_time, sim_dist, color='darkblue', label='')    
-    ax[1].plot(sim_time, sim_dist_classic, color='teal', label='')    
+    ax[1].axhline(-safe_dist, ls='--', color='red', label="safe distance", lw=1)
+    ax[1].axhline(safe_dist, ls='--', color='red', lw=1)
+    ax[1].plot(def_records['sim_t'], def_records['sim_dist'], color='darkblue')    
+    ax[1].plot(def_records['sim_t'], cl_records['sim_dist'], color='teal', lw=1)    
     ax[1].set(ylabel=r'distance from target ($m$)')
     ax[1].legend()
 
-    ax[2].axhline(-safe_theta, ls='--', color='red', label="safe angle")
-    ax[2].axhline(safe_theta, ls='--', color='red')
-    ax[2].plot(sim_time, sim_theta, color='darkblue',  label='defender')
-    ax[2].plot(sim_time, sim_theta_classic, color='teal',  label='classic')
+    ax[2].axhline(-safe_theta, ls='--', color='red', label="safe angle", lw=1)
+    ax[2].axhline(safe_theta, ls='--', color='red', lw=1)
+    ax[2].plot(def_records['sim_t'], def_records['sim_theta'], color='darkblue',  label='defender')
+    ax[2].plot(cl_records['sim_t'], cl_records['sim_theta'], color='teal', label='classic', lw=1)
     ax[2].set(ylabel=r'pole angle ($rad$)')
     ax[2].legend()
 
-    ax[3].plot(sim_time, sim_attack_mu, color='darkorange')
+    ax[3].plot(def_records['sim_t'], def_records['sim_attack_mu'], color='darkorange', label='def. attack')
+    ax[3].plot(cl_records['sim_t'], cl_records['sim_attack_mu'], color='purple',label='cl. attack', lw=1)
     ax[3].set(ylabel=r'friction coefficient')
+    ax[3].legend()
 
-    ax[4].plot(sim_time, sim_action, label='defender', color='darkblue')
-    ax[4].plot(sim_time, sim_action_classic, label='classic', color='teal')
+    ax[4].plot(def_records['sim_t'], def_records['sim_action'], label='defender', color='darkblue')
+    ax[4].plot(cl_records['sim_t'], cl_records['sim_action'], label='defender', color='teal', lw=1)
     ax[4].set(xlabel=r'time ($s$)')
     ax[4].set(ylabel= r'cart control ($N$)')
 
@@ -128,7 +130,7 @@ if args.scatter is True:
     cart_vel_array = np.zeros(size)
     pole_ang_vel_array = np.zeros(size)
 
-    for mode in ["atk"]:
+    for mode in ["atk", "classic_atk"]:
         for i in range(size):
 
             trace_theta = torch.tensor(records[i][mode]['sim_theta'])
@@ -151,28 +153,6 @@ if args.scatter is True:
         scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array, 
                 str(mode)+'_scatterplot.png')
     
-    for mode in ["classic_atk"]:
-        for i in range(size):
-
-            trace_theta = torch.tensor(records[i][mode]['sim_theta'])
-            trace_dist = torch.tensor(records[i][mode]['sim_dist'])
-            rob_theta = robustness_computer.dqs_theta.compute(theta=trace_theta)
-            rob_dist = robustness_computer.dqs_dist.compute(dist=trace_dist)
-            robustness = alpha*rob_dist+(1-alpha)*rob_theta
-
-            cart_pos = records[i][mode]['init']['x'] 
-            pole_ang = records[i][mode]['init']['theta'] 
-            cart_vel = records[i][mode]['init']['dot_x'] 
-            pole_ang_vel = records[i][mode]['init']['dot_theta'] 
-
-            robustness_array[i] = robustness
-            cart_pos_array[i] = cart_pos
-            pole_ang_array[i] = pole_ang
-            cart_vel_array[i] = cart_vel
-            pole_ang_vel_array[i] = pole_ang_vel
-
-        scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array, 
-                str(mode)+'_classic_scatterplot.png')
 
 if args.plot_evolution is True:
 
@@ -185,14 +165,7 @@ if args.plot_evolution is True:
     for mode in ["const","pulse","atk"]:
 
         print(mode+":", records[n][mode]['init'])
-        plot_evolution(records[n][mode]['sim_t'], 
-             records[n][mode]['sim_x'], records[n][mode]['sim_theta'], 
-             records[n][mode]['sim_dot_x'], records[n][mode]['sim_ddot_x'], records[n][mode]['sim_dot_theta'],
-             records[n][mode]['sim_x_target'], records[n][mode]['sim_action'], 
-             records[n][mode]['sim_dist'], records[n][mode]['sim_attack_mu'], 
-             records[n]["classic_"+mode]['sim_x'], records[n]["classic_"+mode]['sim_theta'],
-             records[n]["classic_"+mode]['sim_dist'], records[n]["classic_"+mode]['sim_action'],
-             'evolution_'+mode+'.png')
+        plot_evolution(records[n][mode], records[n]["classic_"+mode], 'evolution_'+mode+'.png')
 
 if args.hist is True:
 

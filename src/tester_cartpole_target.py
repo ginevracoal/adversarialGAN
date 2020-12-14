@@ -7,7 +7,7 @@ from tqdm import tqdm
 from argparse import ArgumentParser
 
 from utils.misc import *
-from architecture.default import *
+from architecture.cartpole_target import *
 from model.cartpole_target import *
 from model.cartpole_target_classic import *
 from settings.cartpole_target import *
@@ -33,20 +33,22 @@ attacker = Attacker(model, *atk_arch.values())
 defender = Defender(model, *def_arch.values())
 load_models(attacker, defender, EXP+relpath)
 
-def run(mode=None, classic_control=False):
+
+def run(random_init, mode=None, classic_control=False):
 
     if classic_control is True:
         physical_model = model_classic
     else:
         physical_model = model
 
-    physical_model.initialize_random()
+    physical_model.reinitialize(*random_init)
+
     conf_init = {
         'x': physical_model.agent.x,
         'dot_x': physical_model.agent.dot_x,
         'theta': physical_model.agent.theta,                     
         'dot_theta': physical_model.agent.dot_theta,
-        'dist': physical_model.environment.dist
+        'dist': physical_model.environment.dist,
     }
 
     sim_t = []
@@ -73,7 +75,7 @@ def run(mode=None, classic_control=False):
                 atk_policy = (torch.tensor(0.0), torch.tensor(0.0))
 
             elif mode == 1:
-                atk_policy = (-torch.tensor(0.5), -torch.tensor(0.5)) \
+                atk_policy = (torch.tensor(0.2), torch.tensor(0.2)) \
                             if i > test_par["test_steps"]*1/3 and i < test_par["test_steps"]*2/3 \
                             else (torch.tensor(0.5), torch.tensor(0.5))
             else:
@@ -82,14 +84,13 @@ def run(mode=None, classic_control=False):
             if classic_control is True:
                 st = oa.cpu().detach().numpy()
                 physical_model.cartpole.computeControlSignals(st[:4], x_target=st[4])
-                def_policy = torch.tensor(physical_model.cartpole.get_ctrl_signal() )
-                # print(def_policy)
+                def_policy = torch.tensor(physical_model.cartpole.get_ctrl_signal())
+
                 if physical_model.cartpole.is_unstable():
                     break
 
             else:
                 def_policy = defender(oa)
-
 
         physical_model.step(env_input=atk_policy, agent_input=def_policy, dt=dt)
 
@@ -100,35 +101,44 @@ def run(mode=None, classic_control=False):
         sim_ddot_x.append(physical_model.agent.ddot_x.item())
         sim_dot_theta.append(physical_model.agent.dot_theta.item())
         sim_x_target.append(physical_model.agent.x_target.item())
-        sim_dist.append(physical_model.environment.dist.item())
+        sim_dist.append(physical_model.agent.x.item()-physical_model.agent.x_target.item())
         sim_attack_mu.append(atk_policy[1].item())
         sim_action.append(def_policy.item())
 
         t += dt
-        
+
+    # print(sim_x[-5:], "\n",sim_x_target[-5:], "\n",sim_dist[-5:])
+
     return {'init': conf_init,
             'sim_t': np.array(sim_t),
             'sim_x': np.array(sim_x),
             'sim_theta': np.array(sim_theta),
             'sim_dot_x': np.array(sim_dot_x),
-            'sim_ddot_x': np.array(sim_dot_x),
+            'sim_ddot_x': np.array(sim_ddot_x),
             'sim_dot_theta': np.array(sim_dot_theta),
             'sim_x_target': np.array(sim_x_target),
             'sim_dist': np.array(sim_dist),
             'sim_attack_mu': np.array(sim_attack_mu),
             'sim_action': np.array(sim_action),
-    }
+            }
 
 records = []
 for i in tqdm(range(args.repetitions)):
     sim = {}
-    sim['const'] = run(0)
-    sim['pulse'] = run(1)
-    sim['atk'] = run()
-    sim['classic_const'] = run(0, classic_control=True)
-    sim['classic_pulse'] = run(1, classic_control=True)
-    sim['classic_atk'] = run(classic_control=True)
+
+    random_init = next(model._param_generator)
+    sim['const'] = run(random_init, 0)
+    sim['classic_const'] = run(random_init, 0, classic_control=True)
+
+    random_init = next(model._param_generator)
+    sim['pulse'] = run(random_init, 1)
+    sim['classic_pulse'] = run(random_init, 1, classic_control=True)
+
+    random_init = next(model._param_generator)
+    sim['atk'] = run(random_init)
+    sim['classic_atk'] = run(random_init, classic_control=True)
+
     records.append(sim)
-               
+
 with open(os.path.join(EXP+relpath, sims_filename), 'wb') as f:
     pickle.dump(records, f)
