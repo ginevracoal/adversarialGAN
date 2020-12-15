@@ -5,6 +5,7 @@ import torch
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from argparse import ArgumentParser
+from matplotlib.colors import Normalize, ListedColormap
 
 from utils.misc import *
 from architecture.cartpole_target import *
@@ -27,7 +28,7 @@ relpath = get_relpath(main_dir="cartpole_target_"+args.architecture, train_param
 sims_filename = get_sims_filename(args.repetitions, test_par)
 
 safe_theta = 0.2
-safe_dist = 0.1
+safe_dist = 0.5
 mc = 1.
 mp = .1
 alpha = 0.4
@@ -60,58 +61,83 @@ def hist(time, const, pulse, atk, filename):
     fig.tight_layout()
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
-def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array, filename):
-    fig, ax = plt.subplots(1, 2, figsize=(6, 3.5))
-    fig.tight_layout(pad=4.0)
 
-    customnorm = mcolors.TwoSlopeNorm(0)
-    im = ax[0].scatter(cart_pos_array, cart_vel_array, c=robustness_array, cmap='BrBG', norm=customnorm, s=10)
-    ax[0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
+def scatter(sims, filename):
+    fig, ax = plt.subplots(2, 2, figsize=(6, 6))
+    fig.tight_layout(pad=3.0)
 
-    im = ax[1].scatter(pole_ang_array, pole_ang_vel_array, c=robustness_array, cmap='BrBG', norm=customnorm, s=10)
-    ax[1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole angular frequency ($rad/s$)')
+    vmin = min([min(sims['atk']['rob']), min(sims['classic_atk']['rob'])])
+    vmax = max([max(sims['atk']['rob']), max(sims['classic_atk']['rob'])])
+
+    cmap = plt.cm.get_cmap('Spectral')
+
+    ax[0,0].scatter(sims['atk']['x'], sims['atk']['dot_x'], c=sims['atk']['rob'], 
+                        cmap=cmap, vmin=vmin, vmax=vmax, s=10)
+    ax[0,0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
+
+    ax[0,1].scatter(sims['atk']['theta'], sims['atk']['dot_theta'], c=sims['atk']['rob'], 
+                        cmap=cmap, vmin=vmin, vmax=vmax, s=10)
+    ax[0,1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole angular frequency ($rad/s$)')
+
+    ax[1,0].scatter(sims['classic_atk']['x'], sims['classic_atk']['dot_x'], c=sims['classic_atk']['rob'], 
+                        cmap=cmap, vmin=vmin, vmax=vmax, s=10)
+    ax[1,0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
+
+    im = ax[1,1].scatter(sims['classic_atk']['theta'], sims['classic_atk']['dot_theta'], c=sims['classic_atk']['rob'], 
+                        cmap=cmap, vmin=vmin, vmax=vmax, s=10)
+    ax[1,1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole angular frequency ($rad/s$)')
     
+    plt.figtext(0.48, 0.95, 'Defender control', ha='center', va='center', weight='bold')
+    plt.figtext(0.48, 0.48, 'Classic control', ha='center', va='center', weight='bold')
+
     fig.subplots_adjust(right=0.83)
-    cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
-    cbar = fig.colorbar(im, cax=cbar_ax)
-    cbar_ax.set_ylabel('robustness', rotation=90, labelpad=-58)
-
-    # fig.suptitle('Initial conditions vs robustness $\\rho$')
+    cbar_ax = fig.add_axes([0.88, 0.11, 0.03, 0.8])
+    cbar = fig.colorbar(im, ax=ax.ravel().tolist(), cax=cbar_ax)
+    cbar.set_label('robustness', labelpad=-61, weight='bold')
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
-
 
 def plot_evolution(def_records, cl_records, filename):
 
-    fig, ax = plt.subplots(5, 1, figsize=(6, 8), sharex=True)
+    plt.style.use('seaborn')
+    cmap = plt.cm.get_cmap('Spectral', 512)
+    col = cmap(np.linspace(0, 1, 20))
+    def_col = col[19]
+    cl_col = col[16]
+    def_atk_col = col[3]
+    cl_atk_col = col[5]
+    safe_col = col[0]
+    lw=1
 
-    ax[0].plot(def_records['sim_t'], def_records['sim_x'], label='defender',  color='darkblue')
-    ax[0].plot(def_records['sim_t'], def_records['sim_x_target'], label='def. target', color='darkorange')
-    ax[0].plot(cl_records['sim_t'], cl_records['sim_x'], label='classic', color='teal', lw=1)
-    ax[0].plot(cl_records['sim_t'], cl_records['sim_x_target'], label='cl. target', color='purple', lw=1)
+    fig, ax = plt.subplots(5, 1, figsize=(6, 9), sharex=True)
+
+    ax[0].plot(def_records['sim_t'], def_records['sim_x'], label='defender',  color=def_col)
+    ax[0].plot(def_records['sim_t'], def_records['sim_x_target'], label='def. target', color=def_atk_col)
+    ax[0].plot(cl_records['sim_t'], cl_records['sim_x'], label='classic', color=cl_col)
+    ax[0].plot(cl_records['sim_t'], cl_records['sim_x_target'], label='cl. target', color=cl_atk_col)
     ax[0].set(ylabel=r'cart position ($m$)')
     ax[0].legend()
 
-    ax[1].axhline(-safe_dist, ls='--', color='red', label="safe distance", lw=1)
-    ax[1].axhline(safe_dist, ls='--', color='red', lw=1)
-    ax[1].plot(def_records['sim_t'], def_records['sim_dist'], color='darkblue')    
-    ax[1].plot(def_records['sim_t'], cl_records['sim_dist'], color='teal', lw=1)    
+    ax[1].axhline(-safe_dist, ls='--', color=safe_col, label="safe distance", lw=1)
+    ax[1].axhline(safe_dist, ls='--', color=safe_col, lw=1)
+    ax[1].plot(def_records['sim_t'], def_records['sim_dist'], color=def_col, label='defender')    
+    ax[1].plot(def_records['sim_t'], cl_records['sim_dist'], color=cl_col, label='classic')    
     ax[1].set(ylabel=r'distance from target ($m$)')
     ax[1].legend()
 
-    ax[2].axhline(-safe_theta, ls='--', color='red', label="safe angle", lw=1)
-    ax[2].axhline(safe_theta, ls='--', color='red', lw=1)
-    ax[2].plot(def_records['sim_t'], def_records['sim_theta'], color='darkblue',  label='defender')
-    ax[2].plot(cl_records['sim_t'], cl_records['sim_theta'], color='teal', label='classic', lw=1)
+    ax[2].axhline(-safe_theta, ls='--', color=safe_col, label="safe angle", lw=1)
+    ax[2].axhline(safe_theta, ls='--', color=safe_col, lw=1)
+    ax[2].plot(def_records['sim_t'], def_records['sim_theta'], color=def_col,  label='defender')
+    ax[2].plot(cl_records['sim_t'], cl_records['sim_theta'], color=cl_col, label='classic')
     ax[2].set(ylabel=r'pole angle ($rad$)')
     ax[2].legend()
 
-    ax[3].plot(def_records['sim_t'], def_records['sim_attack_mu'], color='darkorange', label='def. attack')
-    ax[3].plot(cl_records['sim_t'], cl_records['sim_attack_mu'], color='purple',label='cl. attack', lw=1)
+    ax[3].plot(def_records['sim_t'], def_records['sim_attack_mu'], color=def_atk_col, label='def. attack')
+    ax[3].plot(cl_records['sim_t'], cl_records['sim_attack_mu'], color=cl_atk_col, label='cl. attack')
     ax[3].set(ylabel=r'friction coefficient')
     ax[3].legend()
 
-    ax[4].plot(def_records['sim_t'], def_records['sim_action'], label='defender', color='darkblue')
-    ax[4].plot(cl_records['sim_t'], cl_records['sim_action'], label='defender', color='teal', lw=1)
+    ax[4].plot(def_records['sim_t'], def_records['sim_action'], label='defender', color=def_col)
+    ax[4].plot(cl_records['sim_t'], cl_records['sim_action'], label='classic', color=cl_col)
     ax[4].set(xlabel=r'time ($s$)')
     ax[4].set(ylabel= r'cart control ($N$)')
 
@@ -124,13 +150,17 @@ if args.scatter is True:
 
     robustness_computer = RobustnessComputer(robustness_theta, robustness_dist)
 
-    robustness_array = np.zeros(size)
-    cart_pos_array = np.zeros(size)
-    pole_ang_array = np.zeros(size)
-    cart_vel_array = np.zeros(size)
-    pole_ang_vel_array = np.zeros(size)
+    rob_dict = {'atk':{}, 'classic_atk':{}}
 
-    for mode in ["atk", "classic_atk"]:
+
+    for mode in ['atk', 'classic_atk']:
+
+        robustness_array = np.zeros(size)
+        cart_pos_array = np.zeros(size)
+        pole_ang_array = np.zeros(size)
+        cart_vel_array = np.zeros(size)
+        pole_ang_vel_array = np.zeros(size)
+
         for i in range(size):
 
             trace_theta = torch.tensor(records[i][mode]['sim_theta'])
@@ -150,14 +180,18 @@ if args.scatter is True:
             cart_vel_array[i] = cart_vel
             pole_ang_vel_array[i] = pole_ang_vel
 
-        scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, pole_ang_vel_array, 
-                str(mode)+'_scatterplot.png')
-    
+        rob_dict[mode]['rob'] = robustness_array
+        rob_dict[mode]['x'] = cart_pos_array
+        rob_dict[mode]['theta'] = pole_ang_array
+        rob_dict[mode]['dot_x'] = cart_vel_array
+        rob_dict[mode]['dot_theta'] = pole_ang_vel_array
+
+    scatter(rob_dict, 'cartpole_target_robustness_scatterplot.png')
 
 if args.plot_evolution is True:
 
-    if len(records)>=1000:
-        n=654
+    if len(records)>=100:
+        n=71
     else:
         n = random.randrange(len(records))
 
@@ -165,7 +199,7 @@ if args.plot_evolution is True:
     for mode in ["const","pulse","atk"]:
 
         print(mode+":", records[n][mode]['init'])
-        plot_evolution(records[n][mode], records[n]["classic_"+mode], 'evolution_'+mode+'.png')
+        plot_evolution(records[n][mode], records[n]["classic_"+mode], 'cartpole_target_evolution_'+mode+'.png')
 
 if args.hist is True:
 
@@ -198,4 +232,4 @@ if args.hist is True:
     pulse_pct = pulse_pct / size
     atk_pct = atk_pct / size
 
-    hist(time, const_pct, pulse_pct, atk_pct, 'pct_histogram.png')
+    hist(time, const_pct, pulse_pct, atk_pct, 'cartpole_target_pct_histogram.png')
