@@ -9,15 +9,15 @@ def get_settings(name, mode):
     
     if mode=="train":
         agent_position = 0
-        agent_velocity = np.linspace(0, 20, 50) 
-        leader_position = np.linspace(4, 8, 50)
-        leader_velocity = np.linspace(0, 20, 50)
+        agent_velocity = np.random.uniform(0, 20, 50) 
+        leader_position = np.random.uniform(4, 8, 50)
+        leader_velocity = np.random.uniform(0, 20, 50)
 
     elif mode=="test":
         agent_position = 0
-        agent_velocity = np.linspace(0, 5, 50) 
-        leader_position = np.linspace(4, 8, 20)
-        leader_velocity = np.linspace(0, 5, 50)
+        agent_velocity = np.random.uniform(0, 5, 50) 
+        leader_position = np.random.uniform(4, 8, 20)
+        leader_velocity = np.random.uniform(0, 5, 50)
 
     # ARCHITECTURE
 
@@ -25,15 +25,8 @@ def get_settings(name, mode):
 
         atk_arch = {'hidden':1, 'size':10, 'coef':1, 'noise':2}
         def_arch = {'hidden':2, 'size':10, 'coef':1}
-        train_par = {'train_steps':500, 'atk_steps':1, 'def_steps':2, 'horizon':2., 'dt': 0.05, 'lr':.001}
-        test_par = {'test_steps':200, 'dt':0.05}
-
-    elif name=="fast":
-
-        atk_arch = {'hidden':1, 'size':10, 'coef':1, 'noise':2}
-        def_arch = {'hidden':2, 'size':10, 'coef':1}
-        train_par = {'train_steps':100, 'atk_steps':1, 'def_steps':2, 'horizon':2., 'dt': 0.05, 'lr':.001}
-        test_par = {'test_steps':200, 'dt':0.05}
+        train_par = {'train_steps':300, 'atk_steps':1, 'def_steps':2, 'horizon':2., 'dt': 0.05, 'lr':.001}
+        test_par = {'test_steps':100, 'dt':0.5}
 
     else:
         raise NotImplementedError

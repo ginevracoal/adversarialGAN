@@ -25,7 +25,7 @@ sims_filename = get_sims_filename(args.repetitions, test_par)
 pg = ParametersHyperparallelepiped(agent_position, agent_velocity, 
                                     leader_position, leader_velocity)
 
-physical_model = Model(pg.sample(sigma=0.05))
+physical_model = Model(pg.sample())
 
 attacker = Attacker(physical_model, *atk_arch.values())
 defender = Defender(physical_model, *def_arch.values())
@@ -72,16 +72,18 @@ def run(mode=None):
             def_policy = defender(oa)
 
         physical_model.step(atk_policy, def_policy, dt)
+        physical_model.agent._car.calculate_wheels_torque(*def_policy)
+        physical_model.environment._leader_car.calculate_wheels_torque(*atk_policy)
+
         sim_t.append(t)
         sim_ag_pos.append(physical_model.agent.position)
         sim_env_pos.append(physical_model.environment.l_position)
         sim_ag_dist.append(physical_model.agent.distance)
         sim_ag_power.append(physical_model.agent.e_power)
-
-        sim_ag_e_torque.append(def_policy[0])
-        sim_ag_br_torque.append(def_policy[1])
-        sim_env_e_torque.append(atk_policy[0])
-        sim_env_br_torque.append(atk_policy[1])
+        sim_ag_e_torque.append(physical_model.agent._car.e_torque)
+        sim_ag_br_torque.append(physical_model.agent._car.br_torque)
+        sim_env_e_torque.append(physical_model.environment._leader_car.e_torque)
+        sim_env_br_torque.append(physical_model.environment._leader_car.br_torque)
 
         t += dt
         
