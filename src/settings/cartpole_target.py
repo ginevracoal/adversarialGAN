@@ -18,7 +18,7 @@ def get_settings(name, mode):
 
     elif mode=="test":
         cart_position = np.random.uniform(-1., 1., 150)
-        cart_velocity = np.random.uniform(-2., 2., 150)
+        cart_velocity = np.random.uniform(-1., 1., 150)
         pole_angle = np.random.uniform(-.1, .1, 150)
         pole_ang_velocity = np.random.uniform(-1., 1., 150)
         x_target = np.random.uniform(-.1, .1, 150)
@@ -30,7 +30,7 @@ def get_settings(name, mode):
         atk_arch = {'hidden':1, 'size':10, 'coef':1, 'noise':2}
         def_arch = {'hidden':2, 'size':10, 'coef':1}
         train_par = {'train_steps':500, 'atk_steps':1, 'def_steps':2, 'horizon':2., 'dt': 0.05, 'lr':.001}
-        test_par = {'test_steps':300, 'dt':0.05}
+        test_par = {'test_steps':200, 'dt':0.05}
 
     else:
         raise NotImplementedError

@@ -4,7 +4,7 @@ from model.electric_motor import ElMotor, ElMotor_torch
 from utils.diffquantitative import DiffQuantitativeSemantic
 
 K=10
-ALPHA=0.9
+ALPHA=0.95
 USE_TORCH_EFF_MAP=True
 
 # torch.autograd.set_detect_anomaly(True)
