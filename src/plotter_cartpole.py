@@ -52,13 +52,15 @@ def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, po
     fig, ax = plt.subplots(1, 2, figsize=(6.5, 3))
     fig.tight_layout(pad=4.0)
 
-    print(cart_pos_array, "\n", pole_ang_array, "\n", cart_vel_array, "\n", pole_ang_vel_array)
+    cmap = plt.cm.get_cmap('Spectral')
+    vmin = min(robustness_array)
+    vmax = max(robustness_array)
+    # print(cart_pos_array, "\n", pole_ang_array, "\n", cart_vel_array, "\n", pole_ang_vel_array)
 
-    customnorm = mcolors.TwoSlopeNorm(0)
-    im = ax[0].scatter(cart_pos_array, cart_vel_array, c=robustness_array, cmap='BrBG', norm=customnorm, s=8)
+    im = ax[0].scatter(cart_pos_array, cart_vel_array, c=robustness_array, cmap=cmap, vmin=vmin, vmax=vmax, s=8)
     ax[0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
 
-    im = ax[1].scatter(pole_ang_array, pole_ang_vel_array, c=robustness_array, cmap='BrBG', norm=customnorm, s=8)
+    im = ax[1].scatter(pole_ang_array, pole_ang_vel_array, c=robustness_array, cmap=cmap, vmin=vmin, vmax=vmax, s=8)
     ax[1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole angular frequency ($rad/s$)')
     
     fig.subplots_adjust(right=0.83)
@@ -70,18 +72,26 @@ def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, po
 
 def plot_evolution(sim_time, sim_x, sim_theta, sim_dot_x, sim_ddot_x, sim_dot_theta, 
          sim_action, filename):
+
+    plt.style.use('seaborn')
+    cmap = plt.cm.get_cmap('Spectral', 512)
+    col = cmap(np.linspace(0, 1, 20))
+    def_col = col[19]
+    safe_col = col[0]
+    lw=1
+
     fig, ax = plt.subplots(3, 1, figsize=(6, 6), sharex=True)
 
-    ax[0].plot(sim_time, sim_ddot_x, label='true acceleration', color='darkblue')
+    ax[0].plot(sim_time, sim_ddot_x, label='true acceleration', color=def_col)
     ax[0].set(ylabel= r'cart acceleration ($ms^{-2}$)')
 
-    ax[1].axhline(-safe_theta, ls='--', color='red', label="safe theta")
-    ax[1].axhline(safe_theta, ls='--', color='red')
-    ax[1].plot(sim_time, sim_theta, label='', color='darkblue')
+    ax[1].axhline(-safe_theta, ls='--', color=safe_col, label="safe theta", lw=lw)
+    ax[1].axhline(safe_theta, ls='--', color=safe_col, lw=lw)
+    ax[1].plot(sim_time, sim_theta, label='', color=def_col)
     ax[1].set(ylabel=r'pole angle ($rad$)')
     ax[1].legend()
 
-    ax[2].plot(sim_time, sim_action, label='', color='darkblue')
+    ax[2].plot(sim_time, sim_action, label='', color=def_col)
     ax[2].set(xlabel=r'time ($s$)', ylabel= r'cart control ($N$)')
 
     fig.tight_layout()

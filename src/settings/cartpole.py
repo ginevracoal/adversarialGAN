@@ -19,17 +19,11 @@ def get_settings(name, mode):
         cart_position = np.random.uniform(-0.1, 0.1, 100)
         cart_velocity = np.random.uniform(-1., 1., 100)
         pole_angle = np.random.uniform(-0.1, 0.1, 100)
-        pole_ang_velocity = np.random.uniforme(-1., 1., 100)
+        pole_ang_velocity = np.random.uniform(-1., 1., 100)
 
     # ARCHITECTURE
 
     if name=="default":
-
-        net_arch = {'hidden':3, 'size':10}
-        train_par = {'train_steps':200, 'horizon':2., 'dt': 0.05, 'lr':.001}
-        test_par = {'test_steps':500, 'dt':0.05}    
-
-    elif name=="penalty":
 
         net_arch = {'hidden':3, 'size':10}
         train_par = {'train_steps':200, 'horizon':2., 'dt': 0.05, 'lr':.001}

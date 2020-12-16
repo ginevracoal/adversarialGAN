@@ -30,7 +30,14 @@ def get_settings(name, mode):
         atk_arch = {'hidden':1, 'size':10, 'coef':1, 'noise':2}
         def_arch = {'hidden':2, 'size':10, 'coef':1}
         train_par = {'train_steps':300, 'atk_steps':1, 'def_steps':2, 'horizon':2., 'dt': 0.05, 'lr':.001}
-        test_par = {'test_steps':100, 'dt':0.05}
+        test_par = {'test_steps':300, 'dt':0.05}
+    
+    elif name=="long":
+
+        atk_arch = {'hidden':1, 'size':10, 'coef':1, 'noise':2}
+        def_arch = {'hidden':2, 'size':10, 'coef':1}
+        train_par = {'train_steps':100, 'atk_steps':1, 'def_steps':2, 'horizon':10., 'dt': 0.05, 'lr':.001}
+        test_par = {'test_steps':300, 'dt':0.05}
 
     else:
         raise NotImplementedError

@@ -7,15 +7,15 @@ def get_settings(name, mode):
     # PARAMS GRID
     
     if mode=="train":
-        agent_position = 0
-        agent_velocity = np.random.uniform(0, 20, 100) 
+        agent_position = np.random.uniform(0, 2, 100) 
         leader_position = np.random.uniform(4, 8, 100)
+        agent_velocity = np.random.uniform(0, 20, 100) 
         leader_velocity = np.random.uniform(0, 20, 100)
 
     elif mode=="test":
-        agent_position = 0
-        agent_velocity = np.random.uniform(0, 5, 100) 
+        agent_position = np.random.uniform(0, 2, 100) 
         leader_position = np.random.uniform(4, 8, 100)
+        agent_velocity = np.random.uniform(0, 5, 100) 
         leader_velocity = np.random.uniform(0, 5, 100)
 
     # ARCHITECTURE

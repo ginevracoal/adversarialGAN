@@ -25,7 +25,7 @@ sims_filename = get_sims_filename(args.repetitions, test_par)
 pg = ParametersHyperparallelepiped(agent_position, agent_velocity, 
                                     leader_position, leader_velocity)
 
-physical_model = Model(pg.sample(sigma=0.05))
+physical_model = Model(pg.sample())
 
 attacker = Attacker(physical_model, *atk_arch.values())
 defender = Defender(physical_model, *def_arch.values())

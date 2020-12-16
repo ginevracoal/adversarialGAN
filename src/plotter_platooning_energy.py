@@ -67,30 +67,41 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
 
 def plot_evolution(sim_time, sim_agent_pos, sim_agent_dist, sim_env_pos, 
     sim_ag_e_torque, sim_ag_br_torque, sim_env_e_torque, sim_env_br_torque, sim_ag_power, filename):
+
+    plt.style.use('seaborn')
+    cmap = plt.cm.get_cmap('Spectral', 512)
+    col = cmap(np.linspace(0, 1, 20))
+    def_col = col[19]
+    cl_col = col[16]
+    def_atk_col = col[3]
+    cl_atk_col = col[5]
+    safe_col = col[0]
+    lw=1
+    
     fig, ax = plt.subplots(5, 1, figsize=(8, 8))
 
-    ax[0].plot(sim_time, sim_agent_pos, label='follower', color='darkblue')
-    ax[0].plot(sim_time, sim_env_pos, label='leader', color='darkorange')
+    ax[0].plot(sim_time, sim_agent_pos, label='follower', color=def_col)
+    ax[0].plot(sim_time, sim_env_pos, label='leader', color=def_atk_col)
     ax[0].set(ylabel=r'car position ($m$)')
     ax[0].legend()
 
-    ax[1].plot(sim_time, sim_agent_dist, color='darkblue')
+    ax[1].plot(sim_time, sim_agent_dist, color=def_col)
     ax[1].set(ylabel=r'distance ($m$)')
-    ax[1].axhline(2, ls='--', label='safe distance', color='red')
-    ax[1].axhline(10, ls='--', color='red')
+    ax[1].axhline(2, ls='--', label='safe distance', color=safe_col, lw=lw)
+    ax[1].axhline(10, ls='--', color='red', lw=lw)
     ax[1].legend()
 
-    ax[2].plot(sim_time, sim_ag_e_torque, label='follower', color='darkblue')
-    ax[2].plot(sim_time, sim_env_e_torque, label='leader', color='darkorange')
+    ax[2].plot(sim_time, sim_ag_e_torque, label='follower', color=def_col)
+    ax[2].plot(sim_time, sim_env_e_torque, label='leader', color=def_atk_col)
     ax[2].set(ylabel=r'e_torque')
     ax[2].legend()
 
-    ax[3].plot(sim_time, sim_ag_br_torque, label='follower', color='darkblue')
-    ax[3].plot(sim_time, sim_env_br_torque, label='leader', color='darkorange')
+    ax[3].plot(sim_time, sim_ag_br_torque, label='follower', color=def_col)
+    ax[3].plot(sim_time, sim_env_br_torque, label='leader', color=def_atk_col)
     ax[3].set(ylabel=r'br_torque')
     ax[3].legend()
 
-    ax[4].plot(sim_time, sim_ag_power, label='leader', color='darkorange')
+    ax[4].plot(sim_time, sim_ag_power, label='follower', color=def_col)
     ax[4].set(xlabel=r'time ($s$)', ylabel=r'e_power')
     ax[4].legend()
 

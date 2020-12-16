@@ -69,9 +69,9 @@ def scatter(sims, filename):
 
     cmap = plt.cm.get_cmap('Spectral')
 
-    robustness_differences = np.abs(sims['atk']['rob']-sims['classic_atk']['rob'])
-    vmin = min([min(sims['atk']['rob']), min(sims['classic_atk']['rob']), min(robustness_differences)])
+    robustness_differences = sims['atk']['rob']-sims['classic_atk']['rob']
     vmax = max([max(sims['atk']['rob']), max(sims['classic_atk']['rob']), max(robustness_differences)])
+    vmin = -vmax #min([min(sims['atk']['rob']), min(sims['classic_atk']['rob']), min(robustness_differences)])
 
     ax[0,0].scatter(sims['atk']['x'], sims['atk']['dot_x'], c=sims['atk']['rob'], 
                         cmap=cmap, vmin=vmin, vmax=vmax, s=scatter_size)
@@ -85,7 +85,7 @@ def scatter(sims, filename):
                         cmap=cmap, vmin=vmin, vmax=vmax, s=scatter_size)
     ax[1,0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
 
-    im = ax[1,1].scatter(sims['classic_atk']['theta'], sims['classic_atk']['dot_theta'], c=sims['classic_atk']['rob'], 
+    ax[1,1].scatter(sims['classic_atk']['theta'], sims['classic_atk']['dot_theta'], c=sims['classic_atk']['rob'], 
                         cmap=cmap, vmin=vmin, vmax=vmax, s=scatter_size)
     ax[1,1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole ang. freq. ($rad/s$)')
 
@@ -93,7 +93,7 @@ def scatter(sims, filename):
                     c=robustness_differences, cmap=cmap, vmin=vmin, vmax=vmax, s=scatter_size)
     ax[2,0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
 
-    ax[2,1].scatter(sims['atk']['theta'], sims['atk']['dot_theta'], 
+    im = ax[2,1].scatter(sims['atk']['theta'], sims['atk']['dot_theta'], 
                     c=robustness_differences, cmap=cmap, vmin=vmin, vmax=vmax, s=scatter_size)
     ax[2,1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole ang. freq. ($rad/s$)')
 
@@ -104,7 +104,7 @@ def scatter(sims, filename):
 
     plt.figtext(0.48, 0.95, 'Defender controller robustness', ha='center', va='center', weight='bold')
     plt.figtext(0.48, 0.64, 'Classic controller robustness', ha='center', va='center', weight='bold')
-    plt.figtext(0.48, 0.32, '|Defender robustness - Classic robustness|', ha='center', va='center', weight='bold')
+    plt.figtext(0.48, 0.32, 'Defender robustness - Classic robustness', ha='center', va='center', weight='bold')
 
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
@@ -129,15 +129,15 @@ def plot_evolution(def_records, cl_records, filename):
     ax[0].set(ylabel=r'cart position ($m$)')
     ax[0].legend()
 
-    ax[1].axhline(-safe_dist, ls='--', color=safe_col, label="safe distance", lw=1)
-    ax[1].axhline(safe_dist, ls='--', color=safe_col, lw=1)
+    ax[1].axhline(-safe_dist, ls='--', color=safe_col, label="safe distance", lw=lw)
+    ax[1].axhline(safe_dist, ls='--', color=safe_col, lw=lw)
     ax[1].plot(def_records['sim_t'], def_records['sim_dist'], color=def_col, label='defender')    
     ax[1].plot(def_records['sim_t'], cl_records['sim_dist'], color=cl_col, label='classic')    
     ax[1].set(ylabel=r'distance from target ($m$)')
     ax[1].legend()
 
-    ax[2].axhline(-safe_theta, ls='--', color=safe_col, label="safe angle", lw=1)
-    ax[2].axhline(safe_theta, ls='--', color=safe_col, lw=1)
+    ax[2].axhline(-safe_theta, ls='--', color=safe_col, label="safe angle", lw=lw)
+    ax[2].axhline(safe_theta, ls='--', color=safe_col, lw=lw)
     ax[2].plot(def_records['sim_t'], def_records['sim_theta'], color=def_col,  label='defender')
     ax[2].plot(cl_records['sim_t'], cl_records['sim_theta'], color=cl_col, label='classic')
     ax[2].set(ylabel=r'pole angle ($rad$)')
@@ -202,8 +202,8 @@ if args.scatter is True:
 
 if args.plot_evolution is True:
 
-    if len(records)>=100:
-        n=71
+    if len(records)>=1000:
+        n=66
     else:
         n = random.randrange(len(records))
 
