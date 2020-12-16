@@ -10,18 +10,18 @@ def get_settings(name, mode):
     # PARAMS GRID
     
     if mode=="train":
-        cart_position = np.random.uniform(0., 0., 1)
-        cart_velocity = np.random.uniform(-1., 1., 100)
-        pole_angle = np.random.uniform(-0., 0., 1)
+        cart_position = np.random.uniform(-1., 1., 100)
+        cart_velocity = np.random.uniform(-2., 2., 100)
+        pole_angle = np.random.uniform(-.1, .1, 100)
         pole_ang_velocity = np.random.uniform(-1., 1., 100)
-        x_target = np.random.uniform(-0.1, 0.1, 100)
+        x_target = np.random.uniform(-.1, .1, 100)
 
     elif mode=="test":
-        cart_position = np.random.uniform(0., 0., 1)
-        cart_velocity = np.random.uniform(-2., 2., 50)
-        pole_angle = np.random.uniform(0., 0., 1)
-        pole_ang_velocity = np.random.uniform(-1., 1., 50)
-        x_target = np.random.uniform(-0.1, 0.1, 50)
+        cart_position = np.random.uniform(-1., 1., 100)
+        cart_velocity = np.random.uniform(-2., 2., 100)
+        pole_angle = np.random.uniform(-.1, .1, 100)
+        pole_ang_velocity = np.random.uniform(-1., 1., 100)
+        x_target = np.random.uniform(-.1, .1, 100)
 
     # ARCHITECTURE
 
