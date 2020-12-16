@@ -55,10 +55,10 @@ def scatter(robustness_array, cart_pos_array, pole_ang_array, cart_vel_array, po
     print(cart_pos_array, "\n", pole_ang_array, "\n", cart_vel_array, "\n", pole_ang_vel_array)
 
     customnorm = mcolors.TwoSlopeNorm(0)
-    im = ax[0].scatter(cart_pos_array, cart_vel_array, c=robustness_array, cmap='BrBG', norm=customnorm, s=10)
+    im = ax[0].scatter(cart_pos_array, cart_vel_array, c=robustness_array, cmap='BrBG', norm=customnorm, s=8)
     ax[0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
 
-    im = ax[1].scatter(pole_ang_array, pole_ang_vel_array, c=robustness_array, cmap='BrBG', norm=customnorm, s=10)
+    im = ax[1].scatter(pole_ang_array, pole_ang_vel_array, c=robustness_array, cmap='BrBG', norm=customnorm, s=8)
     ax[1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole angular frequency ($rad/s$)')
     
     fig.subplots_adjust(right=0.83)

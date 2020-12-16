@@ -54,7 +54,7 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
     fig, ax = plt.subplots(figsize=(5, 4))
 
     customnorm = mcolors.TwoSlopeNorm(0)
-    im = ax.scatter(delta_vel_array, delta_pos_array, c=robustness_array, cmap='BrBG', norm=customnorm, s=10)
+    im = ax.scatter(delta_vel_array, delta_pos_array, c=robustness_array, cmap='BrBG', norm=customnorm, s=8)
     ax.set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
 
     fig.subplots_adjust(right=0.83)
