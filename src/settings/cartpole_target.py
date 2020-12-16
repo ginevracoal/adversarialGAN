@@ -17,11 +17,11 @@ def get_settings(name, mode):
         x_target = np.random.uniform(-.1, .1, 100)
 
     elif mode=="test":
-        cart_position = np.random.uniform(-1., 1., 100)
-        cart_velocity = np.random.uniform(-2., 2., 100)
-        pole_angle = np.random.uniform(-.1, .1, 100)
-        pole_ang_velocity = np.random.uniform(-1., 1., 100)
-        x_target = np.random.uniform(-.1, .1, 100)
+        cart_position = np.random.uniform(-1., 1., 150)
+        cart_velocity = np.random.uniform(-2., 2., 150)
+        pole_angle = np.random.uniform(-.1, .1, 150)
+        pole_ang_velocity = np.random.uniform(-1., 1., 150)
+        x_target = np.random.uniform(-.1, .1, 150)
 
     # ARCHITECTURE
 
@@ -29,14 +29,7 @@ def get_settings(name, mode):
 
         atk_arch = {'hidden':1, 'size':10, 'coef':1, 'noise':2}
         def_arch = {'hidden':2, 'size':10, 'coef':1}
-        train_par = {'train_steps':300, 'atk_steps':1, 'def_steps':2, 'horizon':2., 'dt': 0.05, 'lr':.001}
-        test_par = {'test_steps':300, 'dt':0.05}
-    
-    elif name=="long":
-
-        atk_arch = {'hidden':1, 'size':10, 'coef':1, 'noise':2}
-        def_arch = {'hidden':2, 'size':10, 'coef':1}
-        train_par = {'train_steps':100, 'atk_steps':1, 'def_steps':2, 'horizon':10., 'dt': 0.05, 'lr':.001}
+        train_par = {'train_steps':500, 'atk_steps':1, 'def_steps':2, 'horizon':2., 'dt': 0.05, 'lr':.001}
         test_par = {'test_steps':300, 'dt':0.05}
 
     else:

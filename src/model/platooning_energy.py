@@ -5,7 +5,7 @@ from utils.diffquantitative import DiffQuantitativeSemantic
 
 K=10
 ALPHA=0.9
-USE_TORCH_EFF_MAP=False
+USE_TORCH_EFF_MAP=True
 
 # torch.autograd.set_detect_anomaly(True)
 
@@ -28,7 +28,7 @@ class Car():
         if USE_TORCH_EFF_MAP:
             self.e_motor = ElMotor_torch(device = self.device, net_name = 'Net_10_15_15_5')
         else:
-            self.e_motor = ElMotor()
+            self.e_motor = ElMotor() 
 
         self._max_acceleration = 5.0   #m/s^2
         self._min_acceleration = -self._max_acceleration
@@ -56,7 +56,7 @@ class Car():
     def calculate_wheels_torque(self, e_torque, br_torque):
         e_torque = torch.clamp(e_torque*self.max_e_tq, self.min_e_tq, self.max_e_tq)
         br_torque = -torch.clamp(br_torque*self.max_br_tq, 0, self.max_br_tq)
-        return e_torque, e_torque*self.gear_ratio + br_torque
+        return e_torque, br_torque, e_torque*self.gear_ratio + br_torque
 
     def resistance_force(self, current_velocity):
         F_loss = 0.5*self.rho*self.veh_surface*self.aer_coeff*(current_velocity**2) + \
@@ -66,12 +66,12 @@ class Car():
     def update(self, dt, norm_e_torque, norm_br_torque):#, compute_power=False):
         """ Differential equations for updating the state of the car
         """
-        e_torque, in_wheels_torque = self.calculate_wheels_torque(norm_e_torque, norm_br_torque)
+        e_torque, _, in_wheels_torque = self.calculate_wheels_torque(norm_e_torque, norm_br_torque)
 
         resistance_force = self.resistance_force(self.velocity)
         acceleration = (in_wheels_torque/self.wheel_radius - resistance_force) / self.mass
         acceleration = torch.clamp(acceleration, self._min_acceleration, self._max_acceleration)
-        velocity = torch.clamp(self.velocity + self.acceleration * dt, 0, self._max_velocity)
+        velocity = torch.clamp(self.velocity + acceleration * dt, 0, self._max_velocity)
         position = self.position + velocity * dt
         
         # if compute_power:
@@ -222,7 +222,7 @@ class Model:
         self.agent.update(agent_input, dt)
 
         self.traces['dist'].append(self.agent.distance)
-        self.traces['power'].append(self.agent.e_power)
+        self.traces['power'].append(self.agent.timestep_power)
 
     def initialize_random(self):
         """ Sample a random initial state """

@@ -28,7 +28,7 @@ agent_position, agent_velocity, leader_position, leader_velocity, \
 safe_dist1 = 2
 safe_dist2 = 10
 safe_power = 10
-alpha = 0.8
+alpha = 0.9
 
 relpath = get_relpath(main_dir="platooning_energy_"+args.architecture, train_params=train_par)
 sims_filename = get_sims_filename(args.repetitions, test_par)
@@ -51,10 +51,14 @@ def hist(time, atk, filename):
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
 def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
+
     fig, ax = plt.subplots(figsize=(5, 4))
 
-    customnorm = mcolors.TwoSlopeNorm(0)
-    im = ax.scatter(delta_vel_array, delta_pos_array, c=robustness_array, cmap='BrBG', norm=customnorm, s=8)
+    cmap = plt.cm.get_cmap('Spectral')
+    vmin = min(robustness_array)
+    vmax = max(robustness_array)
+
+    im = ax.scatter(delta_vel_array, delta_pos_array, c=robustness_array, cmap=cmap, vmin=vmin, vmax=vmax, s=8)
     ax.set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
 
     fig.subplots_adjust(right=0.83)

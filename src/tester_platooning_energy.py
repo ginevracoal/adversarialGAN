@@ -72,18 +72,18 @@ def run(mode=None):
             def_policy = defender(oa)
 
         physical_model.step(atk_policy, def_policy, dt)
-        physical_model.agent._car.calculate_wheels_torque(*def_policy)
-        physical_model.environment._leader_car.calculate_wheels_torque(*atk_policy)
+        ag_e_torque, ag_br_torque, _ = physical_model.agent._car.calculate_wheels_torque(*def_policy)
+        env_e_torque, env_br_torque, _ = physical_model.environment._leader_car.calculate_wheels_torque(*atk_policy)
 
         sim_t.append(t)
         sim_ag_pos.append(physical_model.agent.position)
         sim_env_pos.append(physical_model.environment.l_position)
         sim_ag_dist.append(physical_model.agent.distance)
         sim_ag_power.append(physical_model.agent.e_power)
-        sim_ag_e_torque.append(physical_model.agent._car.e_torque)
-        sim_ag_br_torque.append(physical_model.agent._car.br_torque)
-        sim_env_e_torque.append(physical_model.environment._leader_car.e_torque)
-        sim_env_br_torque.append(physical_model.environment._leader_car.br_torque)
+        sim_ag_e_torque.append(ag_e_torque)
+        sim_ag_br_torque.append(ag_br_torque)
+        sim_env_e_torque.append(env_e_torque)
+        sim_env_br_torque.append(env_br_torque)
 
         t += dt
         

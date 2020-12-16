@@ -46,6 +46,7 @@ class Trainer(architecture.default.Trainer):
             z = torch.rand(self.attacker.noise_size)
             oe = torch.tensor(self.model.environment.status)
             oa = torch.tensor(self.model.agent.status)
+            x_target = oe[3]
 
             atk_policy = self.attacker(torch.cat((z, oe)))
 
@@ -63,7 +64,7 @@ class Trainer(architecture.default.Trainer):
                 z = torch.rand(self.attacker.noise_size)
                 oe = torch.tensor(self.model.environment.status)
                 oa = torch.tensor(self.model.agent.status)
-                env_target = oe[3]
+                x_target = oe[3]
                 
                 atk_policy = self.attacker(torch.cat((z, oe)))
 
@@ -76,7 +77,7 @@ class Trainer(architecture.default.Trainer):
                 rho = self.robustness_computer.compute(self.model)
                 cumloss += self.attacker_loss_fn(rho) 
 
-                if torch.abs(env_target) >= MAX_TARGET_POS:
+                if torch.abs(x_target) >= MAX_TARGET_POS:
                     cumloss += PENALTY
 
         cumloss.backward()
@@ -96,7 +97,7 @@ class Trainer(architecture.default.Trainer):
             z = torch.rand(self.attacker.noise_size)
             oe = torch.tensor(self.model.environment.status)
             oa = torch.tensor(self.model.agent.status)
-            ag_target = oe[3]
+            x_target = oa[3]
 
             with torch.no_grad():
                 atk_policy = self.attacker(torch.cat((z, oe)))
@@ -115,7 +116,7 @@ class Trainer(architecture.default.Trainer):
                 z = torch.rand(self.attacker.noise_size)
                 oe = torch.tensor(self.model.environment.status)
                 oa = torch.tensor(self.model.agent.status)
-                ag_target = oe[3]
+                x_target = oa[3]
 
                 with torch.no_grad():
                     atk_policy = self.attacker(torch.cat((z, oe)))
@@ -129,7 +130,7 @@ class Trainer(architecture.default.Trainer):
 
                 cumloss += self.defender_loss_fn(rho)
 
-                if torch.abs(ag_target) >= MAX_TARGET_POS:
+                if torch.abs(x_target) >= MAX_TARGET_POS:
                     cumloss += PENALTY
 
         cumloss.backward()

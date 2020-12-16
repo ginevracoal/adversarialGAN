@@ -128,16 +128,8 @@ class Environment:
         self._cartpole.dist = value
 
     @property
-    def x_target(self):
-        return self._cartpole.x_target.clone()
-
-    @x_target.setter
-    def x_target(self, value):
-        self._cartpole.x_target = value
-
-    @property
     def status(self):
-        return (self._agent.x, self._agent.theta, self._cartpole.dist, self._cartpole.x_target)
+        return (self._agent.x, self._agent.theta, self._cartpole.dist, self.x_target)
 
 
 class Agent:

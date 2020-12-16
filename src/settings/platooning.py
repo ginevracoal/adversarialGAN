@@ -13,10 +13,10 @@ def get_settings(name, mode):
         leader_velocity = np.random.uniform(0, 20, 100)
 
     elif mode=="test":
-        agent_position = np.random.uniform(0, 2, 100) 
-        leader_position = np.random.uniform(4, 8, 100)
-        agent_velocity = np.random.uniform(0, 5, 100) 
-        leader_velocity = np.random.uniform(0, 5, 100)
+        agent_position = np.random.uniform(0, 2, 150) 
+        leader_position = np.random.uniform(4, 8, 150)
+        agent_velocity = np.random.uniform(0, 5, 150) 
+        leader_velocity = np.random.uniform(0, 5, 150)
 
     # ARCHITECTURE
 
