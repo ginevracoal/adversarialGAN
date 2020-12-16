@@ -8,15 +8,15 @@ def get_settings(name, mode):
     
     if mode=="train":
         agent_position = 0
-        agent_velocity = np.linspace(0, 20, 50) 
-        leader_position = np.linspace(4, 8, 50)
-        leader_velocity = np.linspace(0, 20, 50)
+        agent_velocity = np.random.uniform(0, 20, 50) 
+        leader_position = np.random.uniform(4, 8, 50)
+        leader_velocity = np.random.uniform(0, 20, 50)
 
     elif mode=="test":
         agent_position = 0
-        agent_velocity = np.linspace(0, 5, 50) 
-        leader_position = np.linspace(4, 8, 20)
-        leader_velocity = np.linspace(0, 5, 50)
+        agent_velocity = np.random.uniform(0, 5, 50) 
+        leader_position = np.random.uniform(4, 8, 20)
+        leader_velocity = np.random.uniform(0, 5, 50)
 
     # ARCHITECTURE
 

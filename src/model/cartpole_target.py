@@ -30,6 +30,7 @@ class CartPole():
         self._max_dot_theta = 10
         self._max_dot_eps=5.
         self._max_mu=1.
+        self._max_action=30
 
     def update(self, dt, action, mu, dot_eps):    
 
@@ -38,7 +39,7 @@ class CartPole():
         mc = self.mcart
         l = self.lpole/2
             
-        f = action
+        f = torch.clamp(action, -self._max_action, self._max_action)
 
         # update_mu = np.random.binomial(n=1, p=0.1)
         mu = torch.clamp(mu, 0., self._max_mu) #if update_mu==1 else None
@@ -127,8 +128,16 @@ class Environment:
         self._cartpole.dist = value
 
     @property
+    def x_target(self):
+        return self._cartpole.x_target.clone()
+
+    @x_target.setter
+    def x_target(self, value):
+        self._cartpole.x_target = value
+
+    @property
     def status(self):
-        return (self._agent.x, self._agent.theta, self._cartpole.dist)
+        return (self._agent.x, self._agent.theta, self._cartpole.dist, self._cartpole.x_target)
 
 
 class Agent:
@@ -246,6 +255,7 @@ class RobustnessComputer:
         self.dqs_dist = DiffQuantitativeSemantic(formula_dist)
 
     def compute(self, model):
+        """ Computes robustness for the given trace """
         theta = model.traces['theta'][-K:]
         dist = model.traces['dist'][-K:]
         rob_theta = self.dqs_theta.compute(theta=torch.cat(theta))

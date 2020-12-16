@@ -17,7 +17,7 @@ relpath = get_relpath(main_dir="cartpole_target_"+args.architecture, train_param
 
 pg = ParametersHyperparallelepiped(cart_position, cart_velocity, pole_angle, 
                                         pole_ang_velocity, x_target)
-physical_model = Model(pg.sample(sigma=0.05))
+physical_model = Model(pg.sample())
 robustness_computer = RobustnessComputer(robustness_theta, robustness_dist)
 
 attacker = Attacker(physical_model, *atk_arch.values())

@@ -55,9 +55,10 @@ class ParametersHyperparallelepiped:
     def __init__(self, *ranges):
         self._ranges = ranges
 
-    def sample(self, mu=0, sigma=1.):
+    def sample(self):
         np.random.seed(0)
         random.seed(0)
         while True:
-            yield [np.random.choice(r) + np.random.normal(mu, sigma)
-                    if isinstance(r, np.ndarray) else float(r) for r in self._ranges]
+            # yield [np.random.choice(r) + np.random.normal(mu, sigma)
+            #         if isinstance(r, np.ndarray) else float(r) for r in self._ranges]
+            yield [np.random.choice(r) if isinstance(r, np.ndarray) else float(r) for r in self._ranges]

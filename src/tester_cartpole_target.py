@@ -26,8 +26,8 @@ sims_filename = get_sims_filename(args.repetitions, test_par)
 pg = ParametersHyperparallelepiped(cart_position, cart_velocity, 
                                         pole_angle, pole_ang_velocity, x_target)
 
-model = Model(pg.sample(sigma=0.05))
-model_classic = Model_classic(pg.sample(sigma=0.05))
+model = Model(pg.sample())
+model_classic = Model_classic(pg.sample())
 
 attacker = Attacker(model, *atk_arch.values())
 defender = Defender(model, *def_arch.values())

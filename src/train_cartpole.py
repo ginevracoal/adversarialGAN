@@ -20,7 +20,7 @@ relpath = get_relpath(main_dir="cartpole_"+args.architecture, train_params=train
 net_filename = get_net_filename(arch["hidden"], arch["size"])
 
 pg = ParametersHyperparallelepiped(cart_position, cart_velocity, pole_angle, pole_ang_velocity)
-physical_model = Model(pg.sample(sigma=0.05))
+physical_model = Model(pg.sample())
 robustness_computer = RobustnessComputer(robustness_formula)
 
 policynetwork = PolicyNetwork(physical_model, *arch.values())

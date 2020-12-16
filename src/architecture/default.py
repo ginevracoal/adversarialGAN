@@ -120,7 +120,7 @@ class Trainer:
             with torch.no_grad():
                 def_policy = self.defender(oa)
 
-        cumloss = 0
+        cumloss = 0.
 
         if PENALTY:
             previous_def_policy = torch.zeros_like(self.defender(torch.tensor(self.model.agent.status)))
@@ -172,7 +172,8 @@ class Trainer:
 
             def_policy = self.defender(oa)
 
-        cumloss = 0
+        cumloss = 0.
+        
         if PENALTY:
             previous_def_policy = torch.zeros_like(self.defender(torch.tensor(self.model.agent.status)))
 
@@ -202,6 +203,11 @@ class Trainer:
                 cumloss += self.defender_loss_fn(rho)
 
         cumloss.backward()
+        
+        ################
+        ## DEBUG HERE ##
+        ################
+
         self.defender_optimizer.step()  
 
         if DEBUG:

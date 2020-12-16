@@ -19,7 +19,7 @@ agent_position, agent_velocity, leader_position, leader_velocity, \
 pg = ParametersHyperparallelepiped(agent_position, agent_velocity, 
                                     leader_position, leader_velocity)
 
-physical_model = Model(pg.sample(sigma=0.05))
+physical_model = Model(pg.sample())
 robustness_computer = RobustnessComputer(robustness_formula)
 
 relpath = get_relpath(main_dir="platooning_"+args.architecture, train_params=train_par)

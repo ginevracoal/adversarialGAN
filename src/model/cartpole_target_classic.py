@@ -13,7 +13,7 @@ class CartPole_classic(CartPole):
         self.d2 = 0.0
         
         # force max
-        self.force_max = 3*(self.mpole + self.mcart)
+        self.force_max = 30 #3*(self.mpole + self.mcart)
         #self.input_dynamics = False
         #self.force_dynamics = DiscreteLowPassFilter()
         
