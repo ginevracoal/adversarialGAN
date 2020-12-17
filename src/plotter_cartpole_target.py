@@ -69,8 +69,9 @@ def scatter(sims, filename):
 
     cmap = plt.cm.get_cmap('Spectral')
 
-    vmax = max([max(sims['atk']['rob']), max(sims['classic_atk']['rob'])])
-    vmin = -vmax #min([min(sims['atk']['rob']), min(sims['classic_atk']['rob']), min(robustness_differences)])
+    vmax = max([max(abs(sims['atk']['rob'])), max(abs(sims['classic_atk']['rob']))])
+    # vmin = min([min(sims['atk']['rob']), min(sims['classic_atk']['rob'])])
+    vmin = -vmax
 
     ax[0,0].scatter(sims['atk']['x'], sims['atk']['dot_x'], c=sims['atk']['rob'], 
                         cmap=cmap, vmin=vmin, vmax=vmax, s=scatter_size)
@@ -220,7 +221,7 @@ if args.scatter is True:
 if args.plot_evolution is True:
 
     if len(records)>=1000:
-        n=778
+        n=182
     else:
         n = random.randrange(len(records))
 
