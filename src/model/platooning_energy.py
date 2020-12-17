@@ -48,6 +48,9 @@ class Car():
             eff = self.e_motor.getEfficiency(e_motor_speed, e_torque.unsqueeze(0))
         else:
             eff = self.e_motor.getEfficiency(e_motor_speed, e_torque)
+            
+        if not torch.is_tensor(eff):
+            eff = torch.tensor(eff)
 
         return eff
     
@@ -78,7 +81,21 @@ class Car():
             e_motor_speed = (velocity*self.gear_ratio/self.wheel_radius)
         
             eff = self.motor_efficiency(e_motor_speed, e_torque)
+            
+            reduction_count = 0
+            if torch.isnan(eff):
+                while torch.isnan(eff):
+                    e_torque = 0.9* e_torque
+                    eff = self.motor_efficiency(e_motor_speed, e_torque)
+                    reduction_count +=1
+                    if reduction_count > 5:
+                        raise('Eff calculation issue')
+                #print(reduction_count)
+
+            if not torch.is_tensor(eff):
+                eff = torch.tensor(eff)
             effective_efficiency = eff**(-torch.sign(e_torque))
+            
             e_power = e_motor_speed*e_torque*effective_efficiency
 
             self.timestep_power = torch.abs(e_power-self.e_power)
