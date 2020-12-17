@@ -3,7 +3,7 @@ import numpy as np
 def get_settings(name, mode):
 
     robustness_dist = 'G(dist <= 10 & dist >= 2)'
-    robustness_power = 'G(power <= 1000 & power >= 1000)'
+    robustness_power = 'G(power <= 100)'
 
     # PARAMS GRID
     

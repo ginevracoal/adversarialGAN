@@ -67,8 +67,15 @@ def run(random_init, mode=None, classic_control=False):
             oe = torch.tensor(physical_model.environment.status)
             z = torch.rand(attacker.noise_size)
 
-            atk_policy = attacker(torch.cat((z, oe)))
-            def_policy = defender(oa)
+            if mode == 0:
+                atk_policy = (torch.tensor(0.0), torch.tensor(0.0))
+            else:
+                atk_policy = attacker(torch.cat((z, oe)))
+
+            if classic_control is True:
+                def_policy = physical_model.agent._car.get_controller_input(dt, physical_model.agent.distance)
+            else:
+                def_policy = defender(oa)             
 
         physical_model.step(atk_policy, def_policy, dt)
         ag_e_torque, ag_br_torque, _ = physical_model.agent._car.calculate_wheels_torque(*def_policy)
@@ -101,6 +108,10 @@ def run(random_init, mode=None, classic_control=False):
 records = []
 for i in tqdm(range(args.repetitions)):
     sim = {}
+
+    random_init = next(model._param_generator)
+    sim['const'] = run(random_init, mode=0)
+    sim['classic_const'] = run(random_init, mode=0, classic_control=True)
 
     random_init = next(model._param_generator)
     sim['atk'] = run(random_init)

@@ -210,9 +210,9 @@ if args.plot_evolution:
     
     # n=93
     print(n)
-    for case in ['atk']:
-        print(case, records[n][case]['init'])
-        plot_evolution(records[n][mode], records[n]["classic_"+mode], 'platooning_energy_evolution_'+case+'.png')
+    for mode in ['const','atk']:
+        print(mode, records[n][mode]['init'])
+        plot_evolution(records[n][mode], records[n]["classic_"+mode], 'platooning_energy_evolution_'+mode+'.png')
 
 if args.hist:
     size = len(records)

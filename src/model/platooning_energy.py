@@ -28,7 +28,7 @@ class Car():
         else:
             self.e_motor = ElMotor() 
 
-        self._max_acceleration = 5.0 
+        self._max_acceleration = 10.0 
         self._min_acceleration = -self._max_acceleration
         self._max_velocity =  0.95 * self.e_motor.max_speed / self.gear_ratio * self.wheel_radius
         self._min_velocity = 0.0
@@ -55,8 +55,6 @@ class Car():
         return eff
     
     def calculate_wheels_torque(self, e_torque, br_torque):
-        # e_torque = torch.clamp(e_torque*self.max_e_tq, self.min_e_tq, self.max_e_tq)
-        # br_torque = -torch.clamp(br_torque*self.max_br_tq, 0, self.max_br_tq)
         br_torque = - br_torque*self.max_br_tq
         e_torque = e_torque*self.max_e_tq
         return e_torque, br_torque, e_torque*self.gear_ratio + br_torque
@@ -274,4 +272,4 @@ class RobustnessComputer:
         rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))
         rob_power = self.dqs_power.compute(power=torch.cat(power))
 
-        return ALPHA*rob_dist+(1-ALPHA)*rob_power
+        return rob_dist#ALPHA*rob_dist+(1-ALPHA)*rob_power
