@@ -27,8 +27,8 @@ agent_position, agent_velocity, leader_position, leader_velocity, \
 
 safe_dist1 = 2
 safe_dist2 = 10
-safe_power = 10
-alpha = 0.8
+safe_power = 1000
+alpha = 0.98
 
 relpath = get_relpath(main_dir="platooning_energy_"+args.architecture, train_params=train_par)
 sims_filename = get_sims_filename(args.repetitions, test_par)
@@ -50,26 +50,55 @@ def hist(time, atk, filename):
     fig.tight_layout()
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
-def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
-
-    fig, ax = plt.subplots(figsize=(5, 4))
+def scatter(robustness_array, delta_pos_array, delta_vel_array, 
+            cl_robustness_array, cl_delta_pos_array, cl_delta_vel_array, filename):
 
     cmap = plt.cm.get_cmap('Spectral')
-    vmin = min(robustness_array)
-    vmax = max(robustness_array)
 
-    im = ax.scatter(delta_vel_array, delta_pos_array, c=robustness_array, cmap=cmap, vmin=vmin, vmax=vmax, s=8)
+    fig, ax = plt.subplots(1, 2, figsize=(8, 4))
+    fig.tight_layout(pad=3.0)
+
+    vmax = max( max(abs(robustness_array)), max(abs(cl_robustness_array)) )
+    vmin = -vmax
+
+    ax[0].scatter(cl_delta_vel_array, cl_delta_pos_array, c=cl_robustness_array, 
+                    cmap=cmap, vmin=vmin, vmax=vmax, s=8)
+    ax[0].set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
+    ax[0].set_title('Classic follower', weight='bold')
+    
+    im = ax[1].scatter(delta_vel_array, delta_pos_array, c=robustness_array, cmap=cmap, vmin=vmin, vmax=vmax, s=8)
+    ax[1].set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
+    ax[1].set_title('Defender follower', weight='bold')
+
+    fig.subplots_adjust(right=0.83)
+    cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
+    cbar = fig.colorbar(im, ax=ax.ravel().tolist(), cax=cbar_ax)
+    cbar_ax.set_ylabel('robustness', rotation=90, labelpad=-60)
+
+    fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
+
+    ## robustness differences
+
+    fig, ax = plt.subplots(figsize=(5, 4))
+    fig.tight_layout(pad=3.0)
+
+    robustness_differences = robustness_array - cl_robustness_array
+    vmax = max(robustness_differences)
+    vmin = -vmax
+
+    ax.scatter(delta_vel_array, delta_pos_array, c=robustness_differences, 
+                    cmap=cmap, vmin=vmin, vmax=vmax, s=8)
     ax.set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
 
     fig.subplots_adjust(right=0.83)
     cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
-    cbar = fig.colorbar(im, cax=cbar_ax)
-    cbar_ax.set_ylabel('robustness', rotation=90, labelpad=-45)
+    cbar = fig.colorbar(im, ax=ax, cax=cbar_ax)
+    cbar_ax.set_ylabel('Defender rob. - Classic rob.', rotation=90, labelpad=-50)
+    plt.figtext(0.48, 0.95, 'Robustness difference vs initial configuration', ha='center', va='center', weight='bold')
 
-    fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
+    fig.savefig(os.path.join(EXP+relpath, "diff_"+filename), dpi=150)
 
-
-def plot_evolution(def_records, filename):
+def plot_evolution(def_records, cl_records, filename):
 
     plt.style.use('seaborn')
     cmap = plt.cm.get_cmap('Spectral', 512)
@@ -81,32 +110,45 @@ def plot_evolution(def_records, filename):
     safe_col = col[0]
     lw=1
     
-    fig, ax = plt.subplots(5, 1, figsize=(8, 8))
+    fig, ax = plt.subplots(5, 1, figsize=(6, 9))
 
-    ax[0].plot(def_records['sim_t'], def_records['sim_ag_pos'], label='follower', color=def_col)
-    ax[0].plot(def_records['sim_t'], def_records['sim_env_pos'], label='leader', color=def_atk_col)
+    ax[0].plot(cl_records['sim_t'], cl_records['sim_ag_pos'], label='classic follower', color=cl_col)
+    ax[0].plot(cl_records['sim_t'], cl_records['sim_env_pos'], label='classic leader', color=cl_atk_col)
+    ax[0].plot(def_records['sim_t'], def_records['sim_ag_pos'], label='defender follower', color=def_col)
+    ax[0].plot(def_records['sim_t'], def_records['sim_env_pos'], label='defender leader', color=def_atk_col)
     ax[0].set(ylabel=r'car position ($m$)')
-    ax[0].legend()
 
+    ax[1].plot(cl_records['sim_t'], cl_records['sim_ag_dist'], color=cl_col)
     ax[1].plot(def_records['sim_t'], def_records['sim_ag_dist'], color=def_col)
     ax[1].set(ylabel=r'distance ($m$)')
-    ax[1].axhline(2, ls='--', label='safe distance', color=safe_col, lw=lw)
-    ax[1].axhline(10, ls='--', color=safe_col, lw=lw)
-    ax[1].legend()
+    ax[1].axhline(safe_dist1, ls='--', label='safe distance', color=safe_col, lw=lw)
+    ax[1].axhline(safe_dist2, ls='--', color=safe_col, lw=lw)
 
-    ax[2].plot(def_records['sim_t'], def_records['sim_ag_e_torque'], label='follower', color=def_col)
-    ax[2].plot(def_records['sim_t'], def_records['sim_env_e_torque'], label='leader', color=def_atk_col)
-    ax[2].set(ylabel=r'e_torque')
-    ax[2].legend()
+    ax[2].plot(cl_records['sim_t'], cl_records['sim_ag_e_torque'], color=cl_col)
+    ax[2].plot(cl_records['sim_t'], cl_records['sim_env_e_torque'], color=cl_atk_col)
+    ax[2].plot(def_records['sim_t'], def_records['sim_ag_e_torque'], color=def_col)
+    ax[2].plot(def_records['sim_t'], def_records['sim_env_e_torque'], color=def_atk_col)
+    ax[2].set(ylabel=r'e_torque ($N \cdot m$)')
 
-    ax[3].plot(def_records['sim_t'], def_records['sim_ag_br_torque'], label='follower', color=def_col)
-    ax[3].plot(def_records['sim_t'], def_records['sim_env_br_torque'], label='leader', color=def_atk_col)
-    ax[3].set(ylabel=r'br_torque')
-    ax[3].legend()
+    ax[3].plot(cl_records['sim_t'], cl_records['sim_ag_br_torque'], color=cl_col)
+    ax[3].plot(cl_records['sim_t'], cl_records['sim_env_br_torque'], color=cl_atk_col)
+    ax[3].plot(def_records['sim_t'], def_records['sim_ag_br_torque'], color=def_col)
+    ax[3].plot(def_records['sim_t'], def_records['sim_env_br_torque'], color=def_atk_col)
+    ax[3].set(ylabel=r'br_torque ($N \cdot m$)')
 
-    ax[4].plot(def_records['sim_t'], def_records['sim_ag_power'], label='follower', color=def_col)
-    ax[4].set(xlabel=r'time ($s$)', ylabel=r'e_power')
-    ax[4].legend()
+    ax[4].plot(cl_records['sim_t'], cl_records['sim_ag_power'], color=cl_col)
+    ax[4].plot(def_records['sim_t'], def_records['sim_ag_power'], color=def_col)
+    ax[4].set(xlabel=r'time ($s$)', ylabel=r'e_power (W)')
+
+    lines = []
+    labels = []
+
+    for axis in ax:
+        axLine, axLabel = axis.get_legend_handles_labels()
+        lines.extend(axLine)
+        labels.extend(axLabel)
+        
+    fig.legend(lines, labels, loc = 'upper right', framealpha=.9, facecolor='white', frameon=True)
 
     fig.tight_layout()
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
@@ -119,56 +161,66 @@ if args.scatter:
     robustness_array = np.zeros(size)
     delta_pos_array = np.zeros(size)
     delta_vel_array = np.zeros(size)
+    cl_robustness_array = np.zeros(size)
+    cl_delta_pos_array = np.zeros(size)
+    cl_delta_vel_array = np.zeros(size)
 
     for mode in ["atk"]:
 
         for i in range(size):
-            delta_pos = records[i]['atk']['init']['env_pos'] - records[i]['atk']['init']['ag_pos']
-            delta_vel = records[i]['atk']['init']['env_vel'] - records[i]['atk']['init']['ag_vel']
+            delta_pos = records[i][mode]['init']['env_pos'] - records[i][mode]['init']['ag_pos']
+            delta_vel = records[i][mode]['init']['env_vel'] - records[i][mode]['init']['ag_vel']
             trace_dist = torch.tensor(records[i][mode]['sim_ag_dist'])
             trace_power = torch.tensor(records[i][mode]['sim_ag_power'])
-
             rob_dist = robustness_computer.dqs_dist.compute(dist=trace_dist)
-            # rob_power = robustness_computer.dqs_power.compute(power=trace_power)
+            rob_power = robustness_computer.dqs_power.compute(power=trace_power)
             robustness = rob_dist
             # robustness = alpha*rob_dist+(1-alpha)*rob_power
-
             robustness_array[i] = robustness
             delta_pos_array[i] = delta_pos
             delta_vel_array[i] = delta_vel
 
-        scatter(robustness_array, delta_pos_array, delta_vel_array, 'platooning_energy_'+mode+'_scatterplot.png')
+            cl_delta_pos = records[i]['classic_'+mode]['init']['env_pos']-records[i]['classic_'+mode]['init']['ag_pos']
+            cl_delta_vel = records[i]['classic_'+mode]['init']['env_vel']-records[i]['classic_'+mode]['init']['ag_vel']
+            cl_trace_dist = torch.tensor(records[i]['classic_'+mode]['sim_ag_dist'])
+            cl_trace_power = torch.tensor(records[i]['classic_'+mode]['sim_ag_power'])
+            cl_rob_dist = robustness_computer.dqs_dist.compute(dist=cl_trace_dist)
+            cl_rob_power = robustness_computer.dqs_power.compute(power=cl_trace_power)
+            cl_robustness = cl_rob_dist
+            # cl_robustness = alpha*cl_rob_dist+(1-alpha)*cl_rob_power
+            cl_robustness_array[i] = cl_robustness
+            cl_delta_pos_array[i] = cl_delta_pos
+            cl_delta_vel_array[i] = cl_delta_vel
+
+        scatter(robustness_array, delta_pos_array, delta_vel_array, 
+                cl_robustness_array, cl_delta_pos_array, cl_delta_vel_array, 
+                'platooning_energy_'+mode+'_scatterplot.png')
 
 if args.plot_evolution:
 
     if len(records)>=1000:
-        n=551
+        n = random.randrange(len(records))
     else:
         n = random.randrange(len(records))
-        
+    
+    n=79
     print(n)
     for case in ['atk']:
         print(case, records[n][case]['init'])
-        # plot_evolution(records[n][case]['sim_t'], records[n][case]['sim_ag_pos'], 
-        #      records[n][case]['sim_ag_dist'], records[n][case]['sim_env_pos'],
-        #      records[n][case]['sim_ag_e_torque'], records[n][case]['sim_ag_br_torque'], 
-        #      records[n][case]['sim_env_e_torque'], records[n][case]['sim_ag_br_torque'], 
-        #      records[n][case]['sim_ag_power'], 'evolution_'+case+'.png')
-        plot_evolution(records[n][mode], #records[n]["classic_"+mode],
-                       'platooning_energy_evolution_'+case+'.png')
+        plot_evolution(records[n][mode], records[n]["classic_"+mode], 'platooning_energy_evolution_'+case+'.png')
 
 if args.hist:
     size = len(records)
     atk_pct = np.zeros_like(records[0]['atk']['sim_ag_dist'])
 
-    robustness = lambda dist: np.logical_and(dist >= -safe_dist1, dist <= safe_dist2)
-    # robustness = lambda dist,power: alpha*np.logical_and(dist >= -safe_dist1, dist <= safe_dist2)+\
-    #                                 (1-alpha)*(power <= safe_power)
+    # robustness = lambda dist,power: alpha*np.logical_and(dist >= safe_dist1, dist <= safe_dist2)+\
+    #                                 (1-alpha)*np.logical_and(power <= safe_power, power >= safe_power)
+    robustness = lambda dist: np.logical_and(dist >= safe_dist1, dist <= safe_dist2)
 
     for i in range(size):
         dist = records[i]['atk']['sim_ag_dist']
-        # power = records[i]['atk']['sim_ag_power']
-        atk_pct = atk_pct + robustness(dist)
+        power = records[i]['atk']['sim_ag_power']
+        atk_pct = atk_pct + robustness(dist)#, power)
 
     time = records[0]['atk']['sim_t']
     atk_pct = atk_pct / size

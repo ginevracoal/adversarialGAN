@@ -8,6 +8,7 @@ from argparse import ArgumentParser
 
 from utils.misc import *
 from model.platooning_energy import *
+from model.platooning_energy_classic import *
 from settings.platooning_energy import *
 from architecture.platooning_energy import *
 
@@ -25,15 +26,22 @@ sims_filename = get_sims_filename(args.repetitions, test_par)
 pg = ParametersHyperparallelepiped(agent_position, agent_velocity, 
                                     leader_position, leader_velocity)
 
-physical_model = Model(pg.sample())
+model = Model(pg.sample())
+model_classic = Model_classic(pg.sample())
 
-attacker = Attacker(physical_model, *atk_arch.values())
-defender = Defender(physical_model, *def_arch.values())
-
+attacker = Attacker(model, *atk_arch.values())
+defender = Defender(model, *def_arch.values())
 load_models(attacker, defender, EXP+relpath)
 
-def run(mode=None):
-    physical_model.initialize_random()
+def run(random_init, mode=None, classic_control=False):
+    
+    if classic_control is True:
+        physical_model = model_classic
+    else:
+        physical_model = model
+
+    physical_model.reinitialize(*random_init)
+
     conf_init = {
         'ag_pos': physical_model.agent.position,
         'ag_vel': physical_model.agent.velocity,
@@ -59,25 +67,13 @@ def run(mode=None):
             oe = torch.tensor(physical_model.environment.status)
             z = torch.rand(attacker.noise_size)
 
-            if mode == 0:
-                atk_policy = torch.tensor(.5) if i > int(test_par["test_steps"]*1/3) \
-                             and i < int(test_par["test_steps"]*2/3) else torch.tensor(-.5)
-            elif mode == 1:
-                atk_policy = torch.tensor(.5) if i > int(test_par["test_steps"]/2) else torch.tensor(-.5)
-            elif mode == 2:
-                atk_policy = torch.tensor(.5) if i < int(test_par["test_steps"]/2) else torch.tensor(-.5)
-            else:
-                atk_policy = attacker(torch.cat((z, oe)))
+            atk_policy = attacker(torch.cat((z, oe)))
                 
             def_policy = defender(oa)
 
         physical_model.step(atk_policy, def_policy, dt)
         ag_e_torque, ag_br_torque, _ = physical_model.agent._car.calculate_wheels_torque(*def_policy)
         env_e_torque, env_br_torque, _ = physical_model.environment._leader_car.calculate_wheels_torque(*atk_policy)
-
-        # if mode not in [0,1,2]:
-        #     print(def_policy)
-            # print(ag_e_torque, env_e_torque, end="\n\n")
 
         sim_t.append(t)
         sim_ag_pos.append(physical_model.agent.position)
@@ -106,10 +102,11 @@ def run(mode=None):
 records = []
 for i in tqdm(range(args.repetitions)):
     sim = {}
-    # sim['pulse'] = run(0)
-    # sim['step_up'] = run(1)
-    # sim['step_down'] = run(2)
-    sim['atk'] = run()
+
+    random_init = next(model._param_generator)
+    sim['atk'] = run(random_init)
+    # sim['classic_atk'] = run(random_init, classic_control=True)
+
     records.append(sim)
                
 with open(os.path.join(EXP+relpath, sims_filename), 'wb') as f:
