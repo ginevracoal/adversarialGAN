@@ -58,22 +58,27 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array,
     fig, ax = plt.subplots(1, 2, figsize=(8, 4))
     fig.tight_layout(pad=3.0)
 
-    vmax = max( max(abs(robustness_array)), max(abs(cl_robustness_array)) )
+    vmax = max(abs(cl_robustness_array))
     vmin = -vmax
 
-    ax[0].scatter(cl_delta_vel_array, cl_delta_pos_array, c=cl_robustness_array, 
+    im = ax[0].scatter(cl_delta_vel_array, cl_delta_pos_array, c=cl_robustness_array, 
                     cmap=cmap, vmin=vmin, vmax=vmax, s=8)
     ax[0].set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
-    ax[0].set_title('Classic follower', weight='bold')
+    ax[0].set_title('Classic follower robustness', weight='bold', size=10)
+    plt.colorbar(im, ax=ax[0])
     
+    vmax = max(abs(robustness_array))
+    vmin = -vmax
+
     im = ax[1].scatter(delta_vel_array, delta_pos_array, c=robustness_array, cmap=cmap, vmin=vmin, vmax=vmax, s=8)
     ax[1].set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
-    ax[1].set_title('Defender follower', weight='bold')
+    ax[1].set_title('Defender follower robustness', weight='bold', size=10)
+    plt.colorbar(im, ax=ax[1])
 
-    fig.subplots_adjust(right=0.83)
-    cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
-    cbar = fig.colorbar(im, ax=ax.ravel().tolist(), cax=cbar_ax)
-    cbar_ax.set_ylabel('robustness', rotation=90, labelpad=-60)
+    # fig.subplots_adjust(right=0.83)
+    # cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
+    # cbar = fig.colorbar(im, ax=ax.ravel().tolist(), cax=cbar_ax)
+    # cbar_ax.set_ylabel('robustness', rotation=90, labelpad=-60)
 
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
@@ -83,7 +88,7 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array,
     fig.tight_layout(pad=3.0)
 
     robustness_differences = robustness_array - cl_robustness_array
-    vmax = max(robustness_differences)
+    vmax = max(abs(robustness_differences))
     vmin = -vmax
 
     ax.scatter(delta_vel_array, delta_pos_array, c=robustness_differences, 
@@ -93,7 +98,7 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array,
     fig.subplots_adjust(right=0.83)
     cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
     cbar = fig.colorbar(im, ax=ax, cax=cbar_ax)
-    cbar_ax.set_ylabel('Defender rob. - Classic rob.', rotation=90, labelpad=-50)
+    cbar_ax.set_ylabel('Defender rob. - Classic rob.', rotation=90, labelpad=-55)
     plt.figtext(0.48, 0.95, 'Robustness difference vs initial configuration', ha='center', va='center', weight='bold')
 
     fig.savefig(os.path.join(EXP+relpath, "diff_"+filename), dpi=150)
@@ -203,7 +208,7 @@ if args.plot_evolution:
     else:
         n = random.randrange(len(records))
     
-    n=79
+    # n=93
     print(n)
     for case in ['atk']:
         print(case, records[n][case]['init'])

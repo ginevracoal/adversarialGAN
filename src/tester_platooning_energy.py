@@ -68,7 +68,6 @@ def run(random_init, mode=None, classic_control=False):
             z = torch.rand(attacker.noise_size)
 
             atk_policy = attacker(torch.cat((z, oe)))
-                
             def_policy = defender(oa)
 
         physical_model.step(atk_policy, def_policy, dt)
@@ -105,7 +104,7 @@ for i in tqdm(range(args.repetitions)):
 
     random_init = next(model._param_generator)
     sim['atk'] = run(random_init)
-    # sim['classic_atk'] = run(random_init, classic_control=True)
+    sim['classic_atk'] = run(random_init, classic_control=True)
 
     records.append(sim)
                
