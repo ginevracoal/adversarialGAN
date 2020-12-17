@@ -30,7 +30,7 @@ class Car():
 
         self._max_acceleration = 10.0 
         self._min_acceleration = -self._max_acceleration
-        self._max_velocity =  0.95 * self.e_motor.max_speed / self.gear_ratio * self.wheel_radius
+        self._max_velocity = 0.95 * self.e_motor.max_speed / self.gear_ratio * self.wheel_radius
         self._min_velocity = 0.0
         self.max_br_tq = 2000
         self.max_e_tq = torch.max(torch.tensor(self.e_motor.max_torque)).item()
@@ -272,4 +272,4 @@ class RobustnessComputer:
         rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))
         rob_power = self.dqs_power.compute(power=torch.cat(power))
 
-        return rob_dist#ALPHA*rob_dist+(1-ALPHA)*rob_power
+        return ALPHA*rob_dist+(1-ALPHA)*rob_power

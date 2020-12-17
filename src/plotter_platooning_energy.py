@@ -27,7 +27,7 @@ agent_position, agent_velocity, leader_position, leader_velocity, \
 
 safe_dist1 = 2
 safe_dist2 = 10
-safe_power = 1000
+safe_power = 100
 alpha = 0.98
 
 relpath = get_relpath(main_dir="platooning_energy_"+args.architecture, train_params=train_par)
