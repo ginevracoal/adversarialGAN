@@ -24,7 +24,7 @@ class CartPole():
         self.dist = torch.tensor(0.0)
         self.mu = torch.tensor(0.0)
 
-        self._max_x = 50.
+        self._max_x = 30.
         self._max_theta = 1.5
         self._max_dot_x = 10
         self._max_dot_theta = 10

@@ -75,6 +75,10 @@ def run(mode=None):
         ag_e_torque, ag_br_torque, _ = physical_model.agent._car.calculate_wheels_torque(*def_policy)
         env_e_torque, env_br_torque, _ = physical_model.environment._leader_car.calculate_wheels_torque(*atk_policy)
 
+        # if mode not in [0,1,2]:
+        #     print(def_policy)
+            # print(ag_e_torque, env_e_torque, end="\n\n")
+
         sim_t.append(t)
         sim_ag_pos.append(physical_model.agent.position)
         sim_env_pos.append(physical_model.environment.l_position)

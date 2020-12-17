@@ -28,7 +28,7 @@ agent_position, agent_velocity, leader_position, leader_velocity, \
 safe_dist1 = 2
 safe_dist2 = 10
 safe_power = 10
-alpha = 0.95
+alpha = 0.8
 
 relpath = get_relpath(main_dir="platooning_energy_"+args.architecture, train_params=train_par)
 sims_filename = get_sims_filename(args.repetitions, test_par)
@@ -69,8 +69,7 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array, filename):
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
 
-def plot_evolution(sim_time, sim_agent_pos, sim_agent_dist, sim_env_pos, 
-    sim_ag_e_torque, sim_ag_br_torque, sim_env_e_torque, sim_env_br_torque, sim_ag_power, filename):
+def plot_evolution(def_records, filename):
 
     plt.style.use('seaborn')
     cmap = plt.cm.get_cmap('Spectral', 512)
@@ -84,28 +83,28 @@ def plot_evolution(sim_time, sim_agent_pos, sim_agent_dist, sim_env_pos,
     
     fig, ax = plt.subplots(5, 1, figsize=(8, 8))
 
-    ax[0].plot(sim_time, sim_agent_pos, label='follower', color=def_col)
-    ax[0].plot(sim_time, sim_env_pos, label='leader', color=def_atk_col)
+    ax[0].plot(def_records['sim_t'], def_records['sim_ag_pos'], label='follower', color=def_col)
+    ax[0].plot(def_records['sim_t'], def_records['sim_env_pos'], label='leader', color=def_atk_col)
     ax[0].set(ylabel=r'car position ($m$)')
     ax[0].legend()
 
-    ax[1].plot(sim_time, sim_agent_dist, color=def_col)
+    ax[1].plot(def_records['sim_t'], def_records['sim_ag_dist'], color=def_col)
     ax[1].set(ylabel=r'distance ($m$)')
     ax[1].axhline(2, ls='--', label='safe distance', color=safe_col, lw=lw)
-    ax[1].axhline(10, ls='--', color='red', lw=lw)
+    ax[1].axhline(10, ls='--', color=safe_col, lw=lw)
     ax[1].legend()
 
-    ax[2].plot(sim_time, sim_ag_e_torque, label='follower', color=def_col)
-    ax[2].plot(sim_time, sim_env_e_torque, label='leader', color=def_atk_col)
+    ax[2].plot(def_records['sim_t'], def_records['sim_ag_e_torque'], label='follower', color=def_col)
+    ax[2].plot(def_records['sim_t'], def_records['sim_env_e_torque'], label='leader', color=def_atk_col)
     ax[2].set(ylabel=r'e_torque')
     ax[2].legend()
 
-    ax[3].plot(sim_time, sim_ag_br_torque, label='follower', color=def_col)
-    ax[3].plot(sim_time, sim_env_br_torque, label='leader', color=def_atk_col)
+    ax[3].plot(def_records['sim_t'], def_records['sim_ag_br_torque'], label='follower', color=def_col)
+    ax[3].plot(def_records['sim_t'], def_records['sim_env_br_torque'], label='leader', color=def_atk_col)
     ax[3].set(ylabel=r'br_torque')
     ax[3].legend()
 
-    ax[4].plot(sim_time, sim_ag_power, label='follower', color=def_col)
+    ax[4].plot(def_records['sim_t'], def_records['sim_ag_power'], label='follower', color=def_col)
     ax[4].set(xlabel=r'time ($s$)', ylabel=r'e_power')
     ax[4].legend()
 
@@ -138,7 +137,7 @@ if args.scatter:
             delta_pos_array[i] = delta_pos
             delta_vel_array[i] = delta_vel
 
-        scatter(robustness_array, delta_pos_array, delta_vel_array, mode+'_scatterplot.png')
+        scatter(robustness_array, delta_pos_array, delta_vel_array, 'platooning_energy_'+mode+'_scatterplot.png')
 
 if args.plot_evolution:
 
@@ -150,11 +149,13 @@ if args.plot_evolution:
     print(n)
     for case in ['atk']:
         print(case, records[n][case]['init'])
-        plot_evolution(records[n][case]['sim_t'], records[n][case]['sim_ag_pos'], 
-             records[n][case]['sim_ag_dist'], records[n][case]['sim_env_pos'],
-             records[n][case]['sim_ag_e_torque'], records[n][case]['sim_ag_br_torque'], 
-             records[n][case]['sim_env_e_torque'], records[n][case]['sim_ag_br_torque'], 
-             records[n][case]['sim_ag_power'], 'evolution_'+case+'.png')
+        # plot_evolution(records[n][case]['sim_t'], records[n][case]['sim_ag_pos'], 
+        #      records[n][case]['sim_ag_dist'], records[n][case]['sim_env_pos'],
+        #      records[n][case]['sim_ag_e_torque'], records[n][case]['sim_ag_br_torque'], 
+        #      records[n][case]['sim_env_e_torque'], records[n][case]['sim_ag_br_torque'], 
+        #      records[n][case]['sim_ag_power'], 'evolution_'+case+'.png')
+        plot_evolution(records[n][mode], #records[n]["classic_"+mode],
+                       'platooning_energy_evolution_'+case+'.png')
 
 if args.hist:
     size = len(records)
@@ -172,4 +173,4 @@ if args.hist:
     time = records[0]['atk']['sim_t']
     atk_pct = atk_pct / size
 
-    hist(time, atk_pct, 'pct_histogram.png')
+    hist(time, atk_pct, 'platooning_energy_pct_histogram.png')
