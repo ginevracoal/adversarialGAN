@@ -4,7 +4,7 @@ from model.electric_motor import ElMotor, ElMotor_torch
 from utils.diffquantitative import DiffQuantitativeSemantic
 
 K=10
-ALPHA=0.98
+ALPHA=0.6
 USE_TORCH_EFF_MAP=True
 
 
@@ -28,7 +28,7 @@ class Car():
         else:
             self.e_motor = ElMotor() 
 
-        self._max_acceleration = 10.0 
+        self._max_acceleration = 5.0 
         self._min_acceleration = -self._max_acceleration
         self._max_velocity = 0.95 * self.e_motor.max_speed / self.gear_ratio * self.wheel_radius
         self._min_velocity = 0.0
@@ -64,7 +64,36 @@ class Car():
                     self.rr_coeff*self.mass*self.gravity*current_velocity
         return F_loss
 
-    def update(self, dt, norm_e_torque, norm_br_torque, compute_power=False):
+    def compute_power_consumption(self, e_torque):
+    
+        e_motor_speed = self.velocity*self.gear_ratio/self.wheel_radius
+        eff = self.motor_efficiency(e_motor_speed, e_torque)
+        
+        reduction_count = 0
+        if torch.isnan(eff):
+            while torch.isnan(eff):
+                e_torque = 0.9*e_torque
+                eff = self.motor_efficiency(e_motor_speed, e_torque)
+                reduction_count +=1
+                if reduction_count > 5:
+                    raise('Eff calculation issue')
+
+        if not torch.is_tensor(eff):
+            eff = torch.tensor(eff)
+        effective_efficiency = eff**(-torch.sign(e_torque))
+        
+        e_power = e_motor_speed*e_torque*effective_efficiency
+
+        self.timestep_power = torch.abs(e_power-self.e_power)
+        self.e_power = e_power      
+
+        # update min/max e-torque based on new motor speed
+        self.max_e_tq = self.e_motor.getMaxTorque(e_motor_speed)
+        self.min_e_tq = -self.max_e_tq
+
+        return self.timestep_power
+
+    def update(self, dt, norm_e_torque, norm_br_torque, compute_power=True):
         """ Differential equations for updating the state of the car
         """
         e_torque, _, in_wheels_torque = self.calculate_wheels_torque(norm_e_torque, norm_br_torque)
@@ -72,39 +101,12 @@ class Car():
         resistance_force = self.resistance_force(self.velocity)
         acceleration = (in_wheels_torque/self.wheel_radius - resistance_force) / self.mass
         acceleration = torch.clamp(acceleration, self._min_acceleration, self._max_acceleration)
-        velocity = torch.clamp(self.velocity + acceleration * dt, 0, self._max_velocity)
-        position = self.position + velocity * dt
+        self.velocity = torch.clamp(self.velocity + acceleration * dt, self._min_velocity, self._max_velocity)
+        self.position = self.position + self.velocity * dt
         
-        if compute_power:
-            e_motor_speed = (velocity*self.gear_ratio/self.wheel_radius)
-        
-            eff = self.motor_efficiency(e_motor_speed, e_torque)
-            
-            reduction_count = 0
-            if torch.isnan(eff):
-                while torch.isnan(eff):
-                    e_torque = 0.9* e_torque
-                    eff = self.motor_efficiency(e_motor_speed, e_torque)
-                    reduction_count +=1
-                    if reduction_count > 5:
-                        raise('Eff calculation issue')
-                #print(reduction_count)
+        # if compute_power:
+        self.compute_power_consumption(e_torque)
 
-            if not torch.is_tensor(eff):
-                eff = torch.tensor(eff)
-            effective_efficiency = eff**(-torch.sign(e_torque))
-            
-            e_power = e_motor_speed*e_torque*effective_efficiency
-
-            self.timestep_power = torch.abs(e_power-self.e_power)
-            self.e_power = e_power
-
-            # update min/max e-torque based on new motor speed
-            self.max_e_tq = self.e_motor.getMaxTorque(e_motor_speed)
-            self.min_e_tq = -self.max_e_tq
-
-        self.velocity = velocity
-        self.position = position
 
 
 class Environment:
@@ -269,7 +271,7 @@ class RobustnessComputer:
         dist = model.traces['dist'][-K:]
         power = model.traces['power'][-K:]
 
-        rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))
-        rob_power = self.dqs_power.compute(power=torch.cat(power))
+        rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))/max(dist).item()
+        rob_power = self.dqs_power.compute(power=torch.cat(power))/max(power).item()
 
         return ALPHA*rob_dist+(1-ALPHA)*rob_power

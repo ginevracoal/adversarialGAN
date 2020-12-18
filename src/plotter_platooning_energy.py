@@ -58,14 +58,14 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array,
     fig, ax = plt.subplots(1, 2, figsize=(8, 4))
     fig.tight_layout(pad=3.0)
 
-    vmax = max(abs(cl_robustness_array))
+    vmax = max(max(abs(cl_robustness_array)), max(abs(robustness_array)))
     vmin = -vmax
 
     im = ax[0].scatter(cl_delta_vel_array, cl_delta_pos_array, c=cl_robustness_array, 
-                    cmap=cmap, vmin=vmin, vmax=vmax, s=8)
+                         cmap=cmap, vmin=vmin, vmax=vmax, s=8)
     ax[0].set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
     ax[0].set_title('Classic follower robustness', weight='bold', size=10)
-    plt.colorbar(im, ax=ax[0])
+    # plt.colorbar(im, ax=ax[0])
     
     vmax = max(abs(robustness_array))
     vmin = -vmax
@@ -73,12 +73,12 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array,
     im = ax[1].scatter(delta_vel_array, delta_pos_array, c=robustness_array, cmap=cmap, vmin=vmin, vmax=vmax, s=8)
     ax[1].set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
     ax[1].set_title('Defender follower robustness', weight='bold', size=10)
-    plt.colorbar(im, ax=ax[1])
+    # plt.colorbar(im, ax=ax[1])
 
-    # fig.subplots_adjust(right=0.83)
-    # cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
-    # cbar = fig.colorbar(im, ax=ax.ravel().tolist(), cax=cbar_ax)
-    # cbar_ax.set_ylabel('robustness', rotation=90, labelpad=-60)
+    fig.subplots_adjust(right=0.83)
+    cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
+    cbar = fig.colorbar(im, ax=ax.ravel().tolist(), cax=cbar_ax)
+    cbar_ax.set_ylabel('robustness', rotation=90, labelpad=-60)
 
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
@@ -98,7 +98,7 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array,
     fig.subplots_adjust(right=0.83)
     cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
     cbar = fig.colorbar(im, ax=ax, cax=cbar_ax)
-    cbar_ax.set_ylabel('Defender rob. - Classic rob.', rotation=90, labelpad=-55)
+    cbar_ax.set_ylabel('Defender rob. - Classic rob.', rotation=90, labelpad=-45)
     plt.figtext(0.48, 0.95, 'Robustness difference vs initial configuration', ha='center', va='center', weight='bold')
 
     fig.savefig(os.path.join(EXP+relpath, "diff_"+filename), dpi=150)
@@ -117,32 +117,32 @@ def plot_evolution(def_records, cl_records, filename):
     
     fig, ax = plt.subplots(5, 1, figsize=(6, 9))
 
-    ax[0].plot(cl_records['sim_t'], cl_records['sim_ag_pos'], label='classic follower', color=cl_col)
-    ax[0].plot(cl_records['sim_t'], cl_records['sim_env_pos'], label='classic leader', color=cl_atk_col)
     ax[0].plot(def_records['sim_t'], def_records['sim_ag_pos'], label='defender follower', color=def_col)
     ax[0].plot(def_records['sim_t'], def_records['sim_env_pos'], label='defender leader', color=def_atk_col)
+    ax[0].plot(cl_records['sim_t'], cl_records['sim_ag_pos'], label='classic follower', color=cl_col, ls='-.')
+    ax[0].plot(cl_records['sim_t'], cl_records['sim_env_pos'], label='classic leader', color=cl_atk_col, ls='-.')
     ax[0].set(ylabel=r'car position ($m$)')
 
-    ax[1].plot(cl_records['sim_t'], cl_records['sim_ag_dist'], color=cl_col)
     ax[1].plot(def_records['sim_t'], def_records['sim_ag_dist'], color=def_col)
+    ax[1].plot(cl_records['sim_t'], cl_records['sim_ag_dist'], color=cl_col, ls='-.')
     ax[1].set(ylabel=r'distance ($m$)')
     ax[1].axhline(safe_dist1, ls='--', label='safe distance', color=safe_col, lw=lw)
     ax[1].axhline(safe_dist2, ls='--', color=safe_col, lw=lw)
 
-    ax[2].plot(cl_records['sim_t'], cl_records['sim_ag_e_torque'], color=cl_col)
-    ax[2].plot(cl_records['sim_t'], cl_records['sim_env_e_torque'], color=cl_atk_col)
     ax[2].plot(def_records['sim_t'], def_records['sim_ag_e_torque'], color=def_col)
     ax[2].plot(def_records['sim_t'], def_records['sim_env_e_torque'], color=def_atk_col)
+    ax[2].plot(cl_records['sim_t'], cl_records['sim_ag_e_torque'], color=cl_col, ls='-.')
+    ax[2].plot(cl_records['sim_t'], cl_records['sim_env_e_torque'], color=cl_atk_col, ls='-.')
     ax[2].set(ylabel=r'e_torque ($N \cdot m$)')
 
-    ax[3].plot(cl_records['sim_t'], cl_records['sim_ag_br_torque'], color=cl_col)
-    ax[3].plot(cl_records['sim_t'], cl_records['sim_env_br_torque'], color=cl_atk_col)
     ax[3].plot(def_records['sim_t'], def_records['sim_ag_br_torque'], color=def_col)
     ax[3].plot(def_records['sim_t'], def_records['sim_env_br_torque'], color=def_atk_col)
+    ax[3].plot(cl_records['sim_t'], cl_records['sim_ag_br_torque'], color=cl_col, ls='-.')
+    ax[3].plot(cl_records['sim_t'], cl_records['sim_env_br_torque'], color=cl_atk_col, ls='-.')
     ax[3].set(ylabel=r'br_torque ($N \cdot m$)')
 
-    ax[4].plot(cl_records['sim_t'], cl_records['sim_ag_power'], color=cl_col)
     ax[4].plot(def_records['sim_t'], def_records['sim_ag_power'], color=def_col)
+    ax[4].plot(cl_records['sim_t'], cl_records['sim_ag_power'], color=cl_col, ls='-.')
     ax[4].set(xlabel=r'time ($s$)', ylabel=r'e_power (W)')
 
     lines = []
@@ -208,7 +208,7 @@ if args.plot_evolution:
     else:
         n = random.randrange(len(records))
     
-    # n=93
+    # n=65
     print(n)
     for mode in ['const','atk']:
         print(mode, records[n][mode]['init'])
