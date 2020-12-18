@@ -8,6 +8,7 @@ class Environment_signal():
     def __init__(self, test_steps):
         np.random.seed(0)
 
+        self.test_steps = test_steps
         self.x_target = self.eps = self.duration = 0
 
         self.reference_speed_factor = 1. 
@@ -44,6 +45,14 @@ class Environment_signal():
         self.eps = eps_new
 
         return torch.tensor(dot_eps), torch.tensor(self.mu[i])
+
+    def get_signal(self, dt):
+
+        signal = []
+        for i in range(self.test_steps):
+            signal.append(self.get_values(i=i, dt=dt))
+
+        return signal
 
 
 class CartPole_classic(CartPole):

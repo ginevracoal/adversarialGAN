@@ -28,18 +28,19 @@ pg = ParametersHyperparallelepiped(cart_position, cart_velocity,
 
 model = Model(pg.sample())
 model_classic = Model_classic(pg.sample())
-environment_signal = Environment_signal(test_par["test_steps"])
 
 attacker = Attacker(model, *atk_arch.values())
 defender = Defender(model, *def_arch.values())
 load_models(attacker, defender, EXP+relpath)
+
+env_signal_class = Environment_signal(test_par["test_steps"])
+environment_signal = env_signal_class.get_signal(dt=test_par["dt"])
 
 
 def run(random_init, mode=None, classic_control=False):
 
     if classic_control is True:
         physical_model = model_classic
-        environment_signal.x_target = environment_signal.eps = environment_signal.duration = 0 
 
     else:
         physical_model = model
@@ -76,10 +77,10 @@ def run(random_init, mode=None, classic_control=False):
             z = torch.rand(attacker.noise_size)
             
             if mode == 0:
-                env_input = (torch.tensor(0.0), torch.tensor(0.0))
+                env_input = (torch.tensor(1.0), torch.tensor(0.0))
 
             elif mode == 1:
-                env_input = environment_signal.get_values(i=i, dt=dt)
+                env_input = environment_signal[i]
 
             else:
                 env_input = attacker(torch.cat((z, oe)))
@@ -137,8 +138,7 @@ for i in tqdm(range(args.repetitions)):
     sim['pulse'] = run(random_init, 1)
     sim['classic_pulse'] = run(random_init, 1, classic_control=True)
 
-    print(sim['pulse']['sim_x_target'][:5], sim['pulse']['sim_env_mu'][:5])
-    print(sim['classic_pulse']['sim_x_target'][:5], sim['classic_pulse']['sim_env_mu'][:5])
+    print(sim['pulse']['sim_x_target'][:5], "\n", sim['classic_pulse']['sim_x_target'][:5])
 
     random_init = next(model._param_generator)
     sim['atk'] = run(random_init)
