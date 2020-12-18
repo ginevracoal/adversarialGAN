@@ -3,6 +3,49 @@ import numpy as np
 from model.cartpole_target import *
 
 
+class Environment_signal():
+
+    def __init__(self, test_steps):
+        np.random.seed(0)
+
+        self.x_target = self.eps = self.duration = 0
+
+        self.reference_speed_factor = 1. 
+
+        phi= np.random.normal(0.5, 0.5, 4)
+        phi_1 = np.pi/4*(phi[0]-0.5)
+        phi_2 = np.pi/4*(phi[1]-0.5)
+        phi_3 = np.pi/4*(phi[2]-0.5)
+        phi_4 = np.pi/4*(phi[3]-0.5)
+        self.phi = np.array([phi_1, phi_2, phi_3, phi_4])
+
+        self.mu = np.random.normal(0.5, 0.5, test_steps)
+
+    def fun_val(self, t):
+        omega_1 = .3*self.reference_speed_factor
+        omega_2 = .1*self.reference_speed_factor
+        omega_3 = .2*self.reference_speed_factor
+        omega_4 = .4*self.reference_speed_factor
+
+        signal = 2*np.sin(omega_1*t+ self.phi[0]) + 0.5*np.sin(omega_2*t + np.pi/7+ self.phi[1]) + \
+                0.8*np.sin(omega_3*t - np.pi/12+ self.phi[2])+ 1*np.cos(omega_4*t+np.pi/5+ self.phi[3])
+        return signal
+
+    def get_values(self, i, dt):
+
+        alpha = 0.01
+        x_target_new = self.fun_val(self.duration) - self.fun_val(0)*np.exp(-alpha*self.duration)
+
+        self.duration += dt
+        eps_new = (x_target_new - self.x_target)/dt
+        dot_eps = (eps_new - self.eps)/dt
+
+        self.x_target = x_target_new
+        self.eps = eps_new
+
+        return torch.tensor(dot_eps), torch.tensor(self.mu[i])
+
+
 class CartPole_classic(CartPole):
 
     def __init__(self, Q = np.diag([1,1,1,1]), R = 1):
@@ -16,7 +59,6 @@ class CartPole_classic(CartPole):
         self.force_max = 30 #3*(self.mpole + self.mcart)
         #self.input_dynamics = False
         #self.force_dynamics = DiscreteLowPassFilter()
-        
 
         # LQR controller params
         self.ctrl_LQR_max = self.force_max*0.55

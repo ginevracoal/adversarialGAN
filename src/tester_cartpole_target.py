@@ -28,6 +28,7 @@ pg = ParametersHyperparallelepiped(cart_position, cart_velocity,
 
 model = Model(pg.sample())
 model_classic = Model_classic(pg.sample())
+environment_signal = Environment_signal(test_par["test_steps"])
 
 attacker = Attacker(model, *atk_arch.values())
 defender = Defender(model, *def_arch.values())
@@ -38,6 +39,8 @@ def run(random_init, mode=None, classic_control=False):
 
     if classic_control is True:
         physical_model = model_classic
+        environment_signal.x_target = environment_signal.eps = environment_signal.duration = 0 
+
     else:
         physical_model = model
 
@@ -58,13 +61,14 @@ def run(random_init, mode=None, classic_control=False):
     sim_ddot_x = []
     sim_dot_theta = []
     sim_x_target = []
-    sim_attack_mu = []
-    sim_action = []
+    sim_env_mu = []
+    sim_ag_action = []
     sim_dist = []
 
     t = 0
     dt = test_par["dt"]
     for i in range(test_par["test_steps"]):
+
         with torch.no_grad():
 
             oa = torch.tensor(physical_model.agent.status)
@@ -72,27 +76,26 @@ def run(random_init, mode=None, classic_control=False):
             z = torch.rand(attacker.noise_size)
             
             if mode == 0:
-                atk_policy = (torch.tensor(0.0), torch.tensor(0.0))
+                env_input = (torch.tensor(0.0), torch.tensor(0.0))
 
             elif mode == 1:
-                atk_policy = (torch.tensor(0.2), torch.tensor(0.2)) \
-                            if i > test_par["test_steps"]*1/3 and i < test_par["test_steps"]*2/3 \
-                            else (torch.tensor(0.5), torch.tensor(0.5))
+                env_input = environment_signal.get_values(i=i, dt=dt)
+
             else:
-                atk_policy = attacker(torch.cat((z, oe)))
+                env_input = attacker(torch.cat((z, oe)))
 
             if classic_control is True:
                 st = oa.cpu().detach().numpy()
                 physical_model.cartpole.computeControlSignals(st[:4], x_target=st[4])
-                def_policy = torch.tensor(physical_model.cartpole.get_ctrl_signal())
+                agent_input = torch.tensor(physical_model.cartpole.get_ctrl_signal())
 
                 if physical_model.cartpole.is_unstable():
                     break
 
             else:
-                def_policy = defender(oa)
+                agent_input = defender(oa)
 
-        physical_model.step(env_input=atk_policy, agent_input=def_policy, dt=dt)
+        physical_model.step(env_input=env_input, agent_input=agent_input, dt=dt)
 
         sim_t.append(t)
         sim_x.append(physical_model.agent.x.item())
@@ -100,10 +103,10 @@ def run(random_init, mode=None, classic_control=False):
         sim_dot_x.append(physical_model.agent.dot_x.item())
         sim_ddot_x.append(physical_model.agent.ddot_x.item())
         sim_dot_theta.append(physical_model.agent.dot_theta.item())
-        sim_x_target.append(physical_model.agent.x_target.item())
-        sim_dist.append(physical_model.agent.x.item()-physical_model.agent.x_target.item())
-        sim_attack_mu.append(atk_policy[1].item())
-        sim_action.append(def_policy.item())
+        sim_x_target.append(physical_model.environment.x_target.item())
+        sim_dist.append(physical_model.environment.dist.item())
+        sim_env_mu.append(env_input[1].item())
+        sim_ag_action.append(agent_input.item())
 
         t += dt
 
@@ -118,8 +121,8 @@ def run(random_init, mode=None, classic_control=False):
             'sim_dot_theta': np.array(sim_dot_theta),
             'sim_x_target': np.array(sim_x_target),
             'sim_dist': np.array(sim_dist),
-            'sim_attack_mu': np.array(sim_attack_mu),
-            'sim_action': np.array(sim_action),
+            'sim_env_mu': np.array(sim_env_mu),
+            'sim_ag_action': np.array(sim_ag_action),
             }
 
 records = []
@@ -133,6 +136,9 @@ for i in tqdm(range(args.repetitions)):
     random_init = next(model._param_generator)
     sim['pulse'] = run(random_init, 1)
     sim['classic_pulse'] = run(random_init, 1, classic_control=True)
+
+    print(sim['pulse']['sim_x_target'][:5], sim['pulse']['sim_env_mu'][:5])
+    print(sim['classic_pulse']['sim_x_target'][:5], sim['classic_pulse']['sim_env_mu'][:5])
 
     random_init = next(model._param_generator)
     sim['atk'] = run(random_init)

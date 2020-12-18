@@ -48,6 +48,7 @@ class CartPole():
         eps = dot_eps * dt
         x_target = self.x + eps
         self.x_target = torch.clamp(x_target, -self._max_x, self._max_x)
+        self.dist = torch.abs(self.x-self.x_target)
         
         if FRICTION:
             ddot_x = f - mu*self.dot_x  \
@@ -75,8 +76,7 @@ class CartPole():
         self.theta = torch.clamp(theta, -self._max_theta, self._max_theta)
         self.dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x)
         self.dot_theta = torch.clamp(dot_theta, -self._max_dot_theta, self._max_dot_theta)
-        self.dist = torch.abs(self.x-self.x_target)
-        # print(self.dist)
+        # print(eps, self.x, self.x_target, self.dist)
 
         if DEBUG:
             print(f"dist={self.dist.item():.4f}  mu={mu.item():.4f}", end="\t")
