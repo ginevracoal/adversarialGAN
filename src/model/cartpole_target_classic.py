@@ -38,6 +38,7 @@ class Environment_signal():
         x_target_new = self.fun_val(self.duration) - self.fun_val(0)*np.exp(-alpha*self.duration)
 
         self.duration += dt
+        eps = x_target_new - self.x_target
         eps_new = (x_target_new - self.x_target)/dt
         dot_eps = (eps_new - self.eps)/dt
 

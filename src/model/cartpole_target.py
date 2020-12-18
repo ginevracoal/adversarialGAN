@@ -46,7 +46,7 @@ class CartPole():
 
         dot_eps = torch.clamp(dot_eps, -self._max_dot_eps, self._max_dot_eps)
         eps = dot_eps * dt
-        x_target = self.x + eps
+        x_target = self.x_target + eps
         self.x_target = torch.clamp(x_target, -self._max_x, self._max_x)
         self.dist = torch.abs(self.x-self.x_target)
         
@@ -250,7 +250,7 @@ class RobustnessComputer:
         """ Computes robustness for the given trace """
         theta = model.traces['theta'][-K:]
         dist = model.traces['dist'][-K:]
-        rob_theta = self.dqs_theta.compute(theta=torch.cat(theta))
-        rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))
+        rob_theta = self.dqs_theta.compute(theta=torch.cat(theta))/max(theta).item()
+        rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))/max(dist).item()
 
         return ALPHA*rob_dist+(1-ALPHA)*rob_theta

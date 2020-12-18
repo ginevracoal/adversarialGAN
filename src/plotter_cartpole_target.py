@@ -210,9 +210,8 @@ def plot_evolution_fixed_enviroment(def_records, cl_records, filename):
     ax[2].legend()
 
     # dovrebbero essere uguali
-    print(cl_records['sim_x_target'][:5])
-    print(def_records['sim_x_target'][:5])
-    
+    print(cl_records['sim_x_target'][:5], "\n", def_records['sim_x_target'][:5])
+
     ax[3].plot(cl_records['sim_t'], cl_records['sim_env_mu'], color=cl_atk_col, label='classic env.')
     ax[3].plot(def_records['sim_t'], def_records['sim_env_mu'], color=def_atk_col, label='defender env.')
     ax[3].set(ylabel=r'friction coefficient')

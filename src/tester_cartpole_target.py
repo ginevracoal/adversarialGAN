@@ -77,7 +77,7 @@ def run(random_init, mode=None, classic_control=False):
             z = torch.rand(attacker.noise_size)
             
             if mode == 0:
-                env_input = (torch.tensor(1.0), torch.tensor(0.0))
+                env_input = (torch.tensor(0.0), torch.tensor(0.0))
 
             elif mode == 1:
                 env_input = environment_signal[i]

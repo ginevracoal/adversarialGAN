@@ -27,9 +27,9 @@ class Attacker(architecture.default.Attacker):
         
     def forward(self, x):
         output = self.nn(x)
-        dot_eps = output[0]
+        eps = output[1]
         mu = torch.sigmoid(output[1])
-        return dot_eps, mu
+        return eps, mu
 
 class Trainer(architecture.default.Trainer):
     """ The class contains the training logic """
