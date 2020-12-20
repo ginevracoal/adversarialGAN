@@ -28,7 +28,7 @@ class Car():
         else:
             self.e_motor = ElMotor() 
 
-        self._max_acceleration = 5.0 
+        self._max_acceleration = 10.0 
         self._min_acceleration = -self._max_acceleration
         self._max_velocity = 0.95 * self.e_motor.max_speed / self.gear_ratio * self.wheel_radius
         self._min_velocity = 0.0
@@ -186,13 +186,13 @@ class Agent:
     def distance(self, value):
         self._car.distance = value
 
-    # @property
-    # def timestep_power(self):
-    #     return self._car.timestep_power.clone()
+    @property
+    def timestep_power(self):
+        return self._car.timestep_power.clone()
 
-    # @timestep_power.setter
-    # def timestep_power(self, value):
-    #     self._car.timestep_power = value
+    @timestep_power.setter
+    def timestep_power(self, value):
+        self._car.timestep_power = value
 
     @property
     def e_power(self):
@@ -237,7 +237,7 @@ class Model:
         self.agent.update(agent_input, dt)
 
         self.traces['dist'].append(self.agent.distance)
-        self.traces['power'].append(self.agent.e_power)
+        self.traces['power'].append(self.agent.timestep_power)
 
     def initialize_random(self):
         """ Sample a random initial state """

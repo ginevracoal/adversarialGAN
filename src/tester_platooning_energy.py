@@ -33,6 +33,10 @@ attacker = Attacker(model, *atk_arch.values())
 defender = Defender(model, *def_arch.values())
 load_models(attacker, defender, EXP+relpath)
 
+
+fixed_leader = lambda t: (torch.tanh(3*torch.sin(t)), torch.sigmoid(4*torch.cos(t)))
+
+
 def run(random_init, mode=None, classic_control=False):
     
     if classic_control is True:
@@ -69,6 +73,8 @@ def run(random_init, mode=None, classic_control=False):
 
             if mode == 0:
                 atk_policy = (torch.tensor(0.0), torch.tensor(0.0))
+            elif mode == 1:
+                atk_policy = fixed_leader(torch.tensor(i).double())
             else:
                 atk_policy = attacker(torch.cat((z, oe)))
 
@@ -115,6 +121,10 @@ for i in tqdm(range(args.repetitions)):
     random_init = next(model._param_generator)
     sim['const'] = run(random_init, mode=0)
     sim['classic_const'] = run(random_init, mode=0, classic_control=True)
+
+    random_init = next(model._param_generator)
+    sim['pulse'] = run(random_init, mode=1)
+    sim['classic_pulse'] = run(random_init, mode=1, classic_control=True)
 
     random_init = next(model._param_generator)
     sim['atk'] = run(random_init)

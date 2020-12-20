@@ -2,10 +2,11 @@ import json
 import torch
 from utils.diffquantitative import DiffQuantitativeSemantic
 
+OLD_TARGET=False
 
 DEBUG=False
 FRICTION=True
-ALPHA=0.4
+ALPHA=0.2
 K=10
 
 class CartPole():
@@ -28,7 +29,7 @@ class CartPole():
         self._max_theta = 1.5
         self._max_dot_x = 10
         self._max_dot_theta = 10
-        self._max_dot_eps=5.
+        self._max_dot_eps=1.
         self._max_mu=1.
         self._max_action=30
 
@@ -40,13 +41,16 @@ class CartPole():
         l = self.lpole/2
             
         f = torch.clamp(action, -self._max_action, self._max_action)
-
-        # update_mu = np.random.binomial(n=1, p=0.1)
-        mu = torch.clamp(mu, 0., self._max_mu) #if update_mu==1 else None
+        mu = torch.clamp(mu, 0., self._max_mu) 
 
         dot_eps = torch.clamp(dot_eps, -self._max_dot_eps, self._max_dot_eps)
         eps = dot_eps * dt
-        x_target = self.x_target + eps
+
+        if OLD_TARGET:
+            x_target = self.x + eps
+        else:
+            x_target = self.x_target + eps
+
         self.x_target = torch.clamp(x_target, -self._max_x, self._max_x)
         self.dist = torch.abs(self.x-self.x_target)
         

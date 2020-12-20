@@ -170,7 +170,7 @@ if args.scatter:
     cl_delta_pos_array = np.zeros(size)
     cl_delta_vel_array = np.zeros(size)
 
-    for mode in ["atk"]:
+    for mode in ['pulse','atk']:
 
         for i in range(size):
             delta_pos = records[i][mode]['init']['env_pos'] - records[i][mode]['init']['ag_pos']
@@ -210,7 +210,7 @@ if args.plot_evolution:
     
     # n=65
     print(n)
-    for mode in ['const','atk']:
+    for mode in ['const','pulse','atk']:
         print(mode, records[n][mode]['init'])
         plot_evolution(records[n][mode], records[n]["classic_"+mode], 'platooning_energy_evolution_'+mode+'.png')
 
