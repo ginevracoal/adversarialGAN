@@ -62,7 +62,7 @@ def hist(time, const, pulse, atk, filename):
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
 
-def scatter(sims, sims_classic, filename):
+def scatter(sims, sims_classic, filename, plot_differences=False):
     fig, ax = plt.subplots(2, 2, figsize=(6, 5))
     fig.tight_layout(pad=3.0)
     scatter_size=8
@@ -99,31 +99,31 @@ def scatter(sims, sims_classic, filename):
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
     plt.close()
 
-    ### robustness differences
+    if plot_differences:
 
-    fig, ax = plt.subplots(1, 2, figsize=(6, 3))
-    fig.tight_layout(pad=3.0)
+        fig, ax = plt.subplots(1, 2, figsize=(6, 3))
+        fig.tight_layout(pad=3.0)
 
-    robustness_differences = sims['rob']-sims_classic['rob']
-    # vmax = max(abs(robustness_differences))
-    vmax = max(robustness_differences)
-    vmin = -vmax
+        robustness_differences = sims['rob']-sims_classic['rob']
+        # vmax = max(abs(robustness_differences))
+        vmax = max(robustness_differences)
+        vmin = -vmax
 
-    ax[0].scatter(sims['x'], sims['dot_x'], 
-                    c=robustness_differences, cmap=cmap, vmin=vmin, vmax=vmax, s=scatter_size)
-    ax[0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
+        ax[0].scatter(sims['x'], sims['dot_x'], 
+                        c=robustness_differences, cmap=cmap, vmin=vmin, vmax=vmax, s=scatter_size)
+        ax[0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
 
-    im = ax[1].scatter(sims['theta'], sims['dot_theta'], 
-                    c=robustness_differences, cmap=cmap, vmin=vmin, vmax=vmax, s=scatter_size)
-    ax[1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole ang. freq. ($rad/s$)')
-    
-    fig.subplots_adjust(right=0.8)
-    cbar_ax = fig.add_axes([0.87, 0.22, 0.03, 0.6])
-    cbar = fig.colorbar(im, ax=ax.ravel().tolist(), cax=cbar_ax)
-    cbar.set_label('Defender rob. - Classic rob.', labelpad=-61)
-    plt.figtext(0.48, 0.9, 'Robustness difference vs initial configuration', ha='center', va='center', weight='bold')
+        im = ax[1].scatter(sims['theta'], sims['dot_theta'], 
+                        c=robustness_differences, cmap=cmap, vmin=vmin, vmax=vmax, s=scatter_size)
+        ax[1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole ang. freq. ($rad/s$)')
+        
+        fig.subplots_adjust(right=0.8)
+        cbar_ax = fig.add_axes([0.87, 0.22, 0.03, 0.6])
+        cbar = fig.colorbar(im, ax=ax.ravel().tolist(), cax=cbar_ax)
+        cbar.set_label('Defender rob. - Classic rob.', labelpad=-61)
+        plt.figtext(0.48, 0.9, 'Robustness difference vs initial configuration', ha='center', va='center', weight='bold')
 
-    fig.savefig(os.path.join(EXP+relpath, "diff_"+filename), dpi=150)
+        fig.savefig(os.path.join(EXP+relpath, "diff_"+filename), dpi=150)
 
 def plot_evolution(def_records, cl_records, filename):
 
@@ -155,13 +155,13 @@ def plot_evolution(def_records, cl_records, filename):
 
     ax[2].axhline(-safe_theta, ls='--', color=safe_col, label="safe angle", lw=lw)
     ax[2].axhline(safe_theta, ls='--', color=safe_col, lw=lw)
-    ax[2].plot(cl_records['sim_t'], cl_records['sim_theta'], color=cl_col, label='classic')
-    ax[2].plot(def_records['sim_t'], def_records['sim_theta'], color=def_col,  label='defender')
+    ax[2].plot(cl_records['sim_t'], cl_records['sim_theta'], color=cl_col)
+    ax[2].plot(def_records['sim_t'], def_records['sim_theta'], color=def_col)
     ax[2].set(ylabel=r'pole angle ($rad$)')
     ax[2].legend()
 
+    ax[3].plot(def_records['sim_t'], def_records['sim_env_mu'], color=def_atk_col, label='defender env.')
     ax[3].plot(cl_records['sim_t'], cl_records['sim_env_mu'], color=cl_atk_col, label='classic env.')
-    ax[3].plot(def_records['sim_t'], def_records['sim_env_mu'], color=def_atk_col, label='defdender env.')
     ax[3].set(ylabel=r'friction coefficient')
     ax[3].legend()
 
@@ -173,7 +173,7 @@ def plot_evolution(def_records, cl_records, filename):
     fig.tight_layout()
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
-def plot_evolution_fixed_enviroment(def_records, cl_records, filename):
+def plot_evolution_pulse(def_records, cl_records, filename):
 
     plt.style.use('seaborn')
     cmap = plt.cm.get_cmap('Spectral', 512)
@@ -189,9 +189,8 @@ def plot_evolution_fixed_enviroment(def_records, cl_records, filename):
 
     ax[0].plot(cl_records['sim_t'], cl_records['sim_x'], label='classic', color=cl_col)
     ax[0].plot(def_records['sim_t'], def_records['sim_x'], label='defender',  color=def_col)
-    # dovrebbero essere uguali
-    ax[0].plot(cl_records['sim_t'], cl_records['sim_x_target'], label='cl. target', color=cl_atk_col)
-    ax[0].plot(def_records['sim_t'], def_records['sim_x_target'], label='def. target', color=def_atk_col)
+    ax[0].plot(def_records['sim_t'], def_records['sim_x_target'], color=def_atk_col)
+    ax[0].plot(cl_records['sim_t'], cl_records['sim_x_target'], label='target', color=cl_atk_col)
     ax[0].set(ylabel=r'cart position ($m$)')
     ax[0].legend()
 
@@ -204,16 +203,13 @@ def plot_evolution_fixed_enviroment(def_records, cl_records, filename):
 
     ax[2].axhline(-safe_theta, ls='--', color=safe_col, label="safe angle", lw=lw)
     ax[2].axhline(safe_theta, ls='--', color=safe_col, lw=lw)
-    ax[2].plot(cl_records['sim_t'], cl_records['sim_theta'], color=cl_col, label='classic')
-    ax[2].plot(def_records['sim_t'], def_records['sim_theta'], color=def_col,  label='defender')
+    ax[2].plot(cl_records['sim_t'], cl_records['sim_theta'], color=cl_col)
+    ax[2].plot(def_records['sim_t'], def_records['sim_theta'], color=def_col)
     ax[2].set(ylabel=r'pole angle ($rad$)')
     ax[2].legend()
 
-    # dovrebbero essere uguali
-    print(cl_records['sim_x_target'][:5], "\n", def_records['sim_x_target'][:5])
-
-    ax[3].plot(cl_records['sim_t'], cl_records['sim_env_mu'], color=cl_atk_col, label='classic env.')
-    ax[3].plot(def_records['sim_t'], def_records['sim_env_mu'], color=def_atk_col, label='defender env.')
+    ax[3].plot(def_records['sim_t'], def_records['sim_env_mu'], color=def_atk_col)
+    ax[3].plot(cl_records['sim_t'], cl_records['sim_env_mu'], color=cl_atk_col, label='environment')
     ax[3].set(ylabel=r'friction coefficient')
     ax[3].legend()
 
@@ -284,11 +280,9 @@ if args.plot_evolution is True:
         print(mode+":", records[n][mode]['init'])
         plot_evolution(records[n][mode], records[n]["classic_"+mode], 'cartpole_target_evolution_'+mode+'.png')
 
-
-    mode = 'pulse'
-    plot_evolution_fixed_enviroment(records[n][mode], records[n]["classic_"+mode], 
-                                    'cartpole_target_evolution_'+mode+'.png')
-
+    mode = "pulse"
+    print(mode+":", records[n][mode]['init'])
+    plot_evolution_pulse(records[n][mode], records[n]["classic_"+mode], 'cartpole_target_evolution_'+mode+'.png')
 
 if args.hist is True:
 

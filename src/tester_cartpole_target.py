@@ -138,7 +138,7 @@ for i in tqdm(range(args.repetitions)):
     sim['pulse'] = run(random_init, 1)
     sim['classic_pulse'] = run(random_init, 1, classic_control=True)
 
-    print(sim['pulse']['sim_x_target'][:5], "\n", sim['classic_pulse']['sim_x_target'][:5])
+    # print(sim['pulse']['sim_x_target'][:5], "\n", sim['classic_pulse']['sim_x_target'][:5])
 
     random_init = next(model._param_generator)
     sim['atk'] = run(random_init)

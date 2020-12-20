@@ -250,7 +250,7 @@ class RobustnessComputer:
         """ Computes robustness for the given trace """
         theta = model.traces['theta'][-K:]
         dist = model.traces['dist'][-K:]
-        rob_theta = self.dqs_theta.compute(theta=torch.cat(theta))/max(theta).item()
-        rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))/max(dist).item()
+        rob_theta = self.dqs_theta.compute(theta=torch.cat(theta))/1.5
+        rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))/0.5
 
         return ALPHA*rob_dist+(1-ALPHA)*rob_theta

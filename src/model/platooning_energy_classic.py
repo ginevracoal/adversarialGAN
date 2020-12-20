@@ -101,7 +101,7 @@ class Model_classic(Model):
       self.agent.update(parameters=agent_input, dt=dt)
 
       self.traces['dist'].append(self.agent.distance)
-      self.traces['power'].append(self.agent.timestep_power)
+      self.traces['power'].append(self.agent.e_power)
 
 
 #%%

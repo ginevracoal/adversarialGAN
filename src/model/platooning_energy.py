@@ -4,7 +4,7 @@ from model.electric_motor import ElMotor, ElMotor_torch
 from utils.diffquantitative import DiffQuantitativeSemantic
 
 K=10
-ALPHA=0.6
+ALPHA=0.7
 USE_TORCH_EFF_MAP=True
 
 
@@ -91,7 +91,7 @@ class Car():
         self.max_e_tq = self.e_motor.getMaxTorque(e_motor_speed)
         self.min_e_tq = -self.max_e_tq
 
-        return self.timestep_power
+        return self.e_power
 
     def update(self, dt, norm_e_torque, norm_br_torque, compute_power=True):
         """ Differential equations for updating the state of the car
@@ -186,13 +186,13 @@ class Agent:
     def distance(self, value):
         self._car.distance = value
 
-    @property
-    def timestep_power(self):
-        return self._car.timestep_power.clone()
+    # @property
+    # def timestep_power(self):
+    #     return self._car.timestep_power.clone()
 
-    @timestep_power.setter
-    def timestep_power(self, value):
-        self._car.timestep_power = value
+    # @timestep_power.setter
+    # def timestep_power(self, value):
+    #     self._car.timestep_power = value
 
     @property
     def e_power(self):
@@ -237,7 +237,7 @@ class Model:
         self.agent.update(agent_input, dt)
 
         self.traces['dist'].append(self.agent.distance)
-        self.traces['power'].append(self.agent.timestep_power)
+        self.traces['power'].append(self.agent.e_power)
 
     def initialize_random(self):
         """ Sample a random initial state """
@@ -271,7 +271,7 @@ class RobustnessComputer:
         dist = model.traces['dist'][-K:]
         power = model.traces['power'][-K:]
 
-        rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))/max(dist).item()
-        rob_power = self.dqs_power.compute(power=torch.cat(power))/max(power).item()
+        rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))/10
+        rob_power = self.dqs_power.compute(power=torch.cat(power))/4000
 
         return ALPHA*rob_dist+(1-ALPHA)*rob_power
