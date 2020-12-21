@@ -81,7 +81,7 @@ def plot_evolution(sim_time, sim_agent_pos, sim_agent_dist, sim_agent_acc, sim_e
     fig, ax = plt.subplots(3, 1, figsize=(6, 5))
 
     ax[0].plot(sim_time, sim_agent_pos, label='follower', color=def_col)
-    ax[0].plot(sim_time, sim_env_pos, label='leader', color=atk_col)
+    ax[0].plot(sim_time, sim_env_pos, label='leader', color=atk_col, lw=lw)
     ax[0].set(ylabel=r'car position ($m$)')
     ax[0].legend()
 
@@ -92,7 +92,7 @@ def plot_evolution(sim_time, sim_agent_pos, sim_agent_dist, sim_agent_acc, sim_e
     ax[1].legend()
 
     ax[2].plot(sim_time, sim_agent_acc, label='follower', color=def_col)
-    ax[2].plot(sim_time, sim_env_acc, label='leader', color=atk_col)
+    ax[2].plot(sim_time, sim_env_acc, label='leader', color=atk_col, lw=lw)
     ax[2].set(xlabel=r'time ($s$)', ylabel=r'cart acceleration ($ms^{-2}$)')
     ax[2].legend()
 
@@ -122,14 +122,15 @@ if args.scatter:
 
 if args.plot_evolution:
 
-    if len(records)>=1000:
+    if len(records)==10:
+        n=4
+    elif len(records)>=1000:
         n=799
     else:
         n = random.randrange(len(records))
         
-    print(n)
     for case in ['pulse', 'atk']:
-        print(case, records[n][case]['init'])
+        print(case, n, records[n][case]['init'])
         plot_evolution(records[n][case]['sim_t'], records[n][case]['sim_ag_pos'], 
              records[n][case]['sim_ag_dist'], 
              records[n][case]['sim_ag_acc'], records[n][case]['sim_env_pos'], 
