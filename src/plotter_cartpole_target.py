@@ -310,7 +310,7 @@ if args.scatter is True:
 
 if args.plot_evolution is True:
 
-    n=862 if len(records)>=1000 else random.randrange(len(records))
+    n=317 if len(records)>=1000 else random.randrange(len(records))
     
     # mode = 'const'
     # print(mode+" "+str(n)+":", records[n][mode]['init'])
