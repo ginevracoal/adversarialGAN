@@ -2,11 +2,9 @@ import json
 import torch
 from utils.diffquantitative import DiffQuantitativeSemantic
 
-OLD_TARGET=False
-
 DEBUG=False
 FRICTION=True
-ALPHA=0.2
+ALPHA=0.4
 K=10
 
 class CartPole():
@@ -29,11 +27,11 @@ class CartPole():
         self._max_theta = 1.5
         self._max_dot_x = 10
         self._max_dot_theta = 10
-        self._max_dot_eps=1.
+        self._max_dot_eps=1. 
         self._max_mu=1.
         self._max_action=30
 
-    def update(self, dt, action, mu, dot_eps):    
+    def update(self, dt, action, mu, dot_eps, fixed_env=False):    
 
         g = self.gravity
         mp = self.mpole
@@ -46,10 +44,10 @@ class CartPole():
         dot_eps = torch.clamp(dot_eps, -self._max_dot_eps, self._max_dot_eps)
         eps = dot_eps * dt
 
-        if OLD_TARGET:
-            x_target = self.x + eps
-        else:
+        if fixed_env:
             x_target = self.x_target + eps
+        else:
+            x_target = self.x + eps
 
         self.x_target = torch.clamp(x_target, -self._max_x, self._max_x)
         self.dist = torch.abs(self.x-self.x_target)
@@ -72,10 +70,6 @@ class CartPole():
         x = self.x + dt * dot_x
         theta = self.theta + dt * dot_theta
         
-        ## print(f"\neq diff out:\t {ddot_x.item():.4f} {ddot_theta.item():.4f}")
-        # print(f"x update:\t{self.x.item():.4f} -> {x.item():.4f}")
-        # print(f"theta update:\t{self.theta.item():.4f} -> {theta.item():.4f}\n")
-
         self.x = torch.clamp(x, -self._max_x, self._max_x)
         self.theta = torch.clamp(theta, -self._max_theta, self._max_theta)
         self.dot_x = torch.clamp(dot_x, -self._max_dot_x, self._max_dot_x)
@@ -216,11 +210,11 @@ class Model:
         self._param_generator = param_generator
         self.traces = None
 
-    def step(self, env_input, agent_input, dt):
+    def step(self, env_input, agent_input, dt, fixed_env=False):
         dot_eps, mu = env_input
         action = agent_input
 
-        self.cartpole.update(dt=dt, action=action, mu=mu, dot_eps=dot_eps)
+        self.cartpole.update(dt=dt, action=action, mu=mu, dot_eps=dot_eps, fixed_env=fixed_env)
 
         self.traces['dist'].append(self.cartpole.dist)
         self.traces['theta'].append(self.agent.theta)
@@ -255,6 +249,6 @@ class RobustnessComputer:
         theta = model.traces['theta'][-K:]
         dist = model.traces['dist'][-K:]
         rob_theta = self.dqs_theta.compute(theta=torch.cat(theta))/1.5
-        rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))/0.5
+        rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))/30.
 
         return ALPHA*rob_dist+(1-ALPHA)*rob_theta

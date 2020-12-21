@@ -34,7 +34,10 @@ defender = Defender(model, *def_arch.values())
 load_models(attacker, defender, EXP+relpath)
 
 
-fixed_leader = lambda t: (torch.tanh(3*torch.sin(t)), torch.sigmoid(4*torch.cos(t)))
+def fixed_leader(t):
+    norm_e_torque = torch.tanh(3*torch.sin(t)**2-torch.cos(t))
+    norm_br_torque = torch.sigmoid(torch.cos(t)**2-4*torch.sin(t))
+    return norm_e_torque, norm_br_torque
 
 
 def run(random_init, mode=None, classic_control=False):

@@ -139,12 +139,12 @@ class CartPole_classic(CartPole):
         self.LQR_law(state, x_target)
         self.Kp_x_law(state, x0 = x_target)
 
-    def update(self, dt, action, mu, dot_eps):
+    def update(self, dt, action, mu, dot_eps, fixed_env):
 
         state = [self.x.item(), self.dot_x.item(), self.theta.item(), self.dot_theta.item()]
         self.computeControlSignals(state, x_target=self.x_target)
-        def_policy = torch.tensor(self.get_ctrl_signal())
-        super().update(dt, def_policy, mu, dot_eps)
+        action = torch.tensor(self.get_ctrl_signal())
+        super().update(dt=dt, action=action, mu=mu, dot_eps=dot_eps, fixed_env=fixed_env)
 
     def saturate(self, signal, max_value):
         """ saturate signals

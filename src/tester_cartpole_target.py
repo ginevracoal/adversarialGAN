@@ -23,8 +23,7 @@ cart_position, cart_velocity, pole_angle, pole_ang_velocity, x_target, \
 relpath = get_relpath(main_dir="cartpole_target_"+args.architecture, train_params=train_par)
 sims_filename = get_sims_filename(args.repetitions, test_par)
 
-pg = ParametersHyperparallelepiped(cart_position, cart_velocity, 
-                                        pole_angle, pole_ang_velocity, x_target)
+pg = ParametersHyperparallelepiped(cart_position, cart_velocity, pole_angle, pole_ang_velocity, x_target)
 
 model = Model(pg.sample())
 model_classic = Model_classic(pg.sample())
@@ -33,11 +32,16 @@ attacker = Attacker(model, *atk_arch.values())
 defender = Defender(model, *def_arch.values())
 load_models(attacker, defender, EXP+relpath)
 
-env_signal_class = Environment_signal(test_par["test_steps"])
-environment_signal = env_signal_class.get_signal(dt=test_par["dt"])
+# env_signal_class = Environment_signal(test_par["test_steps"])
+# environment_signal = env_signal_class.get_signal(dt=test_par["dt"])
 
 
-def run(random_init, mode=None, classic_control=False):
+def fixed_leader(t):
+    dot_eps = torch.tanh(torch.sin(t)**2+torch.cos(t))*2.
+    mu = torch.sigmoid(torch.sin(t+2)-torch.cos(t)**2)*0.5
+    return dot_eps, mu
+
+def run(random_init, mode, classic_control=False):
 
     if classic_control is True:
         physical_model = model_classic
@@ -76,13 +80,14 @@ def run(random_init, mode=None, classic_control=False):
             oe = torch.tensor(physical_model.environment.status)
             z = torch.rand(attacker.noise_size)
             
-            if mode == 0:
+            if mode == 'const':
                 env_input = (torch.tensor(0.0), torch.tensor(0.0))
 
-            elif mode == 1:
-                env_input = environment_signal[i]
+            elif mode == 'pulse':
+                # env_input = environment_signal[i]
+                env_input = fixed_leader(torch.tensor(t).double())
 
-            else:
+            elif mode == 'atk':
                 env_input = attacker(torch.cat((z, oe)))
 
             if classic_control is True:
@@ -96,7 +101,8 @@ def run(random_init, mode=None, classic_control=False):
             else:
                 agent_input = defender(oa)
 
-        physical_model.step(env_input=env_input, agent_input=agent_input, dt=dt)
+        fixed_env = True if mode in ['const','pulse'] else False
+        physical_model.step(env_input=env_input, agent_input=agent_input, dt=dt, fixed_env=fixed_env)
 
         sim_t.append(t)
         sim_x.append(physical_model.agent.x.item())
@@ -110,8 +116,6 @@ def run(random_init, mode=None, classic_control=False):
         sim_ag_action.append(agent_input.item())
 
         t += dt
-
-    # print(sim_x[-5:], "\n",sim_x_target[-5:], "\n",sim_dist[-5:])
 
     return {'init': conf_init,
             'sim_t': np.array(sim_t),
@@ -127,22 +131,15 @@ def run(random_init, mode=None, classic_control=False):
             }
 
 records = []
-for i in tqdm(range(args.repetitions)):
+for _ in tqdm(range(args.repetitions)):
     sim = {}
 
-    random_init = next(model._param_generator)
-    sim['const'] = run(random_init, 0)
-    sim['classic_const'] = run(random_init, 0, classic_control=True)
+    for mode in ['const', 'pulse', 'atk']:
+        random_init = next(model._param_generator)
+        sim[mode] = run(random_init, mode)
+        sim['classic_'+mode] = run(random_init, mode, classic_control=True)
 
-    random_init = next(model._param_generator)
-    sim['pulse'] = run(random_init, 1)
-    sim['classic_pulse'] = run(random_init, 1, classic_control=True)
-
-    # print(sim['pulse']['sim_x_target'][:5], "\n", sim['classic_pulse']['sim_x_target'][:5])
-
-    random_init = next(model._param_generator)
-    sim['atk'] = run(random_init)
-    sim['classic_atk'] = run(random_init, classic_control=True)
+    # print(sim['pulse']['sim_x_target'][-5:], "\n", sim['classic_pulse']['sim_x_target'][-5:])
 
     records.append(sim)
 
