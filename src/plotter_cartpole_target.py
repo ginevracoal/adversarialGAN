@@ -182,7 +182,7 @@ def plot_evolution_classic(cl_records, filename):
     fig, ax = plt.subplots(5, 1, figsize=(6, 9), sharex=True)
 
     ax[0].plot(cl_records['sim_t'], cl_records['sim_x'], label='classic', color=cl_col)
-    ax[0].plot(cl_records['sim_t'], cl_records['sim_x_target'], label='cl. target', color=def_atk_col, lw=lw)
+    ax[0].plot(cl_records['sim_t'], cl_records['sim_x_target'], label='cl. target', color=def_atk_col)
     ax[0].set(ylabel=r'cart position ($m$)')
     ax[0].legend()
 
@@ -198,7 +198,7 @@ def plot_evolution_classic(cl_records, filename):
     ax[2].set(ylabel=r'pole angle ($rad$)')
     ax[2].legend()
 
-    ax[3].plot(cl_records['sim_t'], cl_records['sim_env_mu'], color=def_atk_col, label='classic env.', lw=lw)
+    ax[3].plot(cl_records['sim_t'], cl_records['sim_env_mu'], color=def_atk_col, label='classic env.')
     ax[3].set(ylabel=r'friction coefficient')
     ax[3].legend()
 
