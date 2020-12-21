@@ -31,16 +31,18 @@ def get_settings(name, mode):
         def_arch = {'hidden':2, 'size':10, 'coef':1}
         train_par = {'train_steps':1000, 'atk_steps':1, 'def_steps':2, 'horizon':2., 'dt': 0.05, 'lr':.001}
         test_par = {'test_steps':200, 'dt':0.05}
+        alpa=0.4
 
-    elif name=="short":
+    elif name=="long":
 
         atk_arch = {'hidden':1, 'size':10, 'coef':1, 'noise':2}
         def_arch = {'hidden':2, 'size':10, 'coef':1}
-        train_par = {'train_steps':500, 'atk_steps':1, 'def_steps':2, 'horizon':2., 'dt': 0.05, 'lr':.001}
+        train_par = {'train_steps':1500, 'atk_steps':1, 'def_steps':2, 'horizon':2., 'dt': 0.05, 'lr':.001}
         test_par = {'test_steps':200, 'dt':0.05}
+        alpha=0.5
 
     else:
         raise NotImplementedError
 
     return cart_position, cart_velocity, pole_angle, pole_ang_velocity, x_target, \
-            atk_arch, def_arch, train_par, test_par, robustness_theta, robustness_dist
+            atk_arch, def_arch, train_par, test_par, robustness_theta, robustness_dist, alpha

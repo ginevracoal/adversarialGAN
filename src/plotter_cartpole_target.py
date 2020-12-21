@@ -23,16 +23,12 @@ args = parser.parse_args()
 
 cart_position, cart_velocity, pole_angle, pole_ang_velocity, x_target, \
         atk_arch, def_arch, train_par, test_par, \
-        robustness_theta, robustness_dist = get_settings(args.architecture, mode="test")
+        robustness_theta, robustness_dist, alpha = get_settings(args.architecture, mode="test")
 relpath = get_relpath(main_dir="cartpole_target_"+args.architecture, train_params=train_par)
 sims_filename = get_sims_filename(args.repetitions, test_par)
 
 safe_theta = 0.2
 safe_dist = 0.5
-mc = 1.
-mp = .1
-alpha = 0.4
-
 
 if args.dark:
     plt.style.use('utils/qb-common_dark.mplstyle')
@@ -227,17 +223,17 @@ def plot_evolution_pulse(def_records, cl_records, filename):
 
     fig, ax = plt.subplots(5, 1, figsize=(6, 9), sharex=True)
 
-    ax[0].plot(cl_records['sim_t'], cl_records['sim_x'], label='classic', color=cl_col)
-    ax[0].plot(def_records['sim_t'], def_records['sim_x'], label='defender',  color=def_col)
+    ax[0].plot(cl_records['sim_t'], cl_records['sim_x'], label='classic controller', color=cl_col)
+    ax[0].plot(def_records['sim_t'], def_records['sim_x'], label='defender controller',  color=def_col)
     ax[0].plot(def_records['sim_t'], def_records['sim_x_target'], color=def_atk_col)
-    ax[0].plot(cl_records['sim_t'], cl_records['sim_x_target'], label='target', color=cl_atk_col)
+    ax[0].plot(cl_records['sim_t'], cl_records['sim_x_target'], label='target position', color=cl_atk_col)
     ax[0].set(ylabel=r'cart position ($m$)')
     ax[0].legend()
 
     ax[1].axhline(-safe_dist, ls='--', color=safe_col, label="safe distance", lw=lw)
     ax[1].axhline(safe_dist, ls='--', color=safe_col, lw=lw)
-    ax[1].plot(def_records['sim_t'], def_records['sim_dist'], color=def_col, label='defender')    
-    ax[1].plot(def_records['sim_t'], cl_records['sim_dist'], color=cl_col, label='classic')    
+    ax[1].plot(def_records['sim_t'], def_records['sim_dist'], color=def_col)    
+    ax[1].plot(def_records['sim_t'], cl_records['sim_dist'], color=cl_col)    
     ax[1].set(ylabel=r'distance from target ($m$)')
     ax[1].legend()
 
@@ -265,7 +261,7 @@ if args.scatter is True:
 
     size = len(records)
 
-    robustness_computer = RobustnessComputer(robustness_theta, robustness_dist)
+    robustness_computer = RobustnessComputer(robustness_theta, robustness_dist, alpha)
 
     for case in ['atk', 'pulse']:
 
@@ -320,7 +316,7 @@ if args.plot_evolution is True:
     print(mode+" "+str(n)+":", records[n][mode]['init'])
     plot_evolution_classic(records[n]["classic_"+mode], 'cartpole_target_evolution_'+mode+'.png')
 
-    n=98 if len(records)>=1000 else random.randrange(len(records))
+    n=88 if len(records)>=1000 else random.randrange(len(records))
 
     mode = "pulse"
     print(mode+" "+str(n)+":", records[n][mode]['init'])

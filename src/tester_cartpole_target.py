@@ -19,7 +19,7 @@ args = parser.parse_args()
 
 cart_position, cart_velocity, pole_angle, pole_ang_velocity, x_target, \
         atk_arch, def_arch, train_par, test_par, \
-        robustness_theta, robustness_dist = get_settings(args.architecture, mode="test")
+        robustness_theta, robustness_dist, alpha = get_settings(args.architecture, mode="test")
 relpath = get_relpath(main_dir="cartpole_target_"+args.architecture, train_params=train_par)
 sims_filename = get_sims_filename(args.repetitions, test_par)
 
