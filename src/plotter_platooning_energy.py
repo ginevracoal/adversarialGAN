@@ -56,7 +56,7 @@ def hist(time, pulse, atk, filename):
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
 def scatter(robustness_array, delta_pos_array, delta_vel_array, 
-            cl_robustness_array, cl_delta_pos_array, cl_delta_vel_array, filename):
+            cl_robustness_array, cl_delta_pos_array, cl_delta_vel_array, filename, plot_differences=False):
 
     cmap = plt.cm.get_cmap('Spectral')
 
@@ -92,24 +92,25 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array,
 
     ## robustness differences
 
-    fig, ax = plt.subplots(figsize=(5, 4))
-    fig.tight_layout(pad=3.0)
+    if plot_differences:
+        fig, ax = plt.subplots(figsize=(5, 4))
+        fig.tight_layout(pad=3.0)
 
-    robustness_differences = robustness_array - cl_robustness_array
-    vmax = max(abs(robustness_differences))
-    vmin = -vmax
+        robustness_differences = robustness_array - cl_robustness_array
+        vmax = max(abs(robustness_differences))
+        vmin = -vmax
 
-    ax.scatter(delta_vel_array, delta_pos_array, c=robustness_differences, 
-                    cmap=cmap, vmin=vmin, vmax=vmax, s=8)
-    ax.set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
+        ax.scatter(delta_vel_array, delta_pos_array, c=robustness_differences, 
+                        cmap=cmap, vmin=vmin, vmax=vmax, s=8)
+        ax.set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
 
-    fig.subplots_adjust(right=0.83)
-    cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
-    cbar = fig.colorbar(im, ax=ax, cax=cbar_ax)
-    cbar_ax.set_ylabel('Defender rob. - Classic rob.', rotation=90, labelpad=-45)
-    plt.figtext(0.48, 0.95, 'Robustness difference vs initial configuration', ha='center', va='center', weight='bold')
+        fig.subplots_adjust(right=0.83)
+        cbar_ax = fig.add_axes([0.9, 0.15, 0.02, 0.7])
+        cbar = fig.colorbar(im, ax=ax, cax=cbar_ax)
+        cbar_ax.set_ylabel('Defender rob. - Classic rob.', rotation=90, labelpad=-45)
+        plt.figtext(0.48, 0.95, 'Robustness difference vs initial configuration', ha='center', va='center', weight='bold')
 
-    fig.savefig(os.path.join(EXP+relpath, "diff_"+filename), dpi=150)
+        fig.savefig(os.path.join(EXP+relpath, "diff_"+filename), dpi=150)
 
 def plot_evolution(def_records, cl_records, filename):
 
@@ -227,6 +228,8 @@ def plot_evolution_fixed_env(def_records, cl_records, filename):
     
     fig, ax = plt.subplots(5, 1, figsize=(6, 9))
 
+    print(def_records['sim_env_pos'])
+
     ax[0].plot(def_records['sim_t'], def_records['sim_ag_pos'], label='defender follower', color=def_col)
     ax[0].plot(cl_records['sim_t'], cl_records['sim_ag_pos'], label='classic follower', color=cl_col)
     ax[0].plot(def_records['sim_t'], def_records['sim_env_pos'], color=def_atk_col, lw=lw)
@@ -280,7 +283,7 @@ if args.scatter:
     cl_delta_pos_array = np.zeros(size)
     cl_delta_vel_array = np.zeros(size)
 
-    for mode in ['pulse']:
+    for mode in ['atk']:
 
         for i in range(size):
             delta_pos = records[i][mode]['init']['env_pos'] - records[i][mode]['init']['ag_pos']
@@ -352,3 +355,7 @@ if args.hist:
     atk_pct = atk_pct / size
 
     hist(time, pulse_pct, atk_pct, 'platooning_energy_pct_histogram.png')
+
+e_motor = ElMotor()
+fig = e_motor.plotEffMap()
+fig.savefig(os.path.join(EXP+relpath, 'efficiency_map.png'), dpi=150)

@@ -81,7 +81,7 @@ def plot_evolution(sim_time, sim_agent_pos, sim_agent_dist, sim_agent_acc, sim_e
     fig, ax = plt.subplots(3, 1, figsize=(6, 5))
 
     ax[0].plot(sim_time, sim_agent_pos, label='follower', color=def_col)
-    ax[0].plot(sim_time, sim_env_pos, label='leader', color=atk_col, lw=lw)
+    ax[0].plot(sim_time, sim_env_pos, label='leader', color=atk_col)
     ax[0].set(ylabel=r'car position ($m$)')
     ax[0].legend()
 
@@ -118,23 +118,22 @@ if args.scatter:
         delta_pos_array[i] = delta_pos
         delta_vel_array[i] = delta_vel
 
-    scatter(robustness_array, delta_pos_array, delta_vel_array, 'atk_scatterplot.png')
+    scatter(robustness_array, delta_pos_array, delta_vel_array, 'platooning_atk_scatterplot.png')
 
 if args.plot_evolution:
 
-    if len(records)==10:
-        n=4
-    elif len(records)>=1000:
-        n=799
+    if len(records)>=1000:
+        n=604
     else:
         n = random.randrange(len(records))
         
     for case in ['pulse', 'atk']:
-        print(case, n, records[n][case]['init'])
+        print(case, n, records[n][case]['init'], 'dist: ',
+              records[i]['atk']['init']['env_pos'] - records[i]['atk']['init']['ag_pos'])
         plot_evolution(records[n][case]['sim_t'], records[n][case]['sim_ag_pos'], 
              records[n][case]['sim_ag_dist'], 
              records[n][case]['sim_ag_acc'], records[n][case]['sim_env_pos'], 
-             records[n][case]['sim_env_acc'], 'evolution_'+case+'.png')
+             records[n][case]['sim_env_acc'], 'platooning_evolution_'+case+'.png')
 
 if args.hist:
     size = len(records)
@@ -151,4 +150,4 @@ if args.hist:
     pulse_pct = pulse_pct / size
     atk_pct = atk_pct / size
 
-    hist(time, pulse_pct, atk_pct, 'pct_histogram.png')
+    hist(time, pulse_pct, atk_pct, 'platooning_pct_histogram.png')

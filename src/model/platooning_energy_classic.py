@@ -153,7 +153,7 @@ if __name__ == "__main__":
         
         #print(f'iteration {i}')
     
-    
+
     fig1 = plt.figure()
     ax_0 = fig1.add_subplot(3,1,1)
     ax_1 = fig1.add_subplot(3,1,2)

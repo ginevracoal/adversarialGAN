@@ -39,7 +39,6 @@ def fixed_leader(t):
     norm_br_torque = torch.sigmoid(torch.cos(t)**2-4*torch.sin(t))
     return norm_e_torque, norm_br_torque
 
-
 def run(random_init, mode=None, classic_control=False):
     
     if classic_control is True:

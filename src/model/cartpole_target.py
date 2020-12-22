@@ -4,7 +4,7 @@ from utils.diffquantitative import DiffQuantitativeSemantic
 
 DEBUG=False
 FRICTION=True
-ALPHA=0.5
+# ALPHA=0.5
 K=10
 
 class CartPole():

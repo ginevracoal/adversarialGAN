@@ -87,21 +87,32 @@ class ElMotor():
 
     def plotEffMap(self, scatter_array = None):
         
-        fig1 = plt.figure()
+        cmap = plt.cm.get_cmap('Spectral')
+        fig1 = plt.figure(figsize=(6, 5))
+        fig1.tight_layout(pad=3.0)
+
         ax1 = fig1.add_subplot(111)
-        ax1.set_xlim([0,self.max_speed])
-        ax1.set_ylim([0,self.max_torque])
+        ax1.set_xlim([0,self.max_speed+2])
+        ax1.set_ylim([0,self.max_torque+2])
+
+        print("max_speed = ", self.max_speed, " max_torque = ", self.max_torque)
+ 
+        ax1.set_xlabel(r'$n_m (rpm)$')
+        ax1.set_ylabel(r'$T_m (N\,m)$')
        
         levels = np.linspace(0.5, 0.9, 25)
         
-        ax1 = plt.contourf(self.speed_vect, self.torque_vect, self.eff_matrix,levels = levels ,cmap = 'jet')
+        ax1 = plt.contourf(self.speed_vect, self.torque_vect, self.eff_matrix,levels = levels, cmap=cmap)
 
         if scatter_array is not None:
             plt.scatter(scatter_array[:,0],scatter_array[:,1])
 
         plt.plot(self.speed_vect, self.f_max_rq(self.speed_vect) , 'k')
         #plt.plot(self.EM_w_list,self.EM_T_max_list , 'k')
-        cbar =plt.colorbar(ax1)
+
+        fig1.subplots_adjust(right=0.83)
+        cbar_ax = fig1.add_axes([0.88, 0.12, 0.03, 0.75])
+        cbar =plt.colorbar(ax1, cax=cbar_ax)
         cbar.ax.locator_params(nbins=5)
         #plt.show()
         return fig1
@@ -139,7 +150,7 @@ class ElMotor_torch():
         return self.tq_limit[idx,1].item()
     
     def plotEffMap(self):
-        
+             
         speed_vect = np.linspace(0, self.max_speed,201)
         torque_vect = np.linspace(0, self.max_torque,151)        
          

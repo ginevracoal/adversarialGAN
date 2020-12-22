@@ -23,12 +23,10 @@ args = parser.parse_args()
 
 cart_position, cart_velocity, pole_angle, pole_ang_velocity, x_target, \
         atk_arch, def_arch, train_par, test_par, \
-        robustness_theta, robustness_dist, alpha = get_settings(args.architecture, mode="test")
+        robustness_theta, robustness_dist, \
+        alpha, safe_theta, safe_dist = get_settings(args.architecture, mode="test")
 relpath = get_relpath(main_dir="cartpole_target_"+args.architecture, train_params=train_par)
 sims_filename = get_sims_filename(args.repetitions, test_par)
-
-safe_theta = 0.2
-safe_dist = 0.5
 
 if args.dark:
     plt.style.use('utils/qb-common_dark.mplstyle')
@@ -263,7 +261,7 @@ if args.scatter is True:
 
     robustness_computer = RobustnessComputer(robustness_theta, robustness_dist, alpha)
 
-    for case in ['atk', 'pulse']:
+    for case in ['atk']:
 
         rob_dict = {case:{}, 'classic_'+case:{}}
 
@@ -306,8 +304,7 @@ if args.scatter is True:
 
 if args.plot_evolution is True:
 
-    n=317 if len(records)>=1000 else random.randrange(len(records))
-    
+    n=883 if len(records)>=1000 else random.randrange(len(records))
     # mode = 'const'
     # print(mode+" "+str(n)+":", records[n][mode]['init'])
     # plot_evolution(records[n][mode], records[n]["classic_"+mode], 'cartpole_target_evolution_'+mode+'.png')
