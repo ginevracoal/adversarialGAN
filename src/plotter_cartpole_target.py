@@ -2,6 +2,7 @@ import os
 import random
 import pickle
 import torch
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from argparse import ArgumentParser
@@ -24,7 +25,7 @@ args = parser.parse_args()
 cart_position, cart_velocity, pole_angle, pole_ang_velocity, x_target, \
         atk_arch, def_arch, train_par, test_par, \
         robustness_theta, robustness_dist, \
-        alpha, safe_theta, safe_dist = get_settings(args.architecture, mode="test")
+        alpha, safe_theta, safe_dist, norm_theta, norm_dist = get_settings(args.architecture, mode="test")
 relpath = get_relpath(main_dir="cartpole_target_"+args.architecture, train_params=train_par)
 sims_filename = get_sims_filename(args.repetitions, test_par)
 
@@ -55,34 +56,35 @@ def hist(time, const, pulse, atk, filename):
     fig.tight_layout()
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
+def scatter(sims, sims_classic, filename):
 
-def scatter(sims, sims_classic, filename, plot_differences=False):
     fig, ax = plt.subplots(2, 2, figsize=(6, 5))
     fig.tight_layout(pad=3.0)
     scatter_size=8
 
     cmap = plt.cm.get_cmap('Spectral')
-    vmax = max([max(abs(sims['rob'])), max(abs(sims_classic['rob']))])
-    vmin = -vmax
+    vmax = max([max(sims['rob']), max(sims_classic['rob']), 0.000001])
+    vmin = min([min(sims['rob']), min(sims_classic['rob']), -0.000001])
+    norm = mpl.colors.TwoSlopeNorm(vcenter=0., vmax=vmax, vmin=vmin)
 
     plt.figtext(0.48, 0.95, 'Defender controller', ha='center', va='center', weight='bold')
 
     ax[0,0].scatter(sims['x'], sims['dot_x'], c=sims['rob'], 
-                        cmap=cmap, vmin=vmin, vmax=vmax, s=scatter_size)
+                        cmap=cmap, norm=norm, s=scatter_size)
     ax[0,0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
     ax[0,1].scatter(sims['theta'], sims['dot_theta'], c=sims['rob'], 
-                        cmap=cmap, vmin=vmin, vmax=vmax, s=scatter_size)
+                        cmap=cmap, norm=norm,  s=scatter_size)
     ax[0,1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole ang. freq. ($rad/s$)')
 
     plt.figtext(0.48, 0.48, 'Classic controller', ha='center', va='center', weight='bold')
 
     ax[1,0].scatter(sims_classic['x'], sims_classic['dot_x'], c=sims_classic['rob'], 
-                        cmap=cmap, vmin=vmin, vmax=vmax, s=scatter_size)
+                        cmap=cmap, norm=norm,  s=scatter_size)
     ax[1,0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
     im = ax[1,1].scatter(sims_classic['theta'], sims_classic['dot_theta'], c=sims_classic['rob'], 
-                        cmap=cmap, vmin=vmin, vmax=vmax, s=scatter_size)
+                        cmap=cmap, norm=norm,  s=scatter_size)
     ax[1,1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole ang. freq. ($rad/s$)')
-
+    
     fig.subplots_adjust(right=0.83)
     cbar_ax = fig.add_axes([0.88, 0.14, 0.03, 0.75])
     cbar = fig.colorbar(im, ax=ax.ravel().tolist(), cax=cbar_ax)
@@ -91,33 +93,126 @@ def scatter(sims, sims_classic, filename, plot_differences=False):
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
     plt.close()
 
-    if plot_differences:
+def scatter_diff(sims, sims_classic, filename):
 
-        fig, ax = plt.subplots(1, 2, figsize=(6, 3))
-        fig.tight_layout(pad=3.0)
+    fig, ax = plt.subplots(1, 2, figsize=(6, 3))
+    fig.tight_layout(pad=3.0)
+    scatter_size=8    
 
-        robustness_differences = sims['rob']-sims_classic['rob']
-        # vmax = max(abs(robustness_differences))
-        vmax = max(robustness_differences)
-        vmin = -vmax
+    cmap = plt.cm.get_cmap('Spectral')
+    robustness_differences = sims['rob']-sims_classic['rob']
+    norm = mpl.colors.TwoSlopeNorm(vcenter=0)
 
-        ax[0].scatter(sims['x'], sims['dot_x'], 
-                        c=robustness_differences, cmap=cmap, vmin=vmin, vmax=vmax, s=scatter_size)
-        ax[0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
+    ax[0].scatter(sims['x'], sims['dot_x'], 
+                    c=robustness_differences, cmap=cmap, norm=norm, s=scatter_size)
+    ax[0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
 
-        im = ax[1].scatter(sims['theta'], sims['dot_theta'], 
-                        c=robustness_differences, cmap=cmap, vmin=vmin, vmax=vmax, s=scatter_size)
-        ax[1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole ang. freq. ($rad/s$)')
-        
-        fig.subplots_adjust(right=0.8)
-        cbar_ax = fig.add_axes([0.87, 0.22, 0.03, 0.6])
-        cbar = fig.colorbar(im, ax=ax.ravel().tolist(), cax=cbar_ax)
-        cbar.set_label('Defender rob. - Classic rob.', labelpad=-61)
-        plt.figtext(0.48, 0.9, 'Robustness difference vs initial configuration', ha='center', va='center', weight='bold')
+    im = ax[1].scatter(sims['theta'], sims['dot_theta'], 
+                    c=robustness_differences, cmap=cmap, norm=norm, s=scatter_size)
+    ax[1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole ang. freq. ($rad/s$)')
+    
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.87, 0.22, 0.03, 0.6])
+    cbar = fig.colorbar(im, ax=ax.ravel().tolist(), cax=cbar_ax)
+    cbar.set_label('Defender rob. - Classic rob.', labelpad=-61)
+    plt.figtext(0.48, 0.9, 'Robustness difference vs initial configuration', ha='center', va='center', weight='bold')
 
-        fig.savefig(os.path.join(EXP+relpath, "diff_"+filename), dpi=150)
+    fig.savefig(os.path.join(EXP+relpath, "diff_"+filename), dpi=150)
 
-def plot_evolution(def_records, cl_records, filename):
+def scatter_diff_sep(sims, sims_classic, filename):
+
+    fig, ax = plt.subplots(2, 2, figsize=(6, 5))
+    fig.tight_layout(pad=3.0)
+    scatter_size=8    
+    cmap = plt.cm.get_cmap('Spectral')
+
+    plt.figtext(0.48, 0.9, 'Rob. distance difference vs initial state', ha='center', va='center', weight='bold')
+
+    rob_dist_diff = sims['rob_dist']-sims_classic['rob_dist']
+    norm = mpl.colors.TwoSlopeNorm(vcenter=0)
+
+    ax[0,0].scatter(sims['x'], sims['dot_x'], c=rob_dist_diff, cmap=cmap, norm=norm, s=scatter_size)
+    ax[0,0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
+    im = ax[0,1].scatter(sims['theta'], sims['dot_theta'], c=rob_dist_diff, cmap=cmap, norm=norm, s=scatter_size)
+    ax[0,1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole ang. freq. ($rad/s$)')
+    
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.87, 0.52, 0.03, 0.4])
+    cbar = fig.colorbar(im, ax=ax.ravel().tolist(), cax=cbar_ax)
+    cbar.set_label('Defender rob. - Classic rob.', labelpad=-61)
+
+    plt.figtext(0.48, 0.5, 'Rob. theta difference vs initial state', ha='center', va='center', weight='bold')
+    
+    rob_theta_diff = sims['rob_theta']-sims_classic['rob_theta']
+    norm = mpl.colors.TwoSlopeNorm(vcenter=0)
+
+    ax[1,0].scatter(sims['x'], sims['dot_x'], c=rob_theta_diff, cmap=cmap, norm=norm, s=scatter_size)
+    ax[1,0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
+    im = ax[1,1].scatter(sims['theta'], sims['dot_theta'], c=rob_theta_diff, cmap=cmap, norm=norm, s=scatter_size)
+    ax[1,1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole ang. freq. ($rad/s$)')
+    
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.87, 0.12, 0.03, 0.4])
+    cbar = fig.colorbar(im, ax=ax.ravel().tolist(), cax=cbar_ax)
+    cbar.set_label('Defender rob. - Classic rob.', labelpad=-61)
+
+    fig.savefig(os.path.join(EXP+relpath, "diff_sep_"+filename), dpi=150)
+
+def scatter_full(sims, sims_classic, filename):
+    fig, ax = plt.subplots(3, 2, figsize=(6, 7))
+    fig.tight_layout(pad=3.0)
+    scatter_size=8
+
+    cmap = plt.cm.get_cmap('Spectral')
+    vmax = max([max(sims['rob']), max(sims_classic['rob']), 0.000001])
+    vmin = min([min(sims['rob']), min(sims_classic['rob']), -0.000001])
+    norm = mpl.colors.TwoSlopeNorm(vcenter=0, vmax=vmax, vmin=vmin)
+
+    plt.figtext(0.48, 0.95, 'Defender controller', ha='center', va='center', weight='bold')
+
+    ax[0,0].scatter(sims['x'], sims['dot_x'], c=sims['rob'], 
+                        cmap=cmap, norm=norm, s=scatter_size)
+    ax[0,0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
+    ax[0,1].scatter(sims['theta'], sims['dot_theta'], c=sims['rob'], 
+                        cmap=cmap, norm=norm, s=scatter_size)
+    ax[0,1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole ang. freq. ($rad/s$)')
+
+    plt.figtext(0.48, 0.64, 'Classic controller', ha='center', va='center', weight='bold')
+
+    ax[1,0].scatter(sims_classic['x'], sims_classic['dot_x'], c=sims_classic['rob'], 
+                        cmap=cmap, norm=norm, s=scatter_size)
+    ax[1,0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
+    im = ax[1,1].scatter(sims_classic['theta'], sims_classic['dot_theta'], c=sims_classic['rob'], 
+                        cmap=cmap, norm=norm, s=scatter_size)
+    ax[1,1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole ang. freq. ($rad/s$)')
+
+    fig.subplots_adjust(right=0.83)
+    cbar_ax = fig.add_axes([0.88, 0.42, 0.03, 0.5])
+    cbar = fig.colorbar(im, ax=ax.ravel().tolist(), cax=cbar_ax)
+    cbar.set_label('robustness', labelpad=-55)
+
+    plt.figtext(0.48, 0.32, 'Defender rob. - Classic rob.', ha='center', va='center', weight='bold')
+
+    robustness_differences = sims['rob']-sims_classic['rob']
+    norm = mpl.colors.TwoSlopeNorm(vcenter=0)
+
+    ax[2,0].scatter(sims['x'], sims['dot_x'], 
+                    c=robustness_differences, cmap=cmap, norm=norm, s=scatter_size)
+    ax[2,0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
+
+    im = ax[2,1].scatter(sims['theta'], sims['dot_theta'], 
+                    c=robustness_differences, cmap=cmap, norm=norm, s=scatter_size)
+    ax[2,1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole ang. freq. ($rad/s$)')
+    
+    fig.subplots_adjust(right=0.83)
+    cbar_ax = fig.add_axes([0.88, 0.1, 0.03, 0.2])
+    cbar = fig.colorbar(im, ax=ax.ravel().tolist(), cax=cbar_ax)
+    cbar.set_label('robustness difference', labelpad=-60)
+
+    fig.savefig(os.path.join(EXP+relpath, "full_"+filename), dpi=150)
+    plt.close()
+
+def plot_evolution_full(def_records, cl_records, filename):
 
     plt.style.use('seaborn')
     cmap = plt.cm.get_cmap('Spectral', 512)
@@ -207,7 +302,7 @@ def plot_evolution_classic(cl_records, filename):
     fig.tight_layout()
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
-def plot_evolution_pulse(def_records, cl_records, filename):
+def plot_evolution_fixed_env(def_records, cl_records, filename):
 
     plt.style.use('seaborn')
     cmap = plt.cm.get_cmap('Spectral', 512)
@@ -259,14 +354,17 @@ if args.scatter is True:
 
     size = len(records)
 
-    robustness_computer = RobustnessComputer(robustness_theta, robustness_dist, alpha)
+    robustness_computer = RobustnessComputer(formula_theta=robustness_theta, formula_dist=robustness_dist, 
+        alpha=alpha, norm_theta=norm_theta, norm_dist=norm_dist)
 
-    for case in ['atk']:
+    for env in ['atk']:
 
-        rob_dict = {case:{}, 'classic_'+case:{}}
+        rob_dict = {env:{}, 'classic_'+env:{}}
 
-        for mode in [case, 'classic_'+case]:
+        for mode in [env, 'classic_'+env]:
 
+            rob_dist_array = np.zeros(size)
+            rob_theta_array = np.zeros(size)
             robustness_array = np.zeros(size)
             cart_pos_array = np.zeros(size)
             pole_ang_array = np.zeros(size)
@@ -277,47 +375,53 @@ if args.scatter is True:
 
                 trace_theta = torch.tensor(records[i][mode]['sim_theta'])
                 trace_dist = torch.tensor(records[i][mode]['sim_dist'])
-                rob_theta = robustness_computer.dqs_theta.compute(theta=trace_theta)
-                rob_dist = robustness_computer.dqs_dist.compute(dist=trace_dist)
+                rob_theta = robustness_computer.dqs_theta.compute(theta=trace_theta, k=0)/norm_theta
+                rob_dist = robustness_computer.dqs_dist.compute(dist=trace_dist, k=0)/norm_dist
                 robustness = alpha*rob_dist+(1-alpha)*rob_theta
-
                 cart_pos = records[i][mode]['init']['x'] 
                 pole_ang = records[i][mode]['init']['theta'] 
                 cart_vel = records[i][mode]['init']['dot_x'] 
                 pole_ang_vel = records[i][mode]['init']['dot_theta'] 
 
+                rob_dist_array[i] = rob_dist
+                rob_theta_array[i] = rob_theta
                 robustness_array[i] = robustness
                 cart_pos_array[i] = cart_pos
                 pole_ang_array[i] = pole_ang
                 cart_vel_array[i] = cart_vel
                 pole_ang_vel_array[i] = pole_ang_vel
 
+            rob_dict[mode]['rob_dist'] = rob_dist_array
+            rob_dict[mode]['rob_theta'] = rob_theta_array
             rob_dict[mode]['rob'] = robustness_array
             rob_dict[mode]['x'] = cart_pos_array
             rob_dict[mode]['theta'] = pole_ang_array
             rob_dict[mode]['dot_x'] = cart_vel_array
             rob_dict[mode]['dot_theta'] = pole_ang_vel_array
 
-        scatter(rob_dict[case], rob_dict['classic_'+case], 'cartpole_target_'+case+'_robustness_scatterplot.png',
-                plot_differences=True)
+        filename = 'cartpole_target_'+env+'_robustness_scatterplot.png'
+        scatter(rob_dict[env], rob_dict['classic_'+env], filename)
+        scatter_diff(rob_dict[env], rob_dict['classic_'+env], filename)
+        scatter_full(rob_dict[env], rob_dict['classic_'+env], filename)
 
 
 if args.plot_evolution is True:
 
-    n=883 if len(records)>=1000 else random.randrange(len(records))
+    n=560 if len(records)>=1000 else random.randrange(len(records))
     # mode = 'const'
     # print(mode+" "+str(n)+":", records[n][mode]['init'])
     # plot_evolution(records[n][mode], records[n]["classic_"+mode], 'cartpole_target_evolution_'+mode+'.png')
 
     mode = 'atk'
     print(mode+" "+str(n)+":", records[n][mode]['init'])
-    plot_evolution_classic(records[n]["classic_"+mode], 'cartpole_target_evolution_'+mode+'.png')
+    plot_evolution_full(records[n][mode], records[n]["classic_"+mode], 'cartpole_target_evolution_'+mode+'_full.png')
+    plot_evolution_classic(records[n]["classic_"+mode], 'cartpole_target_evolution_'+mode+'_classic.png')
 
-    n=88 if len(records)>=1000 else random.randrange(len(records))
+    n=280 if len(records)>=1000 else random.randrange(len(records))
 
     mode = "pulse"
     print(mode+" "+str(n)+":", records[n][mode]['init'])
-    plot_evolution_pulse(records[n][mode], records[n]["classic_"+mode], 'cartpole_target_evolution_'+mode+'.png')
+    plot_evolution_fixed_env(records[n][mode], records[n]["classic_"+mode], 'cartpole_target_evolution_'+mode+'_fixed.png')
 
 if args.hist is True:
 

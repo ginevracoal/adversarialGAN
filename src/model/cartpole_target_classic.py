@@ -11,7 +11,7 @@ class Environment_signal():
         self.test_steps = test_steps
         self.x_target = self.eps = self.x = self.duration = 0
 
-        self.reference_speed_factor = 1. 
+        self.reference_speed_factor = 2. 
 
         phi= np.random.normal(0.5, 0.5, 4)
         phi_1 = np.pi/4*(phi[0]-0.5)

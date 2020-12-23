@@ -17,7 +17,6 @@ GAMMA=0.2
 
 torch.set_default_tensor_type(torch.DoubleTensor)
 
-
 class Attacker(nn.Module):
     """ NN architecture for the attacker """
     def __init__(self, model, n_hidden_layers, layer_size, n_coeff, noise_size):

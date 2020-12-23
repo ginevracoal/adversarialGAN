@@ -4,7 +4,6 @@ from utils.diffquantitative import DiffQuantitativeSemantic
 
 DEBUG=False
 FRICTION=True
-# ALPHA=0.5
 K=10
 
 class CartPole():
@@ -27,7 +26,7 @@ class CartPole():
         self._max_theta = 1.5
         self._max_dot_x = 10
         self._max_dot_theta = 10
-        self._max_dot_eps=1. 
+        self._max_dot_eps=5. #1. 
         self._max_mu=1.
         self._max_action=30
 
@@ -240,16 +239,18 @@ class Model:
         self.traces = {'theta': [], 'dist':[]}
 
 class RobustnessComputer:
-    def __init__(self, formula_theta, formula_dist, alpha):
+    def __init__(self, formula_theta, formula_dist, alpha, norm_theta, norm_dist):
         self.dqs_theta = DiffQuantitativeSemantic(formula_theta)
         self.dqs_dist = DiffQuantitativeSemantic(formula_dist)
         self.alpha=alpha
+        self.norm_theta=norm_theta
+        self.norm_dist=norm_dist
 
-    def compute(self, model):
+    def compute(self, model, k=-10):
         """ Computes robustness for the given trace """
-        theta = model.traces['theta'][-K:]
-        dist = model.traces['dist'][-K:]
-        rob_theta = self.dqs_theta.compute(theta=torch.cat(theta))/1.5
-        rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))/30.
+        theta = model.traces['theta'][k:]
+        dist = model.traces['dist'][k:]
+        rob_theta = self.dqs_theta.compute(theta=torch.cat(theta))/self.norm_theta
+        rob_dist = self.dqs_dist.compute(dist=torch.cat(dist))/self.norm_dist
 
         return self.alpha*rob_dist+(1-self.alpha)*rob_theta

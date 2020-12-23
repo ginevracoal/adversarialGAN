@@ -20,7 +20,7 @@ args = parser.parse_args()
 cart_position, cart_velocity, pole_angle, pole_ang_velocity, x_target, \
         atk_arch, def_arch, train_par, test_par, \
         robustness_theta, robustness_dist, \
-        alpha, safe_theta, safe_dist = get_settings(args.architecture, mode="test")
+        alpha, safe_theta, safe_dist, norm_theta, norm_dist = get_settings(args.architecture, mode="test")
 
 relpath = get_relpath(main_dir="cartpole_target_"+args.architecture, train_params=train_par)
 sims_filename = get_sims_filename(args.repetitions, test_par)
@@ -37,10 +37,9 @@ load_models(attacker, defender, EXP+relpath)
 # env_signal_class = Environment_signal(test_par["test_steps"])
 # environment_signal = env_signal_class.get_signal(dt=test_par["dt"])
 
-
 def fixed_leader(t):
-    dot_eps = torch.tanh(torch.sin(t-1)**2-torch.cos(t+3))#*0.5
-    mu = torch.sigmoid(torch.sin(t+2)-torch.cos(t)**2)*0.1
+    dot_eps = torch.tanh(torch.sin(t)**2-15*torch.cos(t))
+    mu = torch.sigmoid(torch.sin(t/3)+torch.cos(t)+0.5)
     return dot_eps, mu
 
 def run(random_init, mode, classic_control=False):

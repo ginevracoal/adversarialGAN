@@ -13,13 +13,13 @@ args = parser.parse_args()
 cart_position, cart_velocity, pole_angle, pole_ang_velocity, x_target, \
         atk_arch, def_arch, train_par, test_par, \
         robustness_theta, robustness_dist, \
-        alpha, safe_theta, safe_dist = get_settings(args.architecture, mode="train")
+        alpha, safe_theta, safe_dist, norm_theta, norm_dist = get_settings(args.architecture, mode="train")
 relpath = get_relpath(main_dir="cartpole_target_"+args.architecture, train_params=train_par)
 
 pg = ParametersHyperparallelepiped(cart_position, cart_velocity, pole_angle, 
                                         pole_ang_velocity, x_target)
 physical_model = Model(pg.sample())
-robustness_computer = RobustnessComputer(robustness_theta, robustness_dist, alpha)
+robustness_computer = RobustnessComputer(robustness_theta, robustness_dist, alpha, norm_theta, norm_dist)
 
 attacker = Attacker(physical_model, *atk_arch.values())
 defender = Defender(physical_model, *def_arch.values())
