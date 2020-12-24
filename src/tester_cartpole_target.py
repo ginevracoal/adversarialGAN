@@ -96,9 +96,6 @@ def run(random_init, mode, classic_control=False):
                 physical_model.cartpole.computeControlSignals(st[:4], x_target=st[4])
                 agent_input = torch.tensor(physical_model.cartpole.get_ctrl_signal())
 
-                if physical_model.cartpole.is_unstable():
-                    break
-
             else:
                 agent_input = defender(oa)
 

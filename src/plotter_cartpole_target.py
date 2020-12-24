@@ -455,3 +455,25 @@ if args.hist is True:
     atk_pct = atk_pct / size
 
     hist(time, const_pct, pulse_pct, atk_pct, 'cartpole_target_pct_histogram.png')
+    
+    
+def save_results_for_cl_ctrl(n_list):
+    
+    import pickle
+    
+    save_dict = {}
+    
+    print(f'chosen simulations: {n_list}')
+    #n = np.random.randint(len(records))
+    
+    for i in n_list:
+        cl_records = records[i]["classic_" + mode]
+        init_cond = np.array([ cl_records['sim_x'][0] , cl_records['sim_dot_x'][0]  , cl_records['sim_theta'][0]  , cl_records['sim_dot_theta'][0] ])
+        save_dict[i] = (cl_records['sim_x_target'], cl_records['sim_env_mu'], init_cond)
+
+    with open('test_case.npy', 'wb') as f:
+        pickle.dump(save_dict,f)
+        #np.save(f, save_dict)
+
+n_list = random.sample(range(len(records)), 10)            
+save_results_for_cl_ctrl(n_list)

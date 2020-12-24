@@ -59,15 +59,16 @@ class CartPole_classic(CartPole):
 
     def __init__(self, Q = np.diag([1,1,1,1]), R = 1):
         super(CartPole_classic, self).__init__()
+        
+        self.L = self.lpole/2
     
         # cartpole params
         self.d1 = 0.0
         self.d2 = 0.0
         
+        # CONTROL OPTIONS FROM HERE ON        
         # force max
-        self.force_max = 30 #3*(self.mpole + self.mcart)
-        #self.input_dynamics = False
-        #self.force_dynamics = DiscreteLowPassFilter()
+        self.force_max = 8*(self.mpole + self.mcart)
 
         # LQR controller params
         self.ctrl_LQR_max = self.force_max*0.55
@@ -77,42 +78,35 @@ class CartPole_classic(CartPole):
         self.R = R
 
         # proportional x controller parameters
+        self.Kv  = 40
+        self.Kp  = 10
+        self.x0_old = 0
+        self.dt = 0.05
         self.correct_x = True
         self.ctrl_Kp_max = self.force_max*0.65
-        self.u_Kp_correction = 0
-        self.Kp_multiplier =  self.force_max/10 #2
 
         # robust SMC parameters
+        self.smc_band_params = [0.1,0.6]
         self.SMC_control = True
         self.u_SMC = 0
-        self.alpha_sliding = 3.5
-        self.K_smc = self.force_max*2
-
-        # instability flag (to stop simulation)
-        self.unstable_system = False
+        self.alpha_sliding = 1
+        self.K_smc = self.force_max
 
         # initialize linearized system A,B
         self.update_A_B()
         #self.reset_store(np.array([0,0,0,0]))
         
-        # used in noise adder
-        self.old_state = None
-        
-        #debugging tools
-        self.state_archive = None
 
-    def is_unstable(self):
-        return self.unstable_system
     
     def update_A_B(self):
-        _q = (self.mpole+self.mcart) * self.gravity / (self.mcart*self.lpole)
+        _q = (self.mpole+self.mcart) * self.gravity / (self.mcart*self.L)
         self.A = np.array([\
                     [0,1,0,0], \
                     [0,-self.d1, -self.gravity*self.mpole/self.mcart,0],\
                     [0,0,0,1.],\
-                    [0,self.d1/self.lpole,_q,-self.d2] ] )
+                    [0,self.d1/self.L,_q,-self.d2] ] )
 
-        self.B = np.expand_dims( np.array( [0, 1.0/self.mcart, 0., -1/(self.mcart*self.lpole)] ) , 1 ) # 4x1
+        self.B = np.expand_dims( np.array( [0, 1.0/self.mcart, 0., -1/(self.mcart*self.L)] ) , 1 ) # 4x1
         
     def get_ctrl_signal(self, split_components = False):
        
@@ -124,15 +118,10 @@ class CartPole_classic(CartPole):
         if self.correct_x:
             ctrl += self.u_Kp_correction
         
-        #if self.input_dynamics:
-        #    ctrl_out = self.force_dynamics.applyFilter(ctrl)
-        #else:
-        ctrl_out = ctrl
-        
         if split_components:
             return np.array([self.u_LQR_ctrl, self.u_Kp_correction, self.u_SMC])[np.newaxis,:]
         else:
-            return np.array([np.clip(ctrl_out,-self.force_max ,self.force_max)])
+            return np.array([np.clip(ctrl,-self.force_max ,self.force_max)])
 
     def computeControlSignals(self, state, x_target=0):
         self.SMC_law(state)
@@ -151,54 +140,43 @@ class CartPole_classic(CartPole):
         """
         return np.clip(signal, -max_value, max_value)
         
+    
+    ############################################################
     def SMC_law(self, state):
-        
         if self.SMC_control:
            #z = odeint(ode_fun, self.state_z, delta_t)
-            zero_action_bound = 0.1
-            saturation_init = 1.5
-            
+            zero_action_bound = 0.1#5
+            saturation_init = .6 #1.5
             sigma = state[2]*self.alpha_sliding + state[3]
             
             control_action = 0
             if abs(sigma) > zero_action_bound:
                 if abs(sigma)> saturation_init:
-                    control_action = np.sign(sigma);
+                    control_action = np.sign(sigma)
                 else:
-                    control_action = np.sign(sigma)*(abs(sigma)-zero_action_bound)/(saturation_init-zero_action_bound);
-
+                    control_action = np.sign(sigma)*(abs(sigma)-zero_action_bound)/(saturation_init-zero_action_bound)
             self.u_SMC  = control_action *self.K_smc
-        
         return self.u_SMC 
-
-    def Kp_x_law(self, state, x0 = 0):  
-        """ proportional control for x correction
-        """
+   
     
-        if self.correct_x:
-            err_x = x0 - state[0]
-                    #self.max_err = 2.5
-            Kp = 10
-            #err_x = np.clip(x0 - state[0], -self.max_err, self.max_err)  
-            x_thd = .2
-            Kp_min = 5
+    def Kp_x_law(self, state, x0 = 0):  
+        """proportional control for x correction"""    
+        dot_x_ref_est = (x0 - self.x0_old) / self.dt
+
+        err_v = dot_x_ref_est - state[1]
+        err_x = x0 - state[0]
             
-            if abs(err_x) <x_thd:
-                Kp = Kp_min + (Kp-Kp_min)*abs(err_x)/x_thd
-            Kp *= self.Kp_multiplier
-                        
-            self.u_Kp_correction =  self.saturate(-Kp * err_x , self.ctrl_Kp_max)
+        self.u_Kp_correction =  self.saturate(-self.Kp * err_x -self.Kv * err_v, self.ctrl_Kp_max)
+        self.x0_old = x0
             
         return self.u_Kp_correction
 
-    def LQR_law(self, state_in, x0):
-        """ LQR control law
-        """
+
+    def LQR_law(self, state_in, x0, Q=np.eye(4), R=1 ):
+        """ LQR control law """
         state = state_in.copy()
         if self.K is None:
-            # K : State feedback for stavility
-
-            K, X, eigVals = lqr (self.A, self.B, self.Q, self.R )
+            K, X, eigVals = lqr (self.A, self.B, Q, R )
             self.K = K
         
         theta_max = 0.1
@@ -206,9 +184,6 @@ class CartPole_classic(CartPole):
         
         LQR_ctrl = -np.matmul( self.K , state - np.array([x0,0,0,0]) )[0,0]   
         self.u_LQR_ctrl =  self.saturate(LQR_ctrl, self.ctrl_LQR_max)
-        
-        if  abs(state[2])>np.pi/2  :
-            self.unstable_system = True
             
         return self.u_LQR_ctrl
 
