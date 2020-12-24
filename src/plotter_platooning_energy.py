@@ -3,6 +3,7 @@ import torch
 import random
 import pickle
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from argparse import ArgumentParser
@@ -22,13 +23,8 @@ parser.add_argument("--dark", default=False, type=eval, help="Use dark theme")
 args = parser.parse_args()
 
 agent_position, agent_velocity, leader_position, leader_velocity, \
-            atk_arch, def_arch, train_par, test_par, \
-            robustness_dist, robustness_power = get_settings(args.architecture, mode="train")
-
-safe_dist1 = 2
-safe_dist2 = 10
-safe_power = 10
-alpha = 0.7
+    atk_arch, def_arch, train_par, test_par, robustness_dist, robustness_power, \
+    safe_dist_lower, safe_dist_upper, safe_power, alpha = get_settings(args.architecture, mode="test")
 
 relpath = get_relpath(main_dir="platooning_energy_"+args.architecture, train_params=train_par)
 sims_filename = get_sims_filename(args.repetitions, test_par)
@@ -63,11 +59,12 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array,
     fig, ax = plt.subplots(1, 2, figsize=(6, 3))
     fig.tight_layout(pad=3.0)
 
-    vmax = max(max(abs(cl_robustness_array)), max(abs(robustness_array)))
-    vmin = -vmax
+    vmax = max(max(cl_robustness_array), max(robustness_array))
+    vmin = min(min(cl_robustness_array), min(robustness_array))
+    norm = mpl.colors.TwoSlopeNorm(vcenter=0, vmax=vmax, vmin=vmin)
 
     im = ax[0].scatter(cl_delta_vel_array, cl_delta_pos_array, c=cl_robustness_array, 
-                         cmap=cmap, vmin=vmin, vmax=vmax, s=8)
+                         cmap=cmap, norm=norm, s=8)
     # ax[0].set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
     ax[0].set_title('Classic follower robustness', weight='bold', size=10, pad=8)
     # plt.colorbar(im, ax=ax[0])
@@ -75,7 +72,7 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array,
     vmax = max(abs(robustness_array))
     vmin = -vmax
 
-    im = ax[1].scatter(delta_vel_array, delta_pos_array, c=robustness_array, cmap=cmap, vmin=vmin, vmax=vmax, s=8)
+    im = ax[1].scatter(delta_vel_array, delta_pos_array, c=robustness_array, cmap=cmap, norm=norm, s=8)
     # ax[1].set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
     ax[1].set_title('Defender follower robustness', weight='bold', size=10, pad=8)
     # plt.colorbar(im, ax=ax[1])
@@ -97,11 +94,9 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array,
         fig.tight_layout(pad=3.0)
 
         robustness_differences = robustness_array - cl_robustness_array
-        vmax = max(abs(robustness_differences))
-        vmin = -vmax
+        norm = mpl.colors.TwoSlopeNorm(vcenter=0)
 
-        ax.scatter(delta_vel_array, delta_pos_array, c=robustness_differences, 
-                        cmap=cmap, vmin=vmin, vmax=vmax, s=8)
+        ax.scatter(delta_vel_array, delta_pos_array, c=robustness_differences, cmap=cmap, norm=norm, s=8)
         ax.set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
 
         fig.subplots_adjust(right=0.83)
@@ -112,7 +107,7 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array,
 
         fig.savefig(os.path.join(EXP+relpath, "diff_"+filename), dpi=150)
 
-def plot_evolution(def_records, cl_records, filename):
+def plot_evolution_full(def_records, cl_records, filename):
 
     plt.style.use('seaborn')
     cmap = plt.cm.get_cmap('Spectral', 512)
@@ -135,8 +130,8 @@ def plot_evolution(def_records, cl_records, filename):
     ax[1].plot(def_records['sim_t'], def_records['sim_ag_dist'], color=def_col)
     ax[1].plot(cl_records['sim_t'], cl_records['sim_ag_dist'], color=cl_col)
     ax[1].set(ylabel=r'distance ($m$)')
-    ax[1].axhline(safe_dist1, ls='--', label='safe distance', color=safe_col, lw=lw)
-    ax[1].axhline(safe_dist2, ls='--', color=safe_col, lw=lw)
+    ax[1].axhline(safe_dist_lower, ls='--', label='safe distance', color=safe_col, lw=lw)
+    ax[1].axhline(safe_dist_upper, ls='--', color=safe_col, lw=lw)
 
     ax[2].plot(def_records['sim_t'], def_records['sim_ag_e_torque'], color=def_col)
     ax[2].plot(def_records['sim_t'], def_records['sim_env_e_torque'], color=def_atk_col, lw=lw)
@@ -187,8 +182,8 @@ def plot_evolution_classic(cl_records, filename):
 
     ax[1].plot(cl_records['sim_t'], cl_records['sim_ag_dist'], color=cl_col)
     ax[1].set(ylabel=r'distance ($m$)')
-    ax[1].axhline(safe_dist1, ls='--', label='safe distance', color=safe_col, lw=lw)
-    ax[1].axhline(safe_dist2, ls='--', color=safe_col, lw=lw)
+    ax[1].axhline(safe_dist_lower, ls='--', label='safe distance', color=safe_col, lw=lw)
+    ax[1].axhline(safe_dist_upper, ls='--', color=safe_col, lw=lw)
 
     ax[2].plot(cl_records['sim_t'], cl_records['sim_ag_e_torque'], color=cl_col)
     ax[2].plot(cl_records['sim_t'], cl_records['sim_env_e_torque'], color=cl_atk_col)
@@ -228,31 +223,29 @@ def plot_evolution_fixed_env(def_records, cl_records, filename):
     
     fig, ax = plt.subplots(5, 1, figsize=(6, 9))
 
-    print(def_records['sim_env_pos'])
-
     ax[0].plot(def_records['sim_t'], def_records['sim_ag_pos'], label='defender follower', color=def_col)
     ax[0].plot(cl_records['sim_t'], cl_records['sim_ag_pos'], label='classic follower', color=cl_col)
     ax[0].plot(def_records['sim_t'], def_records['sim_env_pos'], color=def_atk_col, lw=lw)
     ax[0].plot(cl_records['sim_t'], cl_records['sim_env_pos'], label='leader', color=cl_atk_col, lw=lw)
     ax[0].set(ylabel=r'car position ($m$)')
 
-    ax[1].plot(def_records['sim_t'], def_records['sim_ag_e_torque'], color=def_col)
-    ax[1].plot(cl_records['sim_t'], cl_records['sim_ag_e_torque'], color=cl_col)
-    ax[1].plot(def_records['sim_t'], def_records['sim_env_e_torque'], color=def_atk_col, lw=lw)
-    ax[1].plot(cl_records['sim_t'], cl_records['sim_env_e_torque'], color=cl_atk_col, lw=lw)
-    ax[1].set(ylabel=r'e_torque ($N \cdot m$)')
+    ax[1].plot(def_records['sim_t'], def_records['sim_ag_dist'], color=def_col)
+    ax[1].plot(cl_records['sim_t'], cl_records['sim_ag_dist'], color=cl_col)
+    ax[1].set(ylabel=r'distance ($m$)')
+    ax[1].axhline(safe_dist_lower, ls='--', label='safe distance', color=safe_col, lw=lw)
+    ax[1].axhline(safe_dist_upper, ls='--', color=safe_col, lw=lw)
 
-    ax[2].plot(def_records['sim_t'], def_records['sim_ag_br_torque'], color=def_col)
-    ax[2].plot(cl_records['sim_t'], cl_records['sim_ag_br_torque'], color=cl_col)
-    ax[2].plot(def_records['sim_t'], def_records['sim_env_br_torque'], color=def_atk_col, lw=lw)
-    ax[2].plot(cl_records['sim_t'], cl_records['sim_env_br_torque'], color=cl_atk_col, lw=lw)
-    ax[2].set(ylabel=r'br_torque ($N \cdot m$)')
+    ax[2].plot(def_records['sim_t'], def_records['sim_ag_e_torque'], color=def_col)
+    ax[2].plot(cl_records['sim_t'], cl_records['sim_ag_e_torque'], color=cl_col)
+    ax[2].plot(def_records['sim_t'], def_records['sim_env_e_torque'], color=def_atk_col, lw=lw)
+    ax[2].plot(cl_records['sim_t'], cl_records['sim_env_e_torque'], color=cl_atk_col, lw=lw)
+    ax[2].set(ylabel=r'e_torque ($N \cdot m$)')
 
-    ax[3].plot(def_records['sim_t'], def_records['sim_ag_dist'], color=def_col)
-    ax[3].plot(cl_records['sim_t'], cl_records['sim_ag_dist'], color=cl_col)
-    ax[3].set(ylabel=r'distance ($m$)')
-    ax[3].axhline(safe_dist1, ls='--', label='safe distance', color=safe_col, lw=lw)
-    ax[3].axhline(safe_dist2, ls='--', color=safe_col, lw=lw)
+    ax[3].plot(def_records['sim_t'], def_records['sim_ag_br_torque'], color=def_col)
+    ax[3].plot(cl_records['sim_t'], cl_records['sim_ag_br_torque'], color=cl_col)
+    ax[3].plot(def_records['sim_t'], def_records['sim_env_br_torque'], color=def_atk_col, lw=lw)
+    ax[3].plot(cl_records['sim_t'], cl_records['sim_env_br_torque'], color=cl_atk_col, lw=lw)
+    ax[3].set(ylabel=r'br_torque ($N \cdot m$)')
 
     ax[4].plot(def_records['sim_t'], def_records['sim_ag_power'], color=def_col)
     ax[4].plot(cl_records['sim_t'], cl_records['sim_ag_power'], color=cl_col)
@@ -274,7 +267,7 @@ def plot_evolution_fixed_env(def_records, cl_records, filename):
 if args.scatter:
     size = len(records)
 
-    robustness_computer = RobustnessComputer(robustness_dist, robustness_power)
+    robustness_computer = RobustnessComputer(robustness_dist, robustness_power, alpha)
 
     robustness_array = np.zeros(size)
     delta_pos_array = np.zeros(size)
@@ -290,8 +283,8 @@ if args.scatter:
             delta_vel = records[i][mode]['init']['env_vel'] - records[i][mode]['init']['ag_vel']
             trace_dist = torch.tensor(records[i][mode]['sim_ag_dist'])
             trace_power = torch.tensor(records[i][mode]['sim_ag_power'])
-            rob_dist = robustness_computer.dqs_dist.compute(dist=trace_dist)
-            rob_power = robustness_computer.dqs_power.compute(power=trace_power)
+            rob_dist = robustness_computer.dqs_dist.compute(dist=trace_dist, k=-150)
+            rob_power = robustness_computer.dqs_power.compute(power=trace_power, k=-150)
             robustness = rob_dist
             # robustness = alpha*rob_dist+(1-alpha)*rob_power
             robustness_array[i] = robustness
@@ -302,8 +295,8 @@ if args.scatter:
             cl_delta_vel = records[i]['classic_'+mode]['init']['env_vel']-records[i]['classic_'+mode]['init']['ag_vel']
             cl_trace_dist = torch.tensor(records[i]['classic_'+mode]['sim_ag_dist'])
             cl_trace_power = torch.tensor(records[i]['classic_'+mode]['sim_ag_power'])
-            cl_rob_dist = robustness_computer.dqs_dist.compute(dist=cl_trace_dist)
-            cl_rob_power = robustness_computer.dqs_power.compute(power=cl_trace_power)
+            cl_rob_dist = robustness_computer.dqs_dist.compute(dist=cl_trace_dist, k=-150)
+            cl_rob_power = robustness_computer.dqs_power.compute(power=cl_trace_power, k=-150)
             cl_robustness = cl_rob_dist
             # cl_robustness = alpha*cl_rob_dist+(1-alpha)*cl_rob_power
             cl_robustness_array[i] = cl_robustness
@@ -317,18 +310,18 @@ if args.scatter:
 if args.plot_evolution:
 
     n=828 if len(records)>=1000 else random.randrange(len(records))
-
     # mode = 'const'
     # print(mode+" "+str(n)+":", records[n][mode]['init'])
-    # plot_evolution(records[n][mode], records[n]["classic_"+mode], 'platooning_energy_evolution_'+mode+'.png')
+    # plot_evolution_full(records[n][mode], records[n]["classic_"+mode], 'platooning_energy_evolution_'+mode+'_full.png')
 
     mode='atk'
     print(mode+" "+str(n)+":", records[n][mode]['init'])    
-    plot_evolution_classic(records[n]["classic_"+mode], 'platooning_energy_evolution_'+mode+'.png')
+    plot_evolution_classic(records[n]["classic_"+mode], 'platooning_energy_evolution_'+mode+'_classic.png')
+    plot_evolution_full(records[n][mode], records[n]["classic_"+mode], 'platooning_energy_evolution_'+mode+'_full.png')
 
     mode='pulse'
     print(mode+" "+str(n)+":", records[n][mode]['init'])
-    plot_evolution_fixed_env(records[n][mode], records[n]["classic_"+mode], 'platooning_energy_evolution_'+mode+'.png')
+    plot_evolution_fixed_env(records[n][mode], records[n]["classic_"+mode], 'platooning_energy_evolution_'+mode+'_fixed.png')
 
 if args.hist:
     size = len(records)
@@ -338,7 +331,7 @@ if args.hist:
 
     # robustness = lambda dist,power: alpha*np.logical_and(dist >= safe_dist1, dist <= safe_dist2)+\
     #                                 (1-alpha)*np.logical_and(power <= safe_power, power >= safe_power)
-    robustness = lambda dist: np.logical_and(dist >= safe_dist1, dist <= safe_dist2)
+    robustness = lambda dist: np.logical_and(dist >= safe_dist_lower, dist <= safe_dist_upper)
 
     for i in range(size):
 

@@ -18,8 +18,9 @@ parser.add_argument("--architecture", type=str, default="default", help="archite
 args = parser.parse_args()
 
 agent_position, agent_velocity, leader_position, leader_velocity, \
-        atk_arch, def_arch, train_par, test_par, \
-        robustness_dist, robustness_power = get_settings(args.architecture, mode="test")
+            atk_arch, def_arch, train_par, test_par, robustness_dist, robustness_power, \
+            safe_dist_lower, safe_dist_upper, safe_power, alpha = get_settings(args.architecture, mode="test")
+            
 relpath = get_relpath(main_dir="platooning_energy_"+args.architecture, train_params=train_par)
 sims_filename = get_sims_filename(args.repetitions, test_par)
 
@@ -35,8 +36,8 @@ load_models(attacker, defender, EXP+relpath)
 
 
 def fixed_leader(t):
-    norm_e_torque = torch.tanh(3*torch.sin(t)**2-torch.cos(t))
-    norm_br_torque = torch.sigmoid(torch.cos(t)**2-4*torch.sin(t))
+    norm_e_torque = torch.tanh(t-4)*0.2
+    norm_br_torque = torch.sigmoid(-4*torch.tanh(t/2))
     return norm_e_torque, norm_br_torque
 
 def run(random_init, mode=None, classic_control=False):
@@ -76,7 +77,7 @@ def run(random_init, mode=None, classic_control=False):
             if mode == 0:
                 atk_policy = (torch.tensor(0.0), torch.tensor(0.0))
             elif mode == 1:
-                atk_policy = fixed_leader(torch.tensor(i).double())
+                atk_policy = fixed_leader(torch.tensor(t).double())
             else:
                 atk_policy = attacker(torch.cat((z, oe)))
 
@@ -86,8 +87,6 @@ def run(random_init, mode=None, classic_control=False):
                 def_policy = defender(oa)             
         
         physical_model.step(atk_policy, def_policy, dt)
-
-        # print([atk.item() for atk in atk_policy], physical_model.environment.l_position.item())
 
         ag_e_torque, ag_br_torque, _ = physical_model.agent._car.calculate_wheels_torque(*def_policy)
         env_e_torque, env_br_torque, _ = physical_model.environment._leader_car.calculate_wheels_torque(*atk_policy)

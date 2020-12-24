@@ -14,14 +14,14 @@ parser.add_argument("--architecture", type=str, default="default", help="archite
 args = parser.parse_args()
 
 agent_position, agent_velocity, leader_position, leader_velocity, \
-            atk_arch, def_arch, train_par, test_par, \
-            robustness_dist, robustness_power = get_settings(args.architecture, mode="train")
+            atk_arch, def_arch, train_par, test_par, robustness_dist, robustness_power, \
+            safe_dist_lower, safe_dist_upper, safe_power, alpha = get_settings(args.architecture, mode="train")
 
 pg = ParametersHyperparallelepiped(agent_position, agent_velocity, 
                                     leader_position, leader_velocity)
 
 physical_model = Model(pg.sample())
-robustness_computer = RobustnessComputer(robustness_dist, robustness_power)
+robustness_computer = RobustnessComputer(robustness_dist, robustness_power, alpha)
 
 relpath = get_relpath(main_dir="platooning_energy_"+args.architecture, train_params=train_par)
 

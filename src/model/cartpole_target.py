@@ -26,7 +26,7 @@ class CartPole():
         self._max_theta = 1.5
         self._max_dot_x = 10
         self._max_dot_theta = 10
-        self._max_dot_eps=5. #1. 
+        self._max_dot_eps=5. 
         self._max_mu=1.
         self._max_action=30
 

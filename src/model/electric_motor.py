@@ -126,7 +126,7 @@ class ElMotor():
 
 class ElMotor_torch():
     
-    def __init__(self, device,net_name, path_log = os.path.abspath(os.path.dirname(__file__))):
+    def __init__(self, device, net_name, path_log = os.path.abspath(os.path.dirname(__file__))):
         self.device = device
         self.net = LinearModel('LinearModel', 0.0002, 1, 2)
         self.net.load_net_params(path_log, net_name, self.device)
@@ -146,7 +146,8 @@ class ElMotor_torch():
         return eff
         
     def getMaxTorque(self, speed):
-        idx = torch.argmax(self.tq_limit[:,0]-speed)
+        device = speed.device
+        idx = torch.argmax(self.tq_limit[:,0]-speed.to("cpu"))
         return self.tq_limit[idx,1].item()
     
     def plotEffMap(self):

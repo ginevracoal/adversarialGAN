@@ -29,8 +29,7 @@ class Car_classic(Car):
     def update(self, dt, current_distance):
 
         classic_norm_e_torque, classic_norm_br_torque = self.get_controller_input(dt, current_distance)
-        super().update(dt=dt, norm_e_torque=classic_norm_e_torque, norm_br_torque=classic_norm_br_torque, 
-                        compute_power=True)
+        super().update(dt=dt, norm_e_torque=classic_norm_e_torque, norm_br_torque=classic_norm_br_torque)
         return classic_norm_e_torque, classic_norm_br_torque
         
     def get_controller_input(self, dt, current_distance):

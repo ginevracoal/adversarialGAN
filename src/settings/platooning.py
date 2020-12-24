@@ -17,7 +17,7 @@ def get_settings(name, mode):
         
         agent_position = np.random.uniform(0, 2, 150) 
         agent_velocity = np.random.uniform(10, 15, 150) 
-        leader_position = np.random.uniform(4, 6, 150)
+        leader_position = np.random.uniform(4, 8, 150)
         leader_velocity = np.random.uniform(12, 18, 100)
 
     # ARCHITECTURE
