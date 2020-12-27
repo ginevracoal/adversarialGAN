@@ -139,7 +139,7 @@ class CartPole_classic(CartPole):
         self.LQR_law(state, x_target)
         self.Kp_x_law(state, x0 = x_target)
 
-    def update(self, dt, action, mu, dot_eps, fixed_env):
+    def update(self, dt, action, mu, dot_eps, fixed_env=True):
 
         state = [self.x.item(), self.dot_x.item(), self.theta.item(), self.dot_theta.item()]
         self.computeControlSignals(state, x_target=self.x_target)
