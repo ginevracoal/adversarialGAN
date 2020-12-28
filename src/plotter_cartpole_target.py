@@ -406,9 +406,11 @@ if args.scatter is True:
     scatter_diff(rob_dicts['atk']['atk'], rob_dicts['atk']['classic_atk'], filename)
     scatter_full(rob_dicts['atk']['atk'], rob_dicts['atk']['classic_atk'], filename)
 
-    n_atk = np.where(rob_dicts['atk']['classic_atk']['rob']==min(rob_dicts['atk']['classic_atk']['rob']))[0][0]
-    rob_diff = rob_dicts['pulse']['pulse']['rob_dist']-rob_dicts['pulse']['classic_pulse']['rob_dist']
-    n_pulse = np.where(rob_diff==max(rob_diff))[0][0]
+    n_atk = np.where(rob_dicts['atk']['classic_atk']['rob_theta']==min(rob_dicts['atk']['classic_atk']['rob_theta']))[0][0]
+    
+    rob = rob_dicts['pulse']['pulse']['rob_dist']
+    rob_cl = rob_dicts['pulse']['classic_pulse']['rob']
+    n_pulse = np.where((rob>0)&(rob_cl>0))[0][0]
 
 if args.plot_evolution is True:
 

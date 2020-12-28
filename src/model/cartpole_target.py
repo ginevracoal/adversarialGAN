@@ -50,7 +50,6 @@ class CartPole():
 
         self.x_target = torch.clamp(x_target, -self._max_x, self._max_x)
         self.dist = torch.abs(self.x-self.x_target)
-        # self.dist = self.x-self.x_target
         
         if FRICTION:
             ddot_x = f - mu*self.dot_x  \
