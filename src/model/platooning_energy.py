@@ -43,9 +43,11 @@ class Car():
     def motor_efficiency(self, e_motor_speed, e_torque):
 
         if not e_torque.shape:
-            eff = self.e_motor.getEfficiency(e_motor_speed, e_torque.unsqueeze(0))
-        else:
-            eff = self.e_motor.getEfficiency(e_motor_speed, e_torque)
+            e_torque = e_torque.unsqueeze(0)
+        if not e_motor_speed.shape:
+            e_motor_speed = e_motor_speed.unsqueeze(0)
+
+        eff = self.e_motor.getEfficiency(e_motor_speed, e_torque)
             
         if not torch.is_tensor(eff):
             eff = torch.tensor(eff)

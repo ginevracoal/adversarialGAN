@@ -28,7 +28,7 @@ pg = ParametersHyperparallelepiped(agent_position, agent_velocity,
                                     leader_position, leader_velocity)
 
 model = Model(pg.sample())
-model_classic = Model_classic(pg.sample())
+model_classic = Model_classic(pg.sample(), dist_low = safe_dist_lower, dist_high = safe_dist_upper)
 
 attacker = Attacker(model, *atk_arch.values())
 defender = Defender(model, *def_arch.values())
@@ -82,11 +82,12 @@ def run(random_init, mode=None, classic_control=False):
                 atk_policy = attacker(torch.cat((z, oe)))
 
             if classic_control is True:
-                def_policy = physical_model.agent._car.get_controller_input(dt, physical_model.agent.distance)
+                dist = physical_model.environment.l_position - physical_model.agent.position
+                def_policy = physical_model.agent._car.get_controller_input(dt, dist)
+                physical_model.step(atk_policy, dist, dt)
             else:
                 def_policy = defender(oa)             
-        
-        physical_model.step(atk_policy, def_policy, dt)
+                physical_model.step(atk_policy, def_policy, dt)
 
         ag_e_torque, ag_br_torque, _ = physical_model.agent._car.calculate_wheels_torque(*def_policy)
         env_e_torque, env_br_torque, _ = physical_model.environment._leader_car.calculate_wheels_torque(*atk_policy)
