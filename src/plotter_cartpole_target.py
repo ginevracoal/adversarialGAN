@@ -56,11 +56,12 @@ def hist(time, const, pulse, atk, filename):
     fig.tight_layout()
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)
 
+scatter_size=8
+
 def scatter(sims, sims_classic, filename):
 
     fig, ax = plt.subplots(2, 2, figsize=(6, 5))
     fig.tight_layout(pad=3.0)
-    scatter_size=8
 
     cmap = plt.cm.get_cmap('Spectral')
     vmax = max([max(sims['rob']), max(sims_classic['rob']), 0.000001])
@@ -69,10 +70,10 @@ def scatter(sims, sims_classic, filename):
 
     plt.figtext(0.48, 0.95, 'Defender controller', ha='center', va='center', weight='bold')
 
-    ax[0,0].scatter(sims['x'], sims['dot_x'], c=sims['rob'], 
+    ax[0,0].scatter(sims['x'], sims['dot_x'], c=sims['rob'],
                         cmap=cmap, norm=norm, s=scatter_size)
     ax[0,0].set(xlabel=r'cart position ($m$)', ylabel=r'cart velocity ($m/s$)')
-    ax[0,1].scatter(sims['theta'], sims['dot_theta'], c=sims['rob'], 
+    ax[0,1].scatter(sims['theta'], sims['dot_theta'], c=sims['rob'],
                         cmap=cmap, norm=norm,  s=scatter_size)
     ax[0,1].set(xlabel=r'pole angle ($rad$)', ylabel=r'pole ang. freq. ($rad/s$)')
 
@@ -97,7 +98,6 @@ def scatter_diff(sims, sims_classic, filename):
 
     fig, ax = plt.subplots(1, 2, figsize=(6, 3))
     fig.tight_layout(pad=3.0)
-    scatter_size=8    
 
     cmap = plt.cm.get_cmap('Spectral')
     robustness_differences = sims['rob']-sims_classic['rob']
@@ -123,7 +123,6 @@ def scatter_diff_sep(sims, sims_classic, filename):
 
     fig, ax = plt.subplots(2, 2, figsize=(6, 5))
     fig.tight_layout(pad=3.0)
-    scatter_size=8    
     cmap = plt.cm.get_cmap('Spectral')
 
     plt.figtext(0.48, 0.9, 'Rob. distance difference vs initial state', ha='center', va='center', weight='bold')
@@ -161,7 +160,6 @@ def scatter_diff_sep(sims, sims_classic, filename):
 def scatter_full(sims, sims_classic, filename):
     fig, ax = plt.subplots(3, 2, figsize=(6, 7))
     fig.tight_layout(pad=3.0)
-    scatter_size=8
 
     cmap = plt.cm.get_cmap('Spectral')
     vmax = max([max(sims['rob']), max(sims_classic['rob']), 0.000001])
@@ -401,15 +399,14 @@ if args.scatter is True:
             rob_dict[mode]['dot_x'] = cart_vel_array
             rob_dict[mode]['dot_theta'] = pole_ang_vel_array
 
-        filename = 'cartpole_target_'+env+'_robustness_scatterplot.png'
-        scatter(rob_dict[env], rob_dict['classic_'+env], filename)
-        scatter_diff(rob_dict[env], rob_dict['classic_'+env], filename)
-        scatter_full(rob_dict[env], rob_dict['classic_'+env], filename)
-
         rob_dicts[env] = rob_dict
 
+    filename = 'cartpole_target_atk_robustness_scatterplot.png'
+    scatter(rob_dicts['atk']['atk'], rob_dicts['atk']['classic_atk'], filename)
+    scatter_diff(rob_dicts['atk']['atk'], rob_dicts['atk']['classic_atk'], filename)
+    scatter_full(rob_dicts['atk']['atk'], rob_dicts['atk']['classic_atk'], filename)
+
     n_atk = np.where(rob_dicts['atk']['classic_atk']['rob']==min(rob_dicts['atk']['classic_atk']['rob']))[0][0]
-    # n_pulse = np.where(rob_dicts['pulse']['pulse']['rob']==max(rob_dicts['pulse']['pulse']['rob']))[0][0]
     rob_diff = rob_dicts['pulse']['pulse']['rob_dist']-rob_dicts['pulse']['classic_pulse']['rob_dist']
     n_pulse = np.where(rob_diff==max(rob_diff))[0][0]
 
@@ -478,5 +475,5 @@ def save_results_for_cl_ctrl(n_list):
         pickle.dump(save_dict,f)
         #np.save(f, save_dict)
 
-n_list = random.sample(range(len(records)), 10)            
-save_results_for_cl_ctrl(n_list)
+# n_list = random.sample(range(len(records)), 10)            
+# save_results_for_cl_ctrl(n_list)

@@ -38,9 +38,8 @@ load_models(attacker, defender, EXP+relpath)
 # environment_signal = env_signal_class.get_signal(dt=test_par["dt"])
 
 def fixed_leader(t):
-    # dot_eps = torch.tanh(torch.sin(t)**2-15*torch.cos(t))
-    dot_eps = torch.tanh(torch.sin(t/3)**2-torch.cos(t))
-    mu = torch.sigmoid(torch.sin(t/3)+torch.cos(t)+0.5)
+    dot_eps = torch.sin(t)**2
+    mu = torch.sigmoid(torch.sin(t/3)+torch.cos(t))
     return dot_eps, mu
 
 def run(random_init, mode, classic_control=False):
@@ -110,7 +109,8 @@ def run(random_init, mode, classic_control=False):
         sim_ddot_x.append(physical_model.agent.ddot_x.item())
         sim_dot_theta.append(physical_model.agent.dot_theta.item())
         sim_x_target.append(physical_model.environment.x_target.item())
-        sim_dist.append(physical_model.environment.dist.item())
+        # sim_dist.append(physical_model.environment.dist.item())
+        sim_dist.append(physical_model.agent.x.item()-physical_model.environment.x_target.item())
         sim_env_mu.append(env_input[1].item())
         sim_ag_action.append(agent_input.item())
 
