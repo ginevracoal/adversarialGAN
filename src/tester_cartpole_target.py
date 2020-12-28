@@ -38,7 +38,8 @@ load_models(attacker, defender, EXP+relpath)
 # environment_signal = env_signal_class.get_signal(dt=test_par["dt"])
 
 def fixed_leader(t):
-    dot_eps = torch.tanh(torch.sin(t)**2-15*torch.cos(t))
+    # dot_eps = torch.tanh(torch.sin(t)**2-15*torch.cos(t))
+    dot_eps = torch.tanh(torch.sin(t/3)**2-torch.cos(t))
     mu = torch.sigmoid(torch.sin(t/3)+torch.cos(t)+0.5)
     return dot_eps, mu
 

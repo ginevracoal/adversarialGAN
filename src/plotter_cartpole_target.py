@@ -252,8 +252,8 @@ def plot_evolution_full(def_records, cl_records, filename):
     ax[3].set(ylabel=r'friction coefficient')
     ax[3].legend()
 
-    ax[4].plot(cl_records['sim_t'], cl_records['sim_ag_action'], label='classic', color=cl_col)
     ax[4].plot(def_records['sim_t'], def_records['sim_ag_action'], label='defender', color=def_col)
+    ax[4].plot(cl_records['sim_t'], cl_records['sim_ag_action'], label='classic', color=cl_col)
     ax[4].set(xlabel=r'time ($s$)')
     ax[4].set(ylabel= r'cart control ($N$)')
 
@@ -342,8 +342,8 @@ def plot_evolution_fixed_env(def_records, cl_records, filename):
     ax[3].set(ylabel=r'friction coefficient')
     ax[3].legend()
 
-    ax[4].plot(cl_records['sim_t'], cl_records['sim_ag_action'], label='classic', color=cl_col)
     ax[4].plot(def_records['sim_t'], def_records['sim_ag_action'], label='defender', color=def_col)
+    ax[4].plot(cl_records['sim_t'], cl_records['sim_ag_action'], label='classic', color=cl_col)
     ax[4].set(xlabel=r'time ($s$)')
     ax[4].set(ylabel= r'cart control ($N$)')
 
@@ -357,7 +357,9 @@ if args.scatter is True:
     robustness_computer = RobustnessComputer(formula_theta=robustness_theta, formula_dist=robustness_dist, 
         alpha=alpha, norm_theta=norm_theta, norm_dist=norm_dist)
 
-    for env in ['atk']:
+    rob_dicts = {'atk':{}, 'pulse':{}}
+
+    for env in ['atk','pulse']:
 
         rob_dict = {env:{}, 'classic_'+env:{}}
 
@@ -404,21 +406,22 @@ if args.scatter is True:
         scatter_diff(rob_dict[env], rob_dict['classic_'+env], filename)
         scatter_full(rob_dict[env], rob_dict['classic_'+env], filename)
 
+        rob_dicts[env] = rob_dict
+
+    n_atk = np.where(rob_dicts['atk']['classic_atk']['rob']==min(rob_dicts['atk']['classic_atk']['rob']))[0][0]
+    # n_pulse = np.where(rob_dicts['pulse']['pulse']['rob']==max(rob_dicts['pulse']['pulse']['rob']))[0][0]
+    rob_diff = rob_dicts['pulse']['pulse']['rob_dist']-rob_dicts['pulse']['classic_pulse']['rob_dist']
+    n_pulse = np.where(rob_diff==max(rob_diff))[0][0]
 
 if args.plot_evolution is True:
 
-    n=560 if len(records)>=1000 else random.randrange(len(records))
-    # mode = 'const'
-    # print(mode+" "+str(n)+":", records[n][mode]['init'])
-    # plot_evolution(records[n][mode], records[n]["classic_"+mode], 'cartpole_target_evolution_'+mode+'.png')
-
+    n = n_atk
     mode = 'atk'
     print(mode+" "+str(n)+":", records[n][mode]['init'])
     plot_evolution_full(records[n][mode], records[n]["classic_"+mode], 'cartpole_target_evolution_'+mode+'_full.png')
     plot_evolution_classic(records[n]["classic_"+mode], 'cartpole_target_evolution_'+mode+'_classic.png')
 
-    n=280 if len(records)>=1000 else random.randrange(len(records))
-
+    n = n_pulse
     mode = "pulse"
     print(mode+" "+str(n)+":", records[n][mode]['init'])
     plot_evolution_fixed_env(records[n][mode], records[n]["classic_"+mode], 'cartpole_target_evolution_'+mode+'_fixed.png')
