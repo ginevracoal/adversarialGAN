@@ -78,23 +78,36 @@ def plot_evolution(sim_time, sim_agent_pos, sim_agent_dist, sim_agent_acc, sim_e
     safe_col = col[0]
     lw=1
 
-    fig, ax = plt.subplots(3, 1, figsize=(6, 5))
+    # fig, ax = plt.subplots(3, 1, figsize=(6, 5))
 
-    ax[0].plot(sim_time, sim_agent_pos, label='follower', color=def_col)
-    ax[0].plot(sim_time, sim_env_pos, label='leader', color=atk_col)
-    ax[0].set(ylabel=r'car position ($m$)')
+    # ax[0].plot(sim_time, sim_agent_pos, label='follower', color=def_col)
+    # ax[0].plot(sim_time, sim_env_pos, label='leader', color=atk_col)
+    # ax[0].set(ylabel=r'car position ($m$)')
+    # ax[0].legend()
+
+    # ax[1].plot(sim_time, sim_agent_dist, color=def_col)
+    # ax[1].set(ylabel=r'distance ($m$)')
+    # ax[1].axhline(2, ls='--', label='safe distance', color=safe_col, lw=lw)
+    # ax[1].axhline(10, ls='--', color=safe_col, lw=lw)
+    # ax[1].legend()
+
+    # ax[2].plot(sim_time, sim_agent_acc, label='follower', color=def_col)
+    # ax[2].plot(sim_time, sim_env_acc, label='leader', color=atk_col, lw=lw)
+    # ax[2].set(xlabel=r'time ($s$)', ylabel=r'car acceleration ($ms^{-2}$)')
+    # ax[2].legend()
+
+    fig, ax = plt.subplots(2, 1, figsize=(6, 3.5))
+
+    ax[0].plot(sim_time, sim_agent_dist, color=def_col, label='distance from leader')
+    ax[0].set(ylabel=r'distance ($m$)')
+    ax[0].axhline(2, ls='--', label='safe distance', color=safe_col, lw=lw)
+    ax[0].axhline(10, ls='--', color=safe_col, lw=lw)
     ax[0].legend()
 
-    ax[1].plot(sim_time, sim_agent_dist, color=def_col)
-    ax[1].set(ylabel=r'distance ($m$)')
-    ax[1].axhline(2, ls='--', label='safe distance', color=safe_col, lw=lw)
-    ax[1].axhline(10, ls='--', color=safe_col, lw=lw)
+    ax[1].plot(sim_time, sim_agent_acc, label='follower', color=def_col)
+    ax[1].plot(sim_time, sim_env_acc, label='leader', color=atk_col, lw=lw)
+    ax[1].set(xlabel=r'time ($s$)', ylabel=r'car acceleration ($ms^{-2}$)')
     ax[1].legend()
-
-    ax[2].plot(sim_time, sim_agent_acc, label='follower', color=def_col)
-    ax[2].plot(sim_time, sim_env_acc, label='leader', color=atk_col, lw=lw)
-    ax[2].set(xlabel=r'time ($s$)', ylabel=r'cart acceleration ($ms^{-2}$)')
-    ax[2].legend()
 
     fig.tight_layout()
     fig.savefig(os.path.join(EXP+relpath, filename), dpi=150)

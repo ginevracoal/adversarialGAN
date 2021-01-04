@@ -34,7 +34,8 @@ def get_settings(name, mode):
         def_arch = {'hidden':2, 'size':10, 'coef':1}
         train_par = {'train_steps':500, 'atk_steps':1, 'def_steps':2, 'horizon':2., 'dt': 0.05, 'lr':.001}
         test_par = {'test_steps':200, 'dt':0.05}
-
+        # test_par = {'test_steps':300, 'dt':0.05}
+    
     else:
         raise NotImplementedError
 

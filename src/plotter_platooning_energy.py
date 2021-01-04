@@ -56,7 +56,7 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array,
 
     cmap = plt.cm.get_cmap('Spectral')
 
-    fig, ax = plt.subplots(1, 2, figsize=(6, 3))
+    fig, ax = plt.subplots(1, 2, figsize=(6, 2.8))
     fig.tight_layout(pad=3.0)
 
     vmax = max(max(cl_robustness_array), max(robustness_array))
@@ -66,7 +66,7 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array,
     im = ax[0].scatter(cl_delta_vel_array, cl_delta_pos_array, c=cl_robustness_array, 
                          cmap=cmap, norm=norm, s=8)
     # ax[0].set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
-    ax[0].set_title('Classic follower robustness', weight='bold', size=10, pad=8)
+    ax[0].set_title('Classic follower', weight='bold', size=10, pad=8)
     # plt.colorbar(im, ax=ax[0])
     
     vmax = max(abs(robustness_array))
@@ -74,13 +74,13 @@ def scatter(robustness_array, delta_pos_array, delta_vel_array,
 
     im = ax[1].scatter(delta_vel_array, delta_pos_array, c=robustness_array, cmap=cmap, norm=norm, s=8)
     # ax[1].set(xlabel='$\Delta$v between leader and follower ($m/s$)', ylabel='Distance ($m$)')
-    ax[1].set_title('Defender follower robustness', weight='bold', size=10, pad=8)
+    ax[1].set_title('Defender follower', weight='bold', size=10, pad=8)
     # plt.colorbar(im, ax=ax[1])
 
     fig.subplots_adjust(right=0.83)
-    cbar_ax = fig.add_axes([0.9, 0.22, 0.03, 0.6])
+    cbar_ax = fig.add_axes([0.9, 0.18, 0.03, 0.7])
     cbar = fig.colorbar(im, ax=ax.ravel().tolist(), cax=cbar_ax)
-    cbar_ax.set_ylabel('robustness', rotation=90, labelpad=-55)
+    cbar_ax.set_ylabel('Robustness', rotation=90, labelpad=-55)
 
     fig.text(0.5, 0.08, '$\Delta$v between leader and follower ($m/s$)', ha='center')
     fig.text(0.03, 0.5, 'Distance ($m$)', va='center', rotation='vertical')
@@ -221,7 +221,7 @@ def plot_evolution_fixed_env(def_records, cl_records, filename):
     safe_col = col[0]
     lw=1
     
-    fig, ax = plt.subplots(5, 1, figsize=(6, 9))
+    fig, ax = plt.subplots(5, 1, figsize=(6, 8))
 
     ax[0].plot(def_records['sim_t'], def_records['sim_ag_pos'], label='defender follower', color=def_col)
     ax[0].plot(cl_records['sim_t'], cl_records['sim_ag_pos'], label='classic follower', color=cl_col)
