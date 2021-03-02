@@ -27,6 +27,8 @@ pip install -r requirements.txt
 cd src/
 ```
 
+Code runs with Python 3.7.4. on Ubuntu 18.10.
+
 ### Reproduce experiments
 
 Change model settings in `src/settings/*`.
