@@ -51,7 +51,7 @@ python plotter_cartpole_target.py -r=1000
 
 <img src="readme_images/cartpole_target_evolution_atk_full.png" width="400"> 
 
-<img src="readme_images/cartpole_target_pct_histogram.png" width="500"> 
+<img src="readme_images/cartpole_target_pct_histogram.png" width="650"> 
 
 <img src="readme_images/classic_sep_cartpole_target_atk_robustness_scatterplot.png" width="400"> <img src="readme_images/defender_sep_cartpole_target_atk_robustness_scatterplot.png" width="400"> 
 
