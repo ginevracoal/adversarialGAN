@@ -39,9 +39,7 @@ python plotter_*.py -r=N_SIMULATIONS
 
 Models and plots are saved in `experiments/`.
 
-### Example 
-
-Running
+### Cartopole with target example 
 
 ```
 python train_cartpole_target.py 
@@ -49,13 +47,13 @@ python tester_cartpole_target.py -r=1000
 python plotter_cartpole_target.py -r=1000
 ```
 
-produces
+<img src="readme_images/cartpole_target_evolution_atk_classic.png" width="400"> <img src="readme_images/cartpole_target_evolution_pulse_fixed.png" width="400"> 
 
-<img src="readme_images/cartpole_target_evolution_atk_classic.png" width="350"> <img src="readme_images/cartpole_target_evolution_pulse_fixed.png" width="350"> 
+<img src="readme_images/cartpole_target_evolution_atk_full.png" width="400"> 
 
-<img src="readme_images/cartpole_target_evolution_atk_full.png" width="350"> <img src="readme_images/cartpole_target_pct_histogram.png" width="350"> 
+<img src="readme_images/cartpole_target_pct_histogram.png" width="500"> 
 
-<img src="readme_images/classic_sep_cartpole_target_atk_robustness_scatterplot.png" width="350"> <img src="readme_images/defender_sep_cartpole_target_atk_robustness_scatterplot.png" width="350"> 
+<img src="readme_images/classic_sep_cartpole_target_atk_robustness_scatterplot.png" width="400"> <img src="readme_images/defender_sep_cartpole_target_atk_robustness_scatterplot.png" width="400"> 
 
 ## Licence
 Creative Commons 4.0 CC-BY
